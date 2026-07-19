@@ -1,0 +1,204 @@
+{
+  "type": "stone_pickaxe_sp003_stage_target_and_sp001_source_grounding_repair",
+  "schema_version": 1,
+  "phase": 126,
+  "generated_at": "2026-07-20T06:17:29+08:00",
+  "base_commit": "41b484a1e755d3743b6aa111e3017125452fa240",
+  "task_id": "SP-003",
+  "policy_ids": [
+    "sp003-explicit-table-target-semantics-v1",
+    "sp003-sp001-machine-reachable-source-order-v1"
+  ],
+  "status": "offline_verified",
+  "retained_failure": {
+    "classification": "sp003_place_stage_target_semantics_and_sp001_nearest_source_mismatch_after_live_first_craft_repair",
+    "episode_id": "sp003_baseline_20260720_051930_f39bab4c",
+    "session_id": "0674ec29-1be",
+    "evidence_commit": "41b484a1e755d3743b6aa111e3017125452fa240",
+    "authorization_commit": "c524b0c723ff5bc6a8d4d4e20f3108f56487007b",
+    "manifest_sha256": "0ef3e451deab673caf500d975098b5f050a3236a6fac8a13f79e7557e97f177e",
+    "behavioral_empty_hand_to_stone_pickaxe_loop_completed": true,
+    "strict_baseline_passed": false,
+    "planner_failure_call_index": 13,
+    "planner_failure_response_sha256": "680d20b2c4a06aaa7ce6de33c536ff08396c1df45188b4cb3bfbd6e1f23043e1",
+    "planner_input_source_id": "grass_block:123:141:-37",
+    "planner_input_stone_surface_clearance": false,
+    "rejected_action": {
+      "type": "dig",
+      "parameters": {
+        "block": "grass_block",
+        "x": 123,
+        "y": 141,
+        "z": -37
+      }
+    },
+    "sp001_criteria_issues": [
+      "initial_movable",
+      "transition_1:nearest_observed_source",
+      "transition_3:nearest_observed_source"
+    ],
+    "automatic_retry_attempted": false
+  },
+  "causal_basis": {
+    "table_reference_was_valid_for_placement": true,
+    "table_reference_name_was_grass_block": true,
+    "planner_compact_target_omitted_false_boolean_markers": true,
+    "planner_inferred_nonexistent_surface_clearance_marker": true,
+    "action_guard_rejected_without_world_mutation": true,
+    "action_snapshot_omitted_ground_block": true,
+    "sp001_evidence_treated_all_distance_near_stone_as_reachable": true,
+    "runtime_dig_guard_required_machine_proven_pickup_access": true,
+    "runtime_and_sp001_evidence_reachability_domains_differed": true,
+    "single_next_hypothesis": "make_table_target_booleans_literal_and_bind_sp001_to_pre_action_machine_proven_reachable_source_order"
+  },
+  "repair_contract": {
+    "scope": "sp003_planner_and_runtime_only",
+    "table_target_semantics_policy_id": "sp003-explicit-table-target-semantics-v1",
+    "all_planner_target_booleans_explicit": true,
+    "false_boolean_inference_allowed": false,
+    "table_place_requires_machine_proven_placement_true": true,
+    "table_reference_name_implies_clearance": false,
+    "planner_action_rewrite_allowed": false,
+    "planner_schema_retry_added": false,
+    "automatic_retry_added": false,
+    "sp001_source_order_policy_id": "sp003-sp001-machine-reachable-source-order-v1",
+    "source_order_generated_before_planning_and_action_execution": true,
+    "source_order_reachability_requires_validated_pickup_access": true,
+    "source_order_distance_basis": "exact_euclidean_player_position_to_block_position",
+    "source_order_tiebreaker": "source_id",
+    "source_order_limit": 12,
+    "source_order_contract_fingerprint_required": true,
+    "source_order_player_position_match_required": true,
+    "source_order_observed_source_match_required": true,
+    "source_order_pickup_and_scan_fingerprints_required": true,
+    "invalid_source_order_fails_closed": true,
+    "unproven_nearby_stone_reachable": false,
+    "action_snapshot_ground_block_preserved": true,
+    "action_snapshot_source_order_preserved": true,
+    "clearance_approach_and_probe_order_unchanged": true,
+    "legacy_evidence_semantics_unchanged": true,
+    "shared_bridge_changed": false,
+    "runtime_preload_changed": false,
+    "vendored_dependency_changed": false,
+    "base_protocol_changed": false,
+    "sp001_verifier_threshold_changed": false,
+    "action_budget_changed": false
+  },
+  "counterfactual_replay": {
+    "source_episode_id": "sp003_baseline_20260720_051930_f39bab4c",
+    "source_evidence_modified": false,
+    "full_machine_observations_replayed_in_memory": true,
+    "selected_source_ids": [
+      "stone:124:139:-38",
+      "stone:124:139:-37",
+      "stone:124:138:-38"
+    ],
+    "machine_reachable_source_order_first_ids": [
+      "stone:124:139:-38",
+      "stone:124:139:-37",
+      "stone:124:138:-38"
+    ],
+    "ground_block": "stone",
+    "initial_movable": true,
+    "sp001_machine_verifier_passed": true,
+    "criteria_issues": [],
+    "legacy_retained_episode_verification_unchanged": true,
+    "legacy_retained_episode_strict_passed": false
+  },
+  "implementation": [
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "edad1a2bdfe48b0ce8ab2fa52dd0f1e57687637241ead07b6b5cdd7a26f221d6"
+    },
+    {
+      "path": "src/singularity/core/planner.py",
+      "sha256": "8d6db3e454bf2488a51bbfeab43190bc65acde117c0553fd1f0924e3e737a060"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase126_target_source_grounding.py",
+      "sha256": "77c18a3728e1639fd9efdc60bc57d560252a2bff9adbc10d7335644bc1584b2c"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase116_table_staging.py",
+      "sha256": "103262f3ff60666cd843f4b32647974559748997641e9cbfd0978cd8ca2cafff"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase124_first_table_tool_craft_readiness.py",
+      "sha256": "d493ee4089766d8cfea20d74a71ae3eeeef99a68c21e0aff1484da0a8ddd957a"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "cff307e100f3071a028f637b5ce2ba5202fe886fc80c843285dc1f60f1009f4f"
+    }
+  ],
+  "protected_identities": [
+    {
+      "path": "src/bot/bot_server.js",
+      "sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
+    },
+    {
+      "path": "src/bot/sp003_inventory_preserving_navigation.js",
+      "sha256": "981331f2aa8c1c27b61985d0407a0dc950efed75d68b93f0c20e5970013136a1"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_protocol.json",
+      "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase122_runtime.py",
+      "sha256": "38eb06ceb04ad464cbb9fa9ab498ee2a15ccff6acc1ffbdb89259e534d32f068"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_phase122_episode_runner.py",
+      "sha256": "35bca1ae12b7b173887dbec4b42afc6c47fd4c6d6ce314f59c084802dbe6405c"
+    },
+    {
+      "path": "scripts/stone-pickaxe-sp003-runtime.ps1",
+      "sha256": "1f107d6a152c2a2bb19dadbc841f7dc111dbd9b83b4c5faf27886a64adbf8551"
+    }
+  ],
+  "retained_phase_125_identities": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_051930_f39bab4c/manifest.json",
+      "sha256": "0ef3e451deab673caf500d975098b5f050a3236a6fac8a13f79e7557e97f177e"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_051930_f39bab4c/session.json",
+      "sha256": "8945ee3d79e708597f2e0329d84549c583dd44050599b5aaebcf5502f0925f4c"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_051930_f39bab4c/episode.json",
+      "sha256": "47b226bc91e987fe66bad786086bbe3e4cd007e0c0aaeeada097926039b2e058"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_051930_f39bab4c/verification.json",
+      "sha256": "1b663c81a8cdb2e7ea62bf38b6b066e3d5737fac7da70a1d94700f3af5b23ad9"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_051930_f39bab4c/authorization_consumption.json",
+      "sha256": "68aee4e0f35744195920ca95b68c4f8ed06133538e25ae38499d26e12a6f5ed2"
+    }
+  ],
+  "validation": {
+    "phase_126_focused_cases": "7/7",
+    "phase_125_counterfactual_sp001_cases": "1/1",
+    "targeted_sp003_cases": "96/96",
+    "all_stone_pickaxe_cases": "324/324",
+    "full_repository_cases": "1079/1079",
+    "node_suites": "7/7",
+    "node_internal_cases": "84/84",
+    "python_compile_passed": true,
+    "powershell_parse_passed": true,
+    "json_validation_passed": true,
+    "credential_scan_matches": 0,
+    "credential_scan_passed": true,
+    "git_diff_check_passed": true
+  },
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

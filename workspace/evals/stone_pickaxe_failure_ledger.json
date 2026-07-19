@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-20T05:33:17+08:00",
+  "generated_at": "2026-07-20T06:17:29+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_125_sp003_first_tool_craft_live_proven_strict_source_selection_failure",
-  "status": "sp003_phase_125_failure_retained_pending_evidence_commit_push_live_authorization_false",
+  "phase": "phase_126_sp003_stage_target_and_sp001_source_grounding_offline_verified",
+  "status": "sp003_phase_126_offline_verified_pending_fix_commit_push_live_authorization_false",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -9890,13 +9890,14 @@
       "phase": "sp003_baseline",
       "task_id": "SP-003",
       "classification": "sp003_place_stage_target_semantics_and_sp001_nearest_source_mismatch_after_live_first_craft_repair",
-      "status": "retained_failure_evidence_pending_commit_push_offline_repair_not_started",
+      "status": "retained_failure_evidence_pushed_phase_126_offline_repair_verified",
       "attributable_to_learned_skill": false,
       "episode_id": "sp003_baseline_20260720_051930_f39bab4c",
       "session_id": "0674ec29-1be",
       "occurred_at_utc": "2026-07-19T21:24:57.549000+00:00",
       "phase_124_fix_commit": "19d5780e6b125ab3353ed00d5ab18ae273461434",
       "authorization_commit": "c524b0c723ff5bc6a8d4d4e20f3108f56487007b",
+      "phase_125_evidence_commit": "41b484a1e755d3743b6aa111e3017125452fa240",
       "authorization_id": "6ec558902e8fcb1e8640caee4be67d2fc9bd7e5111c6affefd7e11a7023103c7",
       "authorization_consumed": true,
       "authorization_reuse_allowed": false,
@@ -9963,6 +9964,40 @@
         "vendored_dependency_modified": false,
         "base_protocol_modified": false
       },
+      "phase_126_repair": {
+        "status": "offline_verified",
+        "audit_path": "workspace/evals/stone_pickaxe_sp003_stage_target_and_sp001_source_grounding_repair.json",
+        "audit_sha256": "5eecf4ad3c410c68ae1df92598e5fcfb040cfd2d5c8cd6d9fa26ef0c89b78a6b",
+        "table_target_semantics_policy_id": "sp003-explicit-table-target-semantics-v1",
+        "planner_target_boolean_markers_explicit": true,
+        "planner_false_marker_inference_allowed": false,
+        "table_place_requires_machine_proven_placement_true": true,
+        "planner_action_rewrite_allowed": false,
+        "sp001_source_order_policy_id": "sp003-sp001-machine-reachable-source-order-v1",
+        "sp001_reachability_requires_machine_proven_pickup_access": true,
+        "sp001_source_order_basis": "euclidean_distance_then_source_id",
+        "sp001_action_snapshot_ground_block_preserved": true,
+        "sp001_source_order_contract_fingerprint_required": true,
+        "invalid_source_order_fails_closed": true,
+        "legacy_evidence_semantics_unchanged": true,
+        "phase_125_counterfactual_sp001_machine_verifier_passed": true,
+        "phase_125_counterfactual_sp001_criteria_issues": [],
+        "validation": {
+          "phase_126_focused_cases": "7/7",
+          "targeted_sp003_cases": "96/96",
+          "all_stone_pickaxe_cases": "324/324",
+          "full_repository_cases": "1079/1079",
+          "node_suites": "7/7",
+          "node_internal_cases": "84/84",
+          "credential_scan_matches": 0
+        },
+        "automatic_retry_added": false,
+        "live_episode_run": false,
+        "live_authorization": false,
+        "counts_toward_baseline_success": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      },
       "runtime_result": {
         "bridge_ready": true,
         "agent_runner_started": true,
@@ -10017,8 +10052,8 @@
       "counts_toward_skill_gate": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
-      "single_next_offline_fix": "phase_126_table_reference_semantics_and_sp001_nearest_source_scheduling",
-      "next_gate": "commit_and_push_phase_125_evidence_then_implement_and_push_phase_126_before_a_separate_parent_bound_baseline_authorization"
+      "single_next_offline_fix": "completed_by_phase_126_explicit_target_and_machine_reachable_source_order",
+      "next_gate": "commit_and_push_phase_126_then_create_one_separate_parent_bound_baseline_authorization"
     }
   ],
   "eligible_successes": [
@@ -11798,7 +11833,7 @@
     "sp003_phase_118_counts_toward_capability": false
   },
   "next_required_gate": {
-    "id": "sp003_phase_125_evidence_commit_push_then_phase_126_offline_fix",
+    "id": "sp003_phase_126_offline_fix_commit_push",
     "authorization": false,
     "prerequisites": [
       "phase_124_offline_fix_commit_is_pushed_and_main_synchronized",
@@ -11809,13 +11844,15 @@
       "phase_125_sp001_nearest_source_mismatches_are_hash_bound",
       "phase_125_all_thirteen_evidence_payload_hashes_are_verified",
       "phase_125_evidence_commit_is_pushed_and_main_synchronized",
-      "phase_126_offline_repair_is_implemented_tested_committed_and_pushed"
+      "phase_126_offline_repair_is_implemented_and_tested",
+      "phase_126_audit_binds_current_implementation_and_phase_125_evidence",
+      "phase_126_offline_repair_is_committed_and_pushed"
     ],
     "arm": "baseline",
     "replicate_id": "baseline",
     "live_episode_limit": 0,
     "normal_runtime_permission": false,
-    "normal_runtime_permission_scope": "no_live_execution_until_phase_125_evidence_is_committed_and_pushed_and_phase_126_offline_repair_is_committed_and_pushed_then_a_separate_parent_bound_one_use_baseline_authorization_is_committed_and_pushed",
+    "normal_runtime_permission_scope": "no_live_execution_until_phase_126_offline_repair_is_committed_and_pushed_then_a_separate_parent_bound_one_use_baseline_authorization_is_committed_and_pushed",
     "automatic_retry_allowed": false
   },
   "artifact_state": {
@@ -11876,6 +11913,8 @@
     "sp003_exact_navigation_parameter_normalization_repair_sha256": "11100a3fe08a79098c2b76e3e8e360c6085f7c58056d258e27ad552de74e89f0",
     "sp003_first_table_tool_craft_readiness_repair_artifacts_created": 1,
     "sp003_first_table_tool_craft_readiness_repair_sha256": "136fbf318b3408cb1834c730385dd88d452cbbfe8d684fa7eb2179df370e4d1c",
+    "sp003_stage_target_and_sp001_source_grounding_repair_artifacts_created": 1,
+    "sp003_stage_target_and_sp001_source_grounding_repair_sha256": "5eecf4ad3c410c68ae1df92598e5fcfb040cfd2d5c8cd6d9fa26ef0c89b78a6b",
     "sp003_provider_health_probe_artifacts_created": 1,
     "sp003_provider_health_probe_sha256": "8cb3fc4c60ce4e3f0f45fe01eb63c370eff141dea71278f9ad3dc819c5cdc18e",
     "sp003_runtime_modules_created": 3,
@@ -11906,7 +11945,7 @@
     "sp002_skill_learning_ledger_sha256_after_promotion": "ec05aa0e034987c82d51005b11863fc35752efde125eb092eb9a5894bd8178f3",
     "sp003_offline_protocol_definition_unlocked": true,
     "sp003_offline_harness_ready": true,
-    "sp003_harness_policy_sha256": "aef9fe1e733476eb93a9264c7e33e7e3a8ed9cf50b400e44f7476691a2c8815f",
+    "sp003_harness_policy_sha256": "cff307e100f3071a028f637b5ce2ba5202fe886fc80c843285dc1f60f1009f4f",
     "sp003_move_to_schema_repair_sha256": "649dc406a9feb26f0037954d36cdb05a031c6ba7aff807e2a55f73524eff38c2",
     "sp003_offline_definition_audit_sha256": "a0d692cc7699e6bb675b774881c21f85c8c11d917c4206994fa797447abfbafe",
     "sp002_candidate_promotion_artifacts_created": 1,

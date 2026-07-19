@@ -144,12 +144,20 @@ SP003_PLANNER_TARGET_FIELDS = [
     "stone_pickup_approach",
     "stone_pickup_access",
     "machine_proven_placement",
+    "target_semantics_policy_id",
     "vertical_delta",
 ]
 SP003_PLANNER_TARGET_LIMIT = 1
 SP003_PLANNER_COMPACT_JSON_MAX_CHARS = 2500
 SP003_PLANNER_USER_PROMPT_MAX_CHARS = 5000
 SP003_PLANNER_MOVE_SCHEMA_POLICY_ID = "sp003-horizontal-move-envelope-v1"
+SP003_TABLE_TARGET_SEMANTICS_POLICY_ID = (
+    "sp003-explicit-table-target-semantics-v1"
+)
+SP003_SP001_SOURCE_ORDER_POLICY_ID = (
+    "sp003-sp001-machine-reachable-source-order-v1"
+)
+SP003_SP001_SOURCE_ORDER_LIMIT = 12
 SP003_FROZEN_BRIDGE_SHA256 = "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
 REPLACEABLE_BLOCKS = {
     "air",
@@ -1141,6 +1149,8 @@ def _place_reference_candidates(observation: Any) -> list[dict]:
             "position": compact,
             "distance": round(float(distance), 6),
             "target_position": {"x": target[0], "y": target[1], "z": target[2]},
+            "machine_proven_placement": True,
+            "target_semantics_policy_id": SP003_TABLE_TARGET_SEMANTICS_POLICY_ID,
         })
     candidates.sort(key=lambda item: (item["distance"], item["source_id"]))
     return candidates
@@ -1975,11 +1985,70 @@ def _safe_stone_candidates(
                 "navigation_only": True,
                 "stone_clearance_probe": True,
             }
+        exact_distance = math.sqrt(
+            (float(x) - player_x) ** 2
+            + (float(y) - player_y) ** 2
+            + (float(z) - player_z) ** 2
+        )
+        ordering_distance = float(support["distance"])
+        if rank == 0:
+            candidate["distance"] = round(exact_distance, 6)
+            ordering_distance = exact_distance
         if reachable_only and float(candidate["distance"]) > interaction_range:
             continue
-        ranked.append((rank, float(support["distance"]), candidate["source_id"], candidate))
+        ranked.append((rank, ordering_distance, candidate["source_id"], candidate))
     ranked.sort(key=lambda item: item[:3])
     return [item[3] for item in ranked]
+
+
+def _sp003_sp001_source_order_contract(
+    observation: Any,
+    progress: Any,
+) -> dict:
+    raw = observation if isinstance(observation, dict) else {}
+    player = raw.get("position") if isinstance(raw.get("position"), dict) else {}
+    if not all(_finite(player.get(axis)) is not None for axis in ("x", "y", "z")):
+        return {}
+    sources = []
+    for candidate in _safe_stone_candidates(raw, progress):
+        if candidate.get("stone_pickup_access") is not True:
+            continue
+        proof = (
+            candidate.get("pickup_access_proof")
+            if isinstance(candidate.get("pickup_access_proof"), dict)
+            else {}
+        )
+        proof_fingerprint = canonical_sha256(proof) if proof else ""
+        scan_fingerprint = str(proof.get("scan_fingerprint") or "")
+        if not re.fullmatch(r"[0-9a-f]{64}", proof_fingerprint):
+            continue
+        if not re.fullmatch(r"[0-9a-f]{64}", scan_fingerprint):
+            continue
+        sources.append({
+            "source_id": str(candidate.get("source_id") or ""),
+            "name": "stone",
+            "position": _compact_position(candidate.get("position")),
+            "distance": round(float(candidate["distance"]), 6),
+            "machine_proven_reachable": True,
+            "pickup_access_proof_fingerprint": proof_fingerprint,
+            "scan_fingerprint": scan_fingerprint,
+        })
+    sources.sort(key=lambda item: (item["distance"], item["source_id"]))
+    sources = sources[:SP003_SP001_SOURCE_ORDER_LIMIT]
+    if not sources:
+        return {}
+    contract = {
+        "type": "sp003_sp001_machine_reachable_source_order",
+        "schema_version": 1,
+        "policy_id": SP003_SP001_SOURCE_ORDER_POLICY_ID,
+        "ordering": "euclidean_distance_then_source_id",
+        "player_position": _compact_position(player),
+        "source_limit": SP003_SP001_SOURCE_ORDER_LIMIT,
+        "source_count": len(sources),
+        "sources": sources,
+    }
+    contract["contract_fingerprint"] = canonical_sha256(contract)
+    return contract
 
 
 def _bounded_complete_local_scan(
@@ -2898,11 +2967,28 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
         observation["flags"] = sorted(set(str(flag) for flag in existing_flags) | set(_sp003_flags(self.sp003_progress)))
         observation["sp003_progress"] = _progress_snapshot(self.sp003_progress)
         observation["sp003_arm"] = self.sp003_arm
+        if _stage(observation, self.sp003_progress) == "acquire_cobblestone":
+            source_order = _sp003_sp001_source_order_contract(
+                observation,
+                self.sp003_progress,
+            )
+            if source_order:
+                observation["sp003_sp001_source_order"] = source_order
         observation["sp003_targets"] = _sp003_observation_targets(
             observation,
             self.sp003_progress,
         )
         return observation
+
+    def _action_observation_snapshot(self, observation: dict) -> dict:
+        snapshot = super()._action_observation_snapshot(observation)
+        if not isinstance(observation, dict):
+            return snapshot
+        for key in ("ground_block", "sp003_sp001_source_order"):
+            value = observation.get(key)
+            if value not in (None, "", [], {}):
+                snapshot[key] = self._bounded_log_value(value, depth=0)
+        return snapshot
 
     def _reconcile_stone_pickaxe_satisfied_tasks(
         self,
@@ -3300,6 +3386,180 @@ def _component_eligibility(
     }
 
 
+def _validated_sp003_sp001_source_order(observation: Any) -> tuple[bool, dict]:
+    raw = observation if isinstance(observation, dict) else {}
+    contract = raw.get("sp003_sp001_source_order")
+    if not isinstance(contract, dict):
+        return False, {}
+    expected_contract_keys = {
+        "type",
+        "schema_version",
+        "policy_id",
+        "ordering",
+        "player_position",
+        "source_limit",
+        "source_count",
+        "sources",
+        "contract_fingerprint",
+    }
+    unsigned = {
+        key: copy.deepcopy(value)
+        for key, value in contract.items()
+        if key != "contract_fingerprint"
+    }
+    if (
+        set(contract) != expected_contract_keys
+        or contract.get("type") != "sp003_sp001_machine_reachable_source_order"
+        or contract.get("schema_version") != 1
+        or contract.get("policy_id") != SP003_SP001_SOURCE_ORDER_POLICY_ID
+        or contract.get("ordering") != "euclidean_distance_then_source_id"
+        or contract.get("source_limit") != SP003_SP001_SOURCE_ORDER_LIMIT
+        or contract.get("contract_fingerprint") != canonical_sha256(unsigned)
+    ):
+        return False, {}
+    player = raw.get("position") if isinstance(raw.get("position"), dict) else {}
+    contract_player = (
+        contract.get("player_position")
+        if isinstance(contract.get("player_position"), dict)
+        else {}
+    )
+    player_coordinates = [_finite(player.get(axis)) for axis in ("x", "y", "z")]
+    contract_coordinates = [
+        _finite(contract_player.get(axis)) for axis in ("x", "y", "z")
+    ]
+    if (
+        any(value is None for value in player_coordinates)
+        or any(value is None for value in contract_coordinates)
+        or any(
+            abs(float(left) - float(right)) > 1e-6
+            for left, right in zip(player_coordinates, contract_coordinates)
+        )
+    ):
+        return False, {}
+    observed_ids = {
+        source_id("stone", block.get("position"))
+        for block in raw.get("nearby_blocks", [])
+        if isinstance(block, dict) and block.get("name") == "stone"
+    } if isinstance(raw.get("nearby_blocks"), list) else set()
+    sources = contract.get("sources")
+    if (
+        not isinstance(sources, list)
+        or not 1 <= len(sources) <= SP003_SP001_SOURCE_ORDER_LIMIT
+        or contract.get("source_count") != len(sources)
+    ):
+        return False, {}
+    expected_source_keys = {
+        "source_id",
+        "name",
+        "position",
+        "distance",
+        "machine_proven_reachable",
+        "pickup_access_proof_fingerprint",
+        "scan_fingerprint",
+    }
+    validated = {}
+    order = []
+    for record in sources:
+        if not isinstance(record, dict) or set(record) != expected_source_keys:
+            return False, {}
+        position = record.get("position") if isinstance(record.get("position"), dict) else {}
+        identifier = source_id("stone", position)
+        coordinates = [_finite(position.get(axis)) for axis in ("x", "y", "z")]
+        distance = _finite(record.get("distance"))
+        if (
+            record.get("name") != "stone"
+            or record.get("machine_proven_reachable") is not True
+            or not identifier
+            or record.get("source_id") != identifier
+            or identifier not in observed_ids
+            or identifier in validated
+            or any(value is None for value in coordinates)
+            or distance is None
+            or not re.fullmatch(
+                r"[0-9a-f]{64}",
+                str(record.get("pickup_access_proof_fingerprint") or ""),
+            )
+            or not re.fullmatch(
+                r"[0-9a-f]{64}",
+                str(record.get("scan_fingerprint") or ""),
+            )
+        ):
+            return False, {}
+        exact_distance = math.sqrt(sum(
+            (float(player_coordinates[index]) - float(coordinates[index])) ** 2
+            for index in range(3)
+        ))
+        if abs(float(distance) - exact_distance) > 1e-6:
+            return False, {}
+        validated[identifier] = copy.deepcopy(record)
+        order.append((round(exact_distance, 6), identifier))
+    if order != sorted(order):
+        return False, {}
+    return True, validated
+
+
+def _sp003_sp001_evidence_observation(
+    observation: Any,
+    *,
+    role: str,
+    ordinal: int,
+    monotonic_s: float,
+    source_state: dict | None = None,
+) -> dict:
+    compact = evidence_observation(
+        observation,
+        role=role,
+        ordinal=ordinal,
+        monotonic_s=monotonic_s,
+        source_state=source_state,
+    )
+    raw = observation if isinstance(observation, dict) else {}
+    if "sp003_sp001_source_order" not in raw:
+        return compact
+    valid, reachable = _validated_sp003_sp001_source_order(raw)
+    player = compact.get("position") if isinstance(compact.get("position"), dict) else {}
+    player_coordinates = [_finite(player.get(axis)) for axis in ("x", "y", "z")]
+    for block in compact.get("observed_blocks", []):
+        if not isinstance(block, dict):
+            continue
+        identifier = str(block.get("source_id") or "")
+        position = block.get("position") if isinstance(block.get("position"), dict) else {}
+        coordinates = [_finite(position.get(axis)) for axis in ("x", "y", "z")]
+        if (
+            all(value is not None for value in player_coordinates)
+            and all(value is not None for value in coordinates)
+        ):
+            block["distance"] = round(math.sqrt(sum(
+                (float(player_coordinates[index]) - float(coordinates[index])) ** 2
+                for index in range(3)
+            )), 6)
+        block["reachable"] = bool(valid and identifier in reachable)
+        if block["reachable"]:
+            proof = reachable[identifier]
+            block["reachability_policy_id"] = SP003_SP001_SOURCE_ORDER_POLICY_ID
+            block["pickup_access_proof_fingerprint"] = proof[
+                "pickup_access_proof_fingerprint"
+            ]
+            block["scan_fingerprint"] = proof["scan_fingerprint"]
+    compact["observed_blocks"].sort(
+        key=lambda item: (item.get("distance", float("inf")), item.get("source_id", ""))
+    )
+    compact["sp003_sp001_source_order_policy_id"] = (
+        SP003_SP001_SOURCE_ORDER_POLICY_ID
+    )
+    compact["sp003_sp001_source_order_valid"] = valid
+    compact["sp003_sp001_source_order"] = (
+        copy.deepcopy(raw["sp003_sp001_source_order"]) if valid else {}
+    )
+    compact.pop("observation_id", None)
+    compact["observation_id"] = canonical_sha256({
+        "role": str(role),
+        "ordinal": int(ordinal),
+        "observation": compact,
+    })
+    return compact
+
+
 def _build_sp001_component(
     *,
     action_events: list[dict],
@@ -3347,14 +3607,14 @@ def _build_sp001_component(
             "present": after_block.get("name") == "stone",
             "position": _compact_position(target),
         }
-        pre = evidence_observation(
+        pre = _sp003_sp001_evidence_observation(
             data.get("pre_observation"),
             role="sp003_sp001_pre_dig",
             ordinal=index,
             monotonic_s=started,
             source_state=before_source,
         )
-        post = evidence_observation(
+        post = _sp003_sp001_evidence_observation(
             data.get("post_observation"),
             role="sp003_sp001_post_dig",
             ordinal=index,
@@ -3407,7 +3667,7 @@ def _build_sp001_component(
     window = action_events[first - 1:last] if first and last else []
     initial_raw = window[0]["data"].get("pre_observation", {}) if window else {}
     terminal_raw = transitions[-1]["post_observation"] if transitions else {}
-    initial = evidence_observation(
+    initial = _sp003_sp001_evidence_observation(
         initial_raw,
         role="sp003_sp001_initial",
         ordinal=0,

@@ -116,7 +116,9 @@ _STONE_PICKAXE_SP003_TARGET_FIELDS = (
     "remaining_clearance_count",
     "stone_clearance_probe",
     "stone_pickup_approach",
+    "stone_pickup_access",
     "machine_proven_placement",
+    "target_semantics_policy_id",
     "vertical_delta",
 )
 _STONE_PICKAXE_SP003_STAGE_INSTRUCTIONS = {
@@ -125,7 +127,7 @@ _STONE_PICKAXE_SP003_STAGE_INSTRUCTIONS = {
     "craft_matching_planks": "Craft exactly 12 planks matching sp003_progress.log_item.",
     "craft_sticks": "Craft exactly 4 sticks.",
     "craft_crafting_table": "Craft exactly one crafting_table.",
-    "place_crafting_table": "Follow the first target's fixed stone probe, approach, or clearance marker before placing exactly one crafting_table from a solid reference target.",
+    "place_crafting_table": "Read every first-target boolean literally: move only for stone_clearance_probe=true or stone_pickup_approach=true, dig only for stone_surface_clearance=true, and place exactly one crafting_table only for machine_proven_placement=true. A false marker is forbidden to infer as true.",
     "return_to_crafting_table": "Move to only the first crafting-table target's x and z coordinates.",
     "craft_wooden_pickaxe": "Craft exactly one wooden_pickaxe.",
     "equip_wooden_pickaxe": "Equip exactly the wooden_pickaxe.",
@@ -728,6 +730,12 @@ RUNTIME RULES:
 - sp002: on a root planning call, copy the exact two-node subtask graph supplied in the user prompt; never return subtasks=[]. Emit exactly one action: craft item="stone_pickaxe" count=1. Require current cobblestone=3, stick=2, stone_pickaxe=0, and an observed crafting_table within 4.5 blocks. Never move, wait, equip, retry, use a recipe alias, craft another item, or report textual success before the machine state changes. On continuation or replan, the one-action budget is already consumed: return complete with actions=[] only for exact cobblestone=0, stick=0, stone_pickaxe=1; otherwise return blocked with actions=[]. Never return planning after the root action.
 - sp003: begin from exact empty inventory and copy the exact five-node graph supplied in the user prompt on the root call. Treat sp003_stage as the authoritative current machine stage and never emit an action from an earlier or later stage. If the first sp003_targets entry has canopy_egress=true, it is navigation-only: emit move_to with only that target's x and z, never dig it, and wait for the next observation before selecting wood. Otherwise gather exactly three observed logs of one family, using only the first entry in sp003_targets and no repeated coordinate; when that wood target's distance exceeds 4.5, move_to with only its x and z before digging. Craft exactly 12 matching planks, exactly 4 sticks, and exactly one crafting_table. During place_crafting_table, when the first target has stone_clearance_probe=true or stone_pickup_approach=true, keep the table in inventory, emit move_to with only that target's x and z, and wait for the next observation. During that same stage, when the first target has stone_surface_clearance=true, keep the table in inventory, dig exactly that machine-proven grass_block or dirt target without skill context, and wait for the next observation. Otherwise place the table once using the first sp003_targets position as the solid reference coordinates; the bridge places above that reference, so never add 1 to y or emit target_position. Then craft exactly one wooden_pickaxe and equip it once. To acquire stone, if the first sp003_targets entry has stone_surface_clearance=true, dig exactly that entry's block and x/y/z without skill context, never dig its support_source_id stone, and wait for the next observation before another action. If the first entry has stone_clearance_probe=true, it is navigation-only: emit move_to with only that target's x and z, never dig it, and wait for the bounded clearance scan in the next observation. If the first entry has stone_pickup_approach=true, it is navigation-only too: emit move_to with only that target's x and z, let the action guard bind the machine-proven stand y, never dig the anchor, and wait for the next observation before selecting an adjacent stone. Otherwise require stone_pickup_access=true on the first target, inspect its distance, and when it exceeds 4.5 emit move_to with only that target's x and z without digging; after the next observation, dig only when that same machine-proven pickup-access target is within 4.5. Remove exactly three stone sources and craft exactly one stone_pickaxe at the same machine-proven table. Never dig a block directly below the player, clear more than six machine-proven grass_block/dirt obstructions in the episode or more than three in one shaft, dig iron, gather extra logs or stone, repeat a table/wooden-pickaxe craft or placement, or use a family substitute for an exact item. Use the compact flags and sp003_progress as authoritative monotonic history. Return blocked with no actions when sp003_targets is empty and the current stage needs navigation, digging, or placement. Return complete only after the current machine state contains stone_pickaxe=1.
 
+SP003 EXPLICIT TARGET SEMANTICS:
+- Every boolean in the first sp003_targets entry is explicit and literal. false means absent; never infer true from the target name, coordinates, terrain, or reasoning.
+- During place_crafting_table, move only for stone_clearance_probe=true or stone_pickup_approach=true, and dig only for literal stone_surface_clearance=true.
+- During place_crafting_table, machine_proven_placement=true requires place item=crafting_table at that target's reference position. Never dig that reference even when its block name is grass_block or dirt.
+- The word "otherwise" in the general rule never overrides an explicit false marker or machine_proven_placement=true.
+
 Required JSON shape:
 {{
   "schema_version":"stone-pickaxe-plan-v1",
@@ -1182,10 +1190,10 @@ Plan the steps to achieve this goal."""
                     "stone_surface_clearance",
                     "stone_clearance_probe",
                     "stone_pickup_approach",
+                    "stone_pickup_access",
                     "machine_proven_placement",
                 }:
-                    if value is True:
-                        target[field] = True
+                    target[field] = value is True
                 elif value:
                     target[field] = compact_text(value)
             compact_targets.append(target)

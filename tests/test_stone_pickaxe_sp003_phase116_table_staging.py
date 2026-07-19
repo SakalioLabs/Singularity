@@ -417,14 +417,19 @@ def test_phase116_planner_compacts_markers_and_runner_uses_overlay(events):
             "source_id": "stone:121:137:-33",
             "name": "stone",
             "position": {"x": 121.0, "y": 137.0, "z": -33.0},
-            "distance": 3.606,
-            "horizontal_distance": 1.645,
-            "navigation_only": True,
-            "remaining_clearance_count": 0,
-            "stone_clearance_probe": True,
-            "vertical_delta": -3.0,
-        }
-    ]
+                "distance": 3.606,
+                "horizontal_distance": 1.645,
+                "navigation_only": True,
+                "canopy_egress": False,
+                "stone_surface_clearance": False,
+                "remaining_clearance_count": 0,
+                "stone_clearance_probe": True,
+                "stone_pickup_approach": False,
+                "stone_pickup_access": False,
+                "machine_proven_placement": False,
+                "vertical_delta": -3.0,
+            }
+        ]
     policy = json.loads(base.SP003_POLICY_PATH.read_text(encoding="utf-8"))
     allowed_target_fields = set(
         policy["episode_contract"]["planner_state_target_fields"]
