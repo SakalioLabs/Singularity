@@ -21,11 +21,13 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     SP003_POLICY_PATH,
     SP003_RUNTIME_POLICY_ID,
     StonePickaxeSP003RuntimeAgent,
+    _bounded_complete_local_scan,
     _empty_progress,
     _merge_local_sp003_blocks,
     _navigation_inventory_proof,
     _progress_snapshot,
     _sp003_observation_targets,
+    _stone_approach_stands,
     audit_sp003_initial_state,
     audit_sp003_reset,
     build_sp003_authorization,
@@ -296,6 +298,197 @@ def preparation_progress():
     progress["log_source_ids"] = {"oak_log:1:64:0", "oak_log:2:64:0", "oak_log:3:64:0"}
     progress["log_item"] = "oak_log"
     return progress
+
+
+def complete_block_scan(blocks, *, origin=None, radius=1):
+    vertical_min = -3
+    vertical_max = 3
+    return {
+        "type": "sp003_bounded_complete_nearby_block_scan",
+        "schema_version": 1,
+        "scan_complete": True,
+        "radius": radius,
+        "vertical_min_offset": vertical_min,
+        "vertical_max_offset": vertical_max,
+        "origin_cell": dict(origin or {"x": 0, "y": 64, "z": 0}),
+        "origin_stable": True,
+        "post_scan_player_cell": dict(origin or {"x": 0, "y": 64, "z": 0}),
+        "scanned_cell_count": (2 * radius + 1) ** 2
+        * (vertical_max - vertical_min + 1),
+        "backend_path": "src/bot/bot_server.js",
+        "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+        "response_limit": 50,
+        "response_count": len(blocks),
+        "completeness_basis": "result_count_below_frozen_backend_limit",
+        "blocks": copy.deepcopy(list(blocks)),
+    }
+
+
+def cobblestone_progress():
+    progress = preparation_progress()
+    progress.update({
+        "plank_craft_count": 1,
+        "stick_craft_count": 1,
+        "crafting_table_craft_count": 1,
+        "crafting_table_place_count": 1,
+        "wooden_pickaxe_craft_count": 1,
+        "wooden_pickaxe_equip_count": 1,
+    })
+    return progress
+
+
+def test_complete_stone_scan_proves_clear_stand_and_fails_closed_when_obstructed():
+    stone = block("stone", 1, 61, 0, 3.162278)
+    clear_scan = complete_block_scan([stone], origin={"x": 0, "y": 64, "z": 0})
+
+    approaches = _stone_approach_stands(clear_scan)
+
+    assert approaches[0]["source_id"] == "stone:1:61:0"
+    assert approaches[0]["stand_position"] == {"x": 1, "y": 62, "z": 0}
+    assert approaches[0]["proof"]["head_position"] == {"x": 1, "y": 63, "z": 0}
+    obstructed = copy.deepcopy(clear_scan)
+    obstructed["blocks"].append(block("dirt", 1, 63, 0, 1.414214))
+    obstructed["response_count"] += 1
+    assert _stone_approach_stands(obstructed) == []
+    incomplete = copy.deepcopy(clear_scan)
+    incomplete["scan_complete"] = False
+    assert _stone_approach_stands(incomplete) == []
+    incomplete_count = copy.deepcopy(clear_scan)
+    incomplete_count["scanned_cell_count"] -= 1
+    assert _stone_approach_stands(incomplete_count) == []
+    assert _stone_approach_stands(clear_scan["blocks"]) == []
+    machine_report = _bounded_complete_local_scan(
+        observation(position={"x": 0.5, "y": 64.0, "z": 0.5}),
+        [stone],
+    )
+    assert machine_report["scan_complete"] is True
+    assert machine_report["response_count"] == 1
+    assert _bounded_complete_local_scan(
+        observation(position={"x": 0.5, "y": 64.0, "z": 0.5}),
+        [stone] * 50,
+    ) == {}
+    assert _bounded_complete_local_scan(
+        observation(position={"x": 0.5, "y": 64.0, "z": 0.5}),
+        [stone],
+        {"position": {"x": 1.5, "y": 64.0, "z": 0.5}},
+    ) == {}
+
+
+def test_phase88_retained_stone_target_requires_grounded_navigation_before_dig():
+    session_path = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_081246_b6ebff81/session.json"
+    )
+    events = json.loads(session_path.read_text(encoding="utf-8"))
+    retained = copy.deepcopy(next(
+        event["data"]
+        for event in events
+        if event.get("type") == "observation"
+        and (event.get("data", {}).get("sp003_targets") or [{}])[0].get("source_id")
+        == "stone:124:139:-37"
+    ))
+    progress = copy.deepcopy(retained["sp003_progress"])
+    retained["sp003_stone_approach_stands"] = []
+
+    targets = _sp003_observation_targets(retained, progress)
+
+    assert targets[0]["source_id"] == "stone:124:139:-37"
+    assert targets[0]["stone_clearance_probe"] is True
+    assert targets[0]["navigation_only"] is True
+    direct = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "stone", "x": 124, "y": 139, "z": -37},
+        },
+        retained,
+        progress,
+    )
+    assert not direct["allowed"]
+    assert "sp003_stone_clearance_probe_required_before_dig" in direct["issues"]
+    horizontal = guard_sp003_action(
+        {"type": "move_to", "parameters": {"x": 124, "z": -37}},
+        retained,
+        progress,
+    )
+    assert horizontal["allowed"], horizontal
+    assert horizontal["action"]["parameters"] == {
+        "x": 124,
+        "z": -37,
+        "tolerance": 1,
+        "preserve_inventory": True,
+    }
+
+    centered = copy.deepcopy(retained)
+    centered["position"] = {"x": 124.5, "y": 142.0, "z": -36.5}
+    local_blocks = [
+        item
+        for item in retained["nearby_blocks"]
+        if abs(item["position"]["x"] - 124) <= 1
+        and 139 <= item["position"]["y"] <= 145
+        and abs(item["position"]["z"] - -37) <= 1
+    ]
+    centered["sp003_stone_approach_stands"] = _stone_approach_stands(
+        complete_block_scan(
+            local_blocks,
+            origin={"x": 124, "y": 142, "z": -37},
+        )
+    )
+    centered_targets = _sp003_observation_targets(centered, progress)
+    assert centered_targets[0]["stand_position"] == {"x": 124, "y": 140, "z": -37}
+    assert centered_targets[0]["stone_pickup_approach"] is True
+    grounded_direct = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "stone", "x": 124, "y": 139, "z": -37},
+        },
+        centered,
+        progress,
+    )
+    assert not grounded_direct["allowed"]
+    assert "sp003_stone_grounded_approach_required_before_dig" in grounded_direct["issues"]
+    move = guard_sp003_action(
+        {"type": "move_to", "parameters": {"x": 124, "z": -37}},
+        centered,
+        progress,
+    )
+    assert move["allowed"], move
+    assert move["action"]["parameters"] == {
+        "x": 124,
+        "y": 140,
+        "z": -37,
+        "tolerance": 1,
+        "preserve_inventory": True,
+    }
+    assert move["selected_source"]["stone_pickup_approach"] is True
+    forged = copy.deepcopy(centered)
+    forged["sp003_stone_approach_stands"][0]["proof"]["scan_complete"] = False
+    assert _sp003_observation_targets(forged, progress) == []
+
+
+def test_grounded_stone_approach_excludes_anchor_and_allows_adjacent_stone_dig():
+    progress = cobblestone_progress()
+    grounded = observation(
+        {"wooden_pickaxe": 1},
+        [
+            block("stone", 124, 139, -37, 1.0),
+            block("stone", 125, 139, -37, 1.414214),
+        ],
+        held="wooden_pickaxe",
+        position={"x": 124.5, "y": 140.0, "z": -36.5},
+    )
+
+    targets = _sp003_observation_targets(grounded, progress)
+
+    assert [target["source_id"] for target in targets] == ["stone:125:139:-37"]
+    adjacent = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "stone", "x": 125, "y": 139, "z": -37},
+        },
+        grounded,
+        progress,
+    )
+    assert adjacent["allowed"], adjacent
 
 
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
@@ -652,6 +845,10 @@ def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
     planner._expected_plan_kind = "continuation"
     prompt = Planner._stone_pickaxe_system_prompt(planner)
     assert "has canopy_egress=true, it is navigation-only" in prompt
+    assert "has stone_clearance_probe=true, it is navigation-only" in prompt
+    assert "wait for the bounded clearance scan" in prompt
+    assert "has stone_pickup_approach=true, it is navigation-only" in prompt
+    assert "let the action guard bind the machine-proven stand y" in prompt
     assert "when that wood target's distance exceeds 4.5" in prompt
     assert "never add 1 to y or emit target_position" in prompt
     assert "when it exceeds 4.5, emit move_to with only that target's x and z" in prompt

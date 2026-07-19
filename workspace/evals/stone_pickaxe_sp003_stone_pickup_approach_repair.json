@@ -1,0 +1,164 @@
+{
+  "type": "stone_pickaxe_sp003_stone_pickup_approach_repair",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-19T01:06:48.1446238Z",
+  "phase": 89,
+  "status": "offline_fix_verified_pending_commit_push",
+  "base_commit": "d9b145157631b800fa81b7bdcaba6b107f11409d",
+  "task_id": "SP-003",
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_081246_b6ebff81",
+    "session_id": "e1b910e8-d70",
+    "authorization_commit": "9b3ae9f81865e6f2f3593e0a2ff9ebf5881b16dd",
+    "evidence_commit": "d9b145157631b800fa81b7bdcaba6b107f11409d",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_081246_b6ebff81/manifest.json",
+    "manifest_sha256": "2d354144c6be9d19c47471730ebece58cb74467ebd968cfb89493b05961a6880",
+    "session_sha256": "bba0b0d7800109c13f96036e00ed6a49eb0eec76c626de535df816e5e7036623",
+    "evidence_file_count": 13,
+    "surface_player_position": {
+      "x": 122.5,
+      "y": 142.0,
+      "z": -34.5
+    },
+    "first_stone_source_id": "stone:124:139:-37",
+    "first_stone_position": {
+      "x": 124,
+      "y": 139,
+      "z": -37
+    },
+    "stone_block_removed_count": 3,
+    "detected_cobblestone_drop_count": 3,
+    "grounded_cobblestone_pickup_count": 0,
+    "terminal_inventory": {
+      "stick": 2,
+      "oak_planks": 3,
+      "wooden_pickaxe": 1
+    },
+    "termination_reason": "max_actions",
+    "elapsed_s": 276.531,
+    "automatic_retry_performed": false
+  },
+  "root_cause": {
+    "classification": "sp003_stone_drop_vertical_pickup_reachability_disconnect",
+    "player_to_stone_vertical_delta": -3,
+    "pre_dig_grounded_pickup_approach_planned": false,
+    "stone_used_as_navigation_support_before_dig": false,
+    "pathfinder_world_mutation_disabled": true,
+    "post_dig_drop_navigation_reached": false,
+    "shared_bridge_scan_result_limit": 50,
+    "shared_bridge_scan_absence_was_not_previously_treated_as_complete_proof": true
+  },
+  "change": {
+    "runtime_path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+    "runtime_sha256": "51f001bc92ba7aceb58b89cd124c06dd45d4464e7cb220c3f891e411825ae4c1",
+    "planner_path": "src/singularity/core/planner.py",
+    "planner_sha256": "cfd8e86f41c75a978b63d0359ba741c307309679a22c501c7f86d927d68f9e2c",
+    "tests_path": "tests/test_stone_pickaxe_sp003_runtime.py",
+    "tests_sha256": "6d29be658399ef16bcd424c2f7c6cb5439f4a61342a75945f178d5a3fd0608cf",
+    "selection_contract": {
+      "activation": "acquire_cobblestone_stage_and_observed_stone_more_than_1.25_vertical_blocks_below_player",
+      "phase_one": "horizontal_clearance_probe_to_nearest_observed_stone_column",
+      "phase_one_world_mutation": false,
+      "phase_one_tolerance": 1,
+      "clearance_scan_radius": 1,
+      "clearance_scan_vertical_offsets": [-3, 3],
+      "clearance_scan_cell_count": 63,
+      "clearance_scan_response_limit": 50,
+      "clearance_scan_complete_only_when_response_count_below_limit": true,
+      "clearance_scan_origin_cell_must_remain_stable": true,
+      "clearance_scan_backend_sha256_required": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+      "support_block_must_be_exact_stone": true,
+      "stand_cell_must_be_air": true,
+      "head_cell_must_be_air": true,
+      "phase_two": "exact_y_navigation_to_machine_proven_stand_cell_above_unmined_stone",
+      "phase_two_world_mutation": false,
+      "phase_two_tolerance": 1,
+      "direct_probe_or_anchor_dig_rejected": true,
+      "missing_truncated_obstructed_or_forged_proof_fails_closed": true
+    },
+    "retained_replay": {
+      "initial_target_source_id": "stone:124:139:-37",
+      "initial_target_kind": "stone_clearance_probe",
+      "horizontal_probe_action": {
+        "x": 124,
+        "z": -37,
+        "tolerance": 1
+      },
+      "centered_scan_origin": {
+        "x": 124,
+        "y": 142,
+        "z": -37
+      },
+      "machine_proven_stand_position": {
+        "x": 124,
+        "y": 140,
+        "z": -37
+      },
+      "anchor_direct_dig_rejected": true,
+      "grounded_anchor_excluded_from_dig_candidates": true,
+      "adjacent_same_level_stone_dig_allowed": true
+    },
+    "movement_contract": {
+      "inventory_preservation_required": true,
+      "pathfinder_can_dig": false,
+      "pathfinder_allow_1_by_1_towers": false,
+      "pathfinder_scaffolding_items": [],
+      "world_mutation_authorized": false
+    },
+    "shared_bridge_modified": false,
+    "preload_modified": false,
+    "runtime_policy_modified": false,
+    "protocol_modified": false
+  },
+  "identity": {
+    "runtime_policy_sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
+    "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "shared_bridge_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+    "inventory_preserving_preload_sha256": "b318e60c69d202cf0f48d2cf5c564b7a7658afad5815e3552f23ce73928bdcfd"
+  },
+  "validation": {
+    "retained_phase88_replay": true,
+    "horizontal_probe_then_grounded_approach_replayed": true,
+    "grounded_adjacent_stone_control": true,
+    "missing_proof_control": true,
+    "truncated_scan_control": true,
+    "obstructed_stand_control": true,
+    "forged_proof_control": true,
+    "unstable_origin_control": true,
+    "sp003_dedicated": "30/30",
+    "stone_pickaxe_protocol_and_runtime": "211/211",
+    "repository_non_live_python": "966/966",
+    "node_suites": "7/7",
+    "node_internal_cases": "58/58",
+    "python_compile": true,
+    "json_parse": true,
+    "git_diff_check": true,
+    "retained_manifest_sha256_preserved": true,
+    "frozen_policy_sha256_preserved": true,
+    "frozen_protocol_sha256_preserved": true,
+    "frozen_shared_bridge_sha256_preserved": true,
+    "probe_21_22_evidence_modified": false
+  },
+  "immutability": {
+    "retained_failure_modified": false,
+    "prior_sp003_failures_modified": false,
+    "prior_sp001_sp002_evidence_modified": false,
+    "custom_skill_store_modified": false,
+    "capability_report_modified": false,
+    "m4_probe22_report_sha256": "3db980c2c95efa9c505cd3da92d78883f5628006871210904e18cf8f782251f0",
+    "m4_probe22_derived_audit_sha256": "b43104148389da575d85f5a238d330f72884cb9ca708188402e485156a8b0cbd"
+  },
+  "live_state": {
+    "runtime_start_attempts": 7,
+    "baseline_authorizations_consumed": 7,
+    "baseline_episode_failures": 6,
+    "infrastructure_failures": 1,
+    "baseline_successes": 0,
+    "candidate_successes": 0,
+    "live_authorization": false,
+    "live_episode_run_during_repair": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "next_gate": "push_phase_89_then_commit_one_fresh_parent_bound_baseline_authorization_without_reusing_any_prior_episode_or_world"
+}

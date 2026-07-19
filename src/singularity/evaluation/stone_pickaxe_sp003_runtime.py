@@ -77,6 +77,9 @@ CANOPY_EGRESS_GROUND_BLOCKS = {
     "sand",
 }
 CANOPY_EGRESS_MIN_HORIZONTAL_DISTANCE = 8.0
+SP003_CLEARANCE_SCAN_RADIUS = 1
+SP003_CLEARANCE_SCAN_RESPONSE_LIMIT = 50
+SP003_FROZEN_BRIDGE_SHA256 = "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
 REPLACEABLE_BLOCKS = {
     "air",
     "cave_air",
@@ -849,6 +852,13 @@ def _safe_stone_candidates(
     player_z = _finite(player.get("z"))
     if player_x is None or player_y is None or player_z is None:
         return candidates
+    approach_records = raw.get("sp003_stone_approach_stands")
+    approach_records = approach_records if isinstance(approach_records, list) else []
+    approaches = {
+        str(record.get("source_id") or ""): record
+        for record in approach_records
+        if isinstance(record, dict) and record.get("source_id")
+    }
     player_column = (math.floor(player_x), math.floor(player_z))
     safe = []
     for candidate in candidates:
@@ -863,9 +873,295 @@ def _safe_stone_candidates(
             and (round(x), round(z)) == player_column
             and y < player_y
         )
-        if not directly_below:
-            safe.append(candidate)
+        vertical_gap = player_y - y if y is not None else 0.0
+        if directly_below and vertical_gap <= 1.25:
+            continue
+        if y is not None and vertical_gap > 1.25:
+            approach = _validated_stone_approach(
+                candidate,
+                approaches.get(candidate["source_id"]),
+            )
+            if approach:
+                candidate = {
+                    **candidate,
+                    "vertical_delta": round(y - player_y, 6),
+                    "stand_position": copy.deepcopy(approach["stand_position"]),
+                    "navigation_only": True,
+                    "stone_pickup_approach": True,
+                    "clearance_proof": copy.deepcopy(approach["proof"]),
+                }
+            else:
+                horizontal_distance = math.hypot(x - player_x, z - player_z)
+                if directly_below or horizontal_distance <= 1.25:
+                    continue
+                candidate = {
+                    **candidate,
+                    "vertical_delta": round(y - player_y, 6),
+                    "horizontal_distance": round(horizontal_distance, 6),
+                    "navigation_only": True,
+                    "stone_clearance_probe": True,
+                }
+        safe.append(candidate)
     return safe
+
+
+def _validated_stone_approach(candidate: Any, record: Any) -> dict:
+    if not isinstance(candidate, dict) or not isinstance(record, dict):
+        return {}
+    position = candidate.get("position") if isinstance(candidate.get("position"), dict) else {}
+    support = record.get("support_position") if isinstance(record.get("support_position"), dict) else {}
+    stand = record.get("stand_position") if isinstance(record.get("stand_position"), dict) else {}
+    proof = record.get("proof") if isinstance(record.get("proof"), dict) else {}
+
+    def cell(value: Any) -> tuple[int, int, int] | None:
+        raw = value if isinstance(value, dict) else {}
+        coordinates = [_finite(raw.get(axis)) for axis in ("x", "y", "z")]
+        if any(item is None or not float(item).is_integer() for item in coordinates):
+            return None
+        return tuple(int(item) for item in coordinates)
+
+    candidate_cell = cell(position)
+    support_cell = cell(support)
+    stand_cell = cell(stand)
+    expected_stand = (
+        (candidate_cell[0], candidate_cell[1] + 1, candidate_cell[2])
+        if candidate_cell is not None
+        else None
+    )
+    expected_head = (
+        (candidate_cell[0], candidate_cell[1] + 2, candidate_cell[2])
+        if candidate_cell is not None
+        else None
+    )
+    proof_support = cell(proof.get("support_position"))
+    proof_stand = cell(proof.get("stand_position"))
+    proof_head = cell(proof.get("head_position"))
+    proof_origin = cell(proof.get("scan_origin_cell"))
+    proof_radius = _count(proof.get("scan_radius"))
+    proof_vertical_min = proof.get("vertical_min_offset")
+    proof_vertical_max = proof.get("vertical_max_offset")
+    proof_cell_count = proof.get("scanned_cell_count")
+    proof_geometry_valid = (
+        proof_origin is not None
+        and proof_radius == SP003_CLEARANCE_SCAN_RADIUS
+        and proof_vertical_min == -3
+        and proof_vertical_max == 3
+        and proof_cell_count == (2 * proof_radius + 1) ** 2 * 7
+        and all(
+            abs(item[0] - proof_origin[0]) <= proof_radius
+            and proof_origin[1] + proof_vertical_min
+            <= item[1]
+            <= proof_origin[1] + proof_vertical_max
+            and abs(item[2] - proof_origin[2]) <= proof_radius
+            for item in (candidate_cell, expected_stand, expected_head)
+            if item is not None
+        )
+    )
+    checks = [
+        candidate_cell is not None,
+        support_cell == candidate_cell,
+        stand_cell == expected_stand,
+        proof_support == candidate_cell,
+        proof_stand == expected_stand,
+        proof_head == expected_head,
+        record.get("source_id") == candidate.get("source_id"),
+        record.get("source_id") == source_id("stone", position),
+        record.get("stand_and_head_clear") is True,
+        proof.get("type") == "sp003_stone_approach_clearance_proof",
+        proof.get("schema_version") == 1,
+        proof.get("scan_complete") is True,
+        proof_geometry_valid,
+        proof.get("origin_stable") is True,
+        cell(proof.get("post_scan_player_cell")) == proof_origin,
+        proof.get("backend_path") == "src/bot/bot_server.js",
+        proof.get("backend_sha256") == SP003_FROZEN_BRIDGE_SHA256,
+        proof.get("response_limit") == SP003_CLEARANCE_SCAN_RESPONSE_LIMIT,
+        proof.get("response_count", SP003_CLEARANCE_SCAN_RESPONSE_LIMIT)
+        < SP003_CLEARANCE_SCAN_RESPONSE_LIMIT,
+        proof.get("completeness_basis")
+        == "result_count_below_frozen_backend_limit",
+        proof.get("support_block") == "stone",
+        proof.get("stand_cell_state") == "air",
+        proof.get("head_cell_state") == "air",
+    ]
+    return record if all(checks) else {}
+
+
+def _stone_approach_stands(scan_report: Any) -> list[dict]:
+    report = scan_report if isinstance(scan_report, dict) else {}
+    blocks = report.get("blocks") if isinstance(report.get("blocks"), list) else []
+    origin = report.get("origin_cell") if isinstance(report.get("origin_cell"), dict) else {}
+    radius = _count(report.get("radius"))
+    vertical_min = report.get("vertical_min_offset")
+    vertical_max = report.get("vertical_max_offset")
+    origin_coordinates = [_finite(origin.get(axis)) for axis in ("x", "y", "z")]
+    if (
+        report.get("type") != "sp003_bounded_complete_nearby_block_scan"
+        or report.get("schema_version") != 1
+        or report.get("scan_complete") is not True
+        or report.get("origin_stable") is not True
+        or radius != SP003_CLEARANCE_SCAN_RADIUS
+        or not isinstance(vertical_min, int)
+        or not isinstance(vertical_max, int)
+        or vertical_min != -3
+        or vertical_max != 3
+        or any(value is None or not float(value).is_integer() for value in origin_coordinates)
+        or report.get("scanned_cell_count")
+        != (2 * radius + 1) ** 2 * (vertical_max - vertical_min + 1)
+        or report.get("backend_path") != "src/bot/bot_server.js"
+        or report.get("backend_sha256") != SP003_FROZEN_BRIDGE_SHA256
+        or report.get("response_limit") != SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+        or report.get("response_count") != len(blocks)
+        or len(blocks) >= SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+        or report.get("completeness_basis")
+        != "result_count_below_frozen_backend_limit"
+    ):
+        return []
+    origin_cell = tuple(int(value) for value in origin_coordinates)
+
+    def inside_scan(cell: tuple[int, int, int]) -> bool:
+        return (
+            abs(cell[0] - origin_cell[0]) <= radius
+            and origin_cell[1] + vertical_min <= cell[1] <= origin_cell[1] + vertical_max
+            and abs(cell[2] - origin_cell[2]) <= radius
+        )
+
+    occupied = set()
+    stones = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        position = block.get("position") if isinstance(block.get("position"), dict) else {}
+        coordinates = [_finite(position.get(axis)) for axis in ("x", "y", "z")]
+        if any(value is None or not float(value).is_integer() for value in coordinates):
+            continue
+        cell = tuple(int(value) for value in coordinates)
+        if not inside_scan(cell):
+            continue
+        occupied.add(cell)
+        if block.get("name") == "stone":
+            stones.append((block, cell))
+    approaches = []
+    for block, cell in stones:
+        stand_cell = (cell[0], cell[1] + 1, cell[2])
+        head_cell = (cell[0], cell[1] + 2, cell[2])
+        if (
+            not inside_scan(stand_cell)
+            or not inside_scan(head_cell)
+            or stand_cell in occupied
+            or head_cell in occupied
+        ):
+            continue
+        support_position = {"x": cell[0], "y": cell[1], "z": cell[2]}
+        stand_position = {
+            "x": stand_cell[0],
+            "y": stand_cell[1],
+            "z": stand_cell[2],
+        }
+        head_position = {"x": head_cell[0], "y": head_cell[1], "z": head_cell[2]}
+        approaches.append({
+            "source_id": source_id("stone", support_position),
+            "support_position": support_position,
+            "stand_position": stand_position,
+            "stand_and_head_clear": True,
+            "proof": {
+                "type": "sp003_stone_approach_clearance_proof",
+                "schema_version": 1,
+                "scan_complete": True,
+                "scan_radius": radius,
+                "scan_origin_cell": {
+                    "x": origin_cell[0],
+                    "y": origin_cell[1],
+                    "z": origin_cell[2],
+                },
+                "origin_stable": True,
+                "post_scan_player_cell": copy.deepcopy(
+                    report["post_scan_player_cell"]
+                ),
+                "vertical_min_offset": vertical_min,
+                "vertical_max_offset": vertical_max,
+                "scanned_cell_count": report["scanned_cell_count"],
+                "backend_path": report["backend_path"],
+                "backend_sha256": report["backend_sha256"],
+                "response_limit": report["response_limit"],
+                "response_count": report["response_count"],
+                "completeness_basis": report["completeness_basis"],
+                "support_block": "stone",
+                "support_position": support_position,
+                "stand_position": stand_position,
+                "head_position": head_position,
+                "stand_cell_state": "air",
+                "head_cell_state": "air",
+            },
+            "distance": round(float(_finite(block.get("distance")) or 0.0), 6),
+        })
+    approaches.sort(key=lambda item: (item["distance"], item["source_id"]))
+    return approaches[:16]
+
+
+def _bounded_complete_local_scan(
+    observation: Any,
+    local_scan: Any,
+    post_player_state: Any = None,
+) -> dict:
+    raw = observation if isinstance(observation, dict) else {}
+    after = post_player_state if isinstance(post_player_state, dict) else raw
+    blocks = local_scan if isinstance(local_scan, list) else []
+    position = raw.get("position") if isinstance(raw.get("position"), dict) else {}
+    post_position = (
+        after.get("position") if isinstance(after.get("position"), dict) else {}
+    )
+    coordinates = [_finite(position.get(axis)) for axis in ("x", "y", "z")]
+    post_coordinates = [_finite(post_position.get(axis)) for axis in ("x", "y", "z")]
+    backend_path = REPOSITORY_ROOT / "src/bot/bot_server.js"
+    origin_cell = (
+        tuple(math.floor(float(value)) for value in coordinates)
+        if all(value is not None for value in coordinates)
+        else None
+    )
+    post_cell = (
+        tuple(math.floor(float(value)) for value in post_coordinates)
+        if all(value is not None for value in post_coordinates)
+        else None
+    )
+    if (
+        not isinstance(local_scan, list)
+        or len(blocks) >= SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+        or origin_cell is None
+        or post_cell != origin_cell
+        or file_sha256(backend_path) != SP003_FROZEN_BRIDGE_SHA256
+    ):
+        return {}
+    radius = SP003_CLEARANCE_SCAN_RADIUS
+    vertical_min = -3
+    vertical_max = 3
+    return {
+        "type": "sp003_bounded_complete_nearby_block_scan",
+        "schema_version": 1,
+        "scan_complete": True,
+        "radius": radius,
+        "vertical_min_offset": vertical_min,
+        "vertical_max_offset": vertical_max,
+        "origin_cell": {
+            "x": origin_cell[0],
+            "y": origin_cell[1],
+            "z": origin_cell[2],
+        },
+        "origin_stable": True,
+        "post_scan_player_cell": {
+            "x": post_cell[0],
+            "y": post_cell[1],
+            "z": post_cell[2],
+        },
+        "scanned_cell_count": (2 * radius + 1) ** 2
+        * (vertical_max - vertical_min + 1),
+        "backend_path": "src/bot/bot_server.js",
+        "backend_sha256": SP003_FROZEN_BRIDGE_SHA256,
+        "response_limit": SP003_CLEARANCE_SCAN_RESPONSE_LIMIT,
+        "response_count": len(blocks),
+        "completeness_basis": "result_count_below_frozen_backend_limit",
+        "blocks": copy.deepcopy(blocks),
+    }
 
 
 def _merge_local_sp003_blocks(observation: Any, local_scan: Any) -> list[dict]:
@@ -947,12 +1243,17 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
                 if action_type == "move_to":
                     stand_position = selected_source.get("stand_position")
                     if (
-                        selected_source.get("canopy_egress") is True
+                        selected_source.get("navigation_only") is True
                         and isinstance(stand_position, dict)
                     ):
                         normalized["parameters"].update(stand_position)
                     else:
                         normalized["parameters"].pop("y", None)
+                    if (
+                        selected_source.get("stone_clearance_probe") is True
+                        or selected_source.get("stone_pickup_approach") is True
+                    ):
+                        normalized["parameters"]["tolerance"] = 1
                     normalized["parameters"]["preserve_inventory"] = True
     elif action_type == "dig" and stage == "acquire_wood":
         block = str(params.get("block") or "")
@@ -1056,6 +1357,10 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
             issues.append("sp003_stone_target_must_be_reachable_and_observed")
         elif candidates[0]["source_id"] != target_id:
             issues.append("sp003_stone_target_must_be_nearest_observed")
+        elif matching[0].get("stone_clearance_probe") is True:
+            issues.append("sp003_stone_clearance_probe_required_before_dig")
+        elif matching[0].get("stone_pickup_approach") is True:
+            issues.append("sp003_stone_grounded_approach_required_before_dig")
         else:
             selected_source = matching[0]
             normalized["parameters"]["source_id"] = target_id
@@ -1244,7 +1549,14 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
             self._sp003_feedback_observation_override = None
             return copy.deepcopy(cached)
         observation = dict(super()._observe())
-        local_scan = self.bot.get_nearby_blocks(radius=5)
+        local_scan = self.bot.get_nearby_blocks(radius=SP003_CLEARANCE_SCAN_RADIUS)
+        post_scan_player_state = self.bot.get_player_state()
+        scan_report = _bounded_complete_local_scan(
+            observation,
+            local_scan,
+            post_scan_player_state,
+        )
+        observation["sp003_stone_approach_stands"] = _stone_approach_stands(scan_report)
         observation["nearby_blocks"] = _merge_local_sp003_blocks(
             observation,
             local_scan,

@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-19T08:24:00+08:00",
+  "generated_at": "2026-07-19T09:06:48+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_88_sp003_stone_drop_vertical_pickup_reachability_failure",
-  "status": "sp003_stone_drop_vertical_pickup_reachability_failure_retained_pending_commit_push",
+  "phase": "phase_89_sp003_stone_pickup_approach_offline_fix",
+  "status": "sp003_stone_pickup_approach_offline_fix_verified_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -415,6 +415,9 @@
       "preload_module_specifier_repair_sha256": "a65e804afccb17e5672ae590b48696de377f37efd8b0f87ef043079ed5a40199",
       "canopy_egress_repair_path": "workspace/evals/stone_pickaxe_sp003_canopy_egress_repair.json",
       "canopy_egress_repair_sha256": "9a9ed662747ecdb32ad5ce0c1084545aaab477bd89271e574f66f948fe63c84b",
+      "stone_pickup_approach_repair_path": "workspace/evals/stone_pickaxe_sp003_stone_pickup_approach_repair.json",
+      "stone_pickup_approach_repair_sha256": "b9753d2de8f87ba2786d395459f481a64118ee3a5c9b6689ef414f7439a8e0c7",
+      "offline_stone_pickup_approach_ready": true,
       "live_authorization": false
     }
   },
@@ -3446,7 +3449,7 @@
     {
       "phase": 88,
       "name": "sp003_stone_drop_vertical_pickup_reachability_failure",
-      "status": "retained_failure_pending_commit_push",
+      "status": "retained_failure_pushed_offline_fixed",
       "task_id": "SP-003",
       "episode_id": "sp003_baseline_20260719_081246_b6ebff81",
       "session_id": "e1b910e8-d70",
@@ -3468,10 +3471,50 @@
       "successful_action_count": 12,
       "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_081246_b6ebff81/manifest.json",
       "manifest_sha256": "2d354144c6be9d19c47471730ebece58cb74467ebd968cfb89493b05961a6880",
+      "evidence_commit": "d9b145157631b800fa81b7bdcaba6b107f11409d",
       "automatic_retry_attempted": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "next_gate": "retain_failure_then_add_observation_bound_stone_pickup_approach"
+    },
+    {
+      "phase": 89,
+      "name": "sp003_stone_pickup_approach_repair",
+      "status": "offline_fix_verified_pending_commit_push",
+      "task_id": "SP-003",
+      "base_commit": "d9b145157631b800fa81b7bdcaba6b107f11409d",
+      "repair_audit_path": "workspace/evals/stone_pickaxe_sp003_stone_pickup_approach_repair.json",
+      "repair_audit_sha256": "b9753d2de8f87ba2786d395459f481a64118ee3a5c9b6689ef414f7439a8e0c7",
+      "retained_episode_id": "sp003_baseline_20260719_081246_b6ebff81",
+      "retained_manifest_sha256": "2d354144c6be9d19c47471730ebece58cb74467ebd968cfb89493b05961a6880",
+      "retained_replay_target": "stone:124:139:-37",
+      "horizontal_clearance_probe": true,
+      "bounded_scan_radius": 1,
+      "bounded_scan_cell_count": 63,
+      "bounded_scan_response_limit": 50,
+      "complete_scan_requires_response_below_limit": true,
+      "scan_origin_stability_required": true,
+      "frozen_bridge_identity_preserved": true,
+      "machine_proven_stand_position": {
+        "x": 124,
+        "y": 140,
+        "z": -37
+      },
+      "direct_anchor_dig_rejected": true,
+      "grounded_anchor_excluded": true,
+      "adjacent_same_level_stone_dig_allowed": true,
+      "missing_truncated_obstructed_or_forged_proof_fails_closed": true,
+      "inventory_preserving_navigation_retained": true,
+      "sp003_dedicated_cases": "30/30",
+      "stone_pickaxe_protocol_and_runtime_cases": "211/211",
+      "repository_non_live_python_cases": "966/966",
+      "node_suites": "7/7",
+      "node_internal_cases": "58/58",
+      "live_episode_run": false,
+      "live_authorization": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "next_gate": "push_phase_89_then_commit_a_fresh_parent_bound_baseline_authorization"
     }
   ],
   "failure_taxonomy": [
@@ -6892,7 +6935,7 @@
       "phase": "sp003_baseline",
       "task_id": "SP-003",
       "classification": "sp003_stone_drop_vertical_pickup_reachability_disconnect",
-      "status": "retained_failure_pending_offline_fix",
+      "status": "retained_failure_offline_fixed_pending_phase_89_push",
       "attributable_to_learned_skill": false,
       "episode_id": "sp003_baseline_20260719_081246_b6ebff81",
       "session_id": "e1b910e8-d70",
@@ -6965,6 +7008,21 @@
         { "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_081246_b6ebff81/session_e1b910e8-d70.jsonl", "sha256": "d302cfa3dff83fe391e037a020caf162757c5e71dca576e5f069e8c2be5513d0" },
         { "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_081246_b6ebff81/session_e1b910e8-d70_summary.json", "sha256": "9c272312768c2c8fb6e1eae18570d8bbe5899a70e76c976290116b8851d3fb26" }
       ],
+      "offline_repair": {
+        "policy": "sp003-observation-bound-stone-pickup-approach-v1",
+        "audit_path": "workspace/evals/stone_pickaxe_sp003_stone_pickup_approach_repair.json",
+        "audit_sha256": "b9753d2de8f87ba2786d395459f481a64118ee3a5c9b6689ef414f7439a8e0c7",
+        "horizontal_probe_before_clearance_scan": true,
+        "complete_scan_basis": "radius_1_result_count_below_frozen_50_block_backend_limit",
+        "machine_proven_stand_position": {
+          "x": 124,
+          "y": 140,
+          "z": -37
+        },
+        "direct_anchor_dig_rejected": true,
+        "adjacent_same_level_stone_dig_allowed": true,
+        "live_validated": false
+      },
       "automatic_retry_attempted": false,
       "counts_toward_baseline_success": false,
       "counts_toward_skill_gate": false,
