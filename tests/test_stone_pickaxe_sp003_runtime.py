@@ -2071,6 +2071,129 @@ def test_phase108_goalblock_completion_grounding_audit_binds_current_contract():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
+def test_phase109_retained_baseline_replays_exact_goalnear_false_resolution():
+    run_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_200026_f434442e"
+    )
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    consumption = json.loads(
+        (run_dir / "authorization_consumption.json").read_text(encoding="utf-8")
+    )
+    episode = json.loads((run_dir / "episode.json").read_text(encoding="utf-8"))
+    events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+
+    assert manifest["passed"] is False
+    assert manifest["evidence_eligible"] is False
+    assert manifest["authorization_id"] == (
+        "997cedcd034128bc5f5d06fbb70c41b9bd99e71aca1486c90a3c3d84c6e429ca"
+    )
+    assert manifest["automatic_retry_allowed"] is False
+    assert manifest["bm012_terminal_started"] is False
+    assert consumption["authorization_commit"] == (
+        "4b5bfc253a293beb8ff55235c9ce213957a09ac3"
+    )
+    assert consumption["consumed_by"] == "fresh_sp003_process_start"
+    assert consumption["single_episode"] is True
+    assert consumption["automatic_retry_allowed"] is False
+
+    goal = episode["goal_result"]
+    assert goal["termination_reason"] == "max_actions"
+    assert goal["deadline_eligible"] is True
+    assert goal["cycles"] == 33
+    assert goal["action_count"] == 32
+    assert goal["elapsed_s"] == pytest.approx(218.985)
+    assert episode["action_count"] == 32
+    assert len(episode["raw_action_failures"]) == 4
+    assert episode["reconciled_action_failure_indexes"] == []
+    assert len(episode["unreconciled_action_failures"]) == 4
+    assert episode["post_deadline_action_indexes"] == []
+    assert len(episode["distinct_log_source_ids"]) == 3
+    assert len(episode["distinct_surface_clearance_source_ids"]) == 4
+    assert episode["distinct_stone_source_ids"] == []
+    assert episode["stable_observation"]["inventory"] == {
+        "stick": 2,
+        "oak_planks": 3,
+        "wooden_pickaxe": 1,
+        "dirt": 4,
+    }
+
+    planner_calls = [
+        event["data"]
+        for event in events
+        if event.get("type") == "llm_planner_call"
+    ]
+    assert [call["call_index"] for call in planner_calls] == list(range(33))
+    assert all(call["schema_valid"] is True for call in planner_calls)
+    assert all(
+        call["transport_evidence"]["attempt_count"] == 1
+        and call["transport_evidence"]["retry_count"] == 0
+        and call["transport_evidence"]["attempts"][0]["success"] is True
+        for call in planner_calls
+    )
+    assert max(
+        call["provider_metadata"]["prompt_tokens"] for call in planner_calls
+    ) == 2974
+    assert max(call["response_byte_count"] for call in planner_calls) == 2091
+
+    actions = [event["data"] for event in events if event.get("type") == "action"]
+    approach_actions = actions[16:]
+    assert len(approach_actions) == 16
+    assert all(item["action"]["type"] == "move_to" for item in approach_actions)
+    successful_approaches = [
+        item for item in approach_actions if item["result"].get("success") is True
+    ]
+    failed_approaches = [
+        item for item in approach_actions if item["result"].get("success") is not True
+    ]
+    assert len(successful_approaches) == 12
+    assert len(failed_approaches) == 4
+    for item in successful_approaches:
+        result = item["result"]
+        assert item["pre_observation"]["position"] == item["post_observation"][
+            "position"
+        ]
+        assert item["post_observation"]["position"] == result["position"]
+        assert result["navigation_reached"] is True
+        assert result["target"] == {"x": 124.5, "y": 140, "z": -37.5}
+        assert result["distance_to_target"] == pytest.approx(1.4205534244189506)
+        current_cell = {
+            axis: math.floor(result["position"][axis]) for axis in ("x", "y", "z")
+        }
+        target_cell = {
+            axis: math.floor(result["target"][axis]) for axis in ("x", "y", "z")
+        }
+        assert current_cell == {"x": 124, "y": 141, "z": -37}
+        assert target_cell == {"x": 124, "y": 140, "z": -38}
+        assert current_cell != target_cell
+    assert [item["result"]["error"] for item in failed_approaches] == [
+        "SP-003 action guard rejected: "
+        "acquire_cobblestone_navigation_target_must_be_nearest_observed"
+    ] * 4
+    assert not any(
+        item["action"].get("parameters", {}).get("block") == "stone"
+        for item in actions
+    )
+
+    ledger = json.loads(
+        (REPO / "workspace/evals/stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    failure = next(
+        item
+        for item in ledger["failures"]
+        if item["id"] == "sp003-baseline-017-exact-goalnear-false-resolution"
+    )
+    assert failure["automatic_retry_attempted"] is False
+    assert failure["counts_toward_baseline_success"] is False
+    assert len(failure["evidence"]) == 13
+    for record in failure["evidence"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
     progress = preparation_progress()
     planks = guard_sp003_action(
