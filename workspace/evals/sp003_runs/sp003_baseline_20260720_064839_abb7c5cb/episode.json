@@ -1,0 +1,6421 @@
+{
+  "type": "stone_pickaxe_sp003_empty_hand_episode",
+  "schema_version": 1,
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+  "runtime_policy_sha256": "cff307e100f3071a028f637b5ce2ba5202fe886fc80c843285dc1f60f1009f4f",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-003",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "sequence_position": 0,
+  "episode_id": "sp003_baseline_20260720_064839_abb7c5cb",
+  "session_id": "1dcad8c7-096",
+  "session_sha256": "c8783f38842e4e4b0be8b807e06c645737db77754917d53fecd242db7c1ef176",
+  "level_name": "sp003_baseline_20260720_064839_abb7c5cb_world",
+  "evidence_kind": "live_verified",
+  "authorization_path": "workspace/evals/sp003_runs/sp003_baseline_20260720_064839_abb7c5cb/authorization.json",
+  "authorization_sha256": "ffbd875d762a6a2e4a8fea895591634b80bea2a64b80bf5d01144da8880c3d19",
+  "authorization_preflight": {
+    "type": "stone_pickaxe_sp003_authorization_preflight",
+    "schema_version": 1,
+    "passed": true,
+    "checks": {
+      "authorization_type": true,
+      "authorization_schema": true,
+      "authorization_status": true,
+      "task_id": true,
+      "protocol_id": true,
+      "protocol_sha256": true,
+      "arm": true,
+      "replicate_id": true,
+      "sequence_position": true,
+      "episode_id": true,
+      "skill_mode": true,
+      "created_before_live": true,
+      "single_episode": true,
+      "no_retry": true,
+      "no_batch": true,
+      "no_support_rerun": true,
+      "sp003_only": true,
+      "bm012_terminal_disabled": true,
+      "no_capability_credit": true,
+      "no_m4_credit": true,
+      "authorization_commit_is_new": true,
+      "authorization_predecessor": true,
+      "policy_path": true,
+      "policy_sha256": true,
+      "prerequisite_exists": true,
+      "prerequisite_identity": true,
+      "prerequisite_eligible": true,
+      "authorization_fingerprint": true
+    },
+    "issues": [],
+    "authorization_id": "41859582359f2f565139dd3a470eafce132e1b2b20186f4a7fbb8bc1f610adf5",
+    "arm": "baseline",
+    "replicate_id": "baseline",
+    "sequence_position": 0,
+    "episode_id": "sp003_baseline_20260720_064839_abb7c5cb",
+    "prerequisite_manifest": "",
+    "consumed_by_process_start": false
+  },
+  "episode_started_monotonic": 251784.484,
+  "episode_deadline_monotonic": 252084.484,
+  "episode_ended_monotonic": 251875.156,
+  "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+  "action_count": 11,
+  "action_failures": [
+    {
+      "index": 7,
+      "action": {
+        "type": "craft",
+        "parameters": {
+          "item": "dark_oak_planks",
+          "count": 2
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_exact_one_table_craft_required"
+    }
+  ],
+  "raw_action_failures": [
+    {
+      "index": 7,
+      "action": {
+        "type": "craft",
+        "parameters": {
+          "item": "dark_oak_planks",
+          "count": 2
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_exact_one_table_craft_required"
+    }
+  ],
+  "reconciled_action_failure_indexes": [],
+  "unreconciled_action_failures": [
+    {
+      "index": 7,
+      "action": {
+        "type": "craft",
+        "parameters": {
+          "item": "dark_oak_planks",
+          "count": 2
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_exact_one_table_craft_required"
+    }
+  ],
+  "post_deadline_action_indexes": [],
+  "forbidden_interventions": [],
+  "iron_mining_action_indexes": [],
+  "unexpected_actions": [],
+  "action_type_counts": {
+    "move_to": 2,
+    "dig:dark_oak_log": 3,
+    "craft:dark_oak_planks": 2,
+    "craft:stick": 1,
+    "craft:crafting_table": 1,
+    "dig:grass_block": 1,
+    "dig:dirt": 1
+  },
+  "distinct_log_source_ids": [
+    "dark_oak_log:120:142:-35",
+    "dark_oak_log:121:141:-35",
+    "dark_oak_log:121:142:-35"
+  ],
+  "distinct_surface_clearance_source_ids": [
+    "dirt:124:141:-37",
+    "grass_block:124:142:-37"
+  ],
+  "distinct_stone_source_ids": [],
+  "log_transition_proofs": [
+    {
+      "index": 2,
+      "source_id": "dark_oak_log:121:142:-35",
+      "source_block": "dark_oak_log",
+      "source_position": {
+        "x": 121.0,
+        "y": 142.0,
+        "z": -35.0
+      },
+      "raw_action_success": true,
+      "action_verified": true,
+      "block_removed": true,
+      "target_block_before": "dark_oak_log",
+      "target_block_after": "air",
+      "pickup_observed": true,
+      "pickup_count": 1,
+      "delayed_pickup_reconciled": false
+    },
+    {
+      "index": 3,
+      "source_id": "dark_oak_log:120:142:-35",
+      "source_block": "dark_oak_log",
+      "source_position": {
+        "x": 120.0,
+        "y": 142.0,
+        "z": -35.0
+      },
+      "raw_action_success": true,
+      "action_verified": true,
+      "block_removed": true,
+      "target_block_before": "dark_oak_log",
+      "target_block_after": "air",
+      "pickup_observed": true,
+      "pickup_count": 1,
+      "delayed_pickup_reconciled": false
+    },
+    {
+      "index": 4,
+      "source_id": "dark_oak_log:121:141:-35",
+      "source_block": "dark_oak_log",
+      "source_position": {
+        "x": 121.0,
+        "y": 141.0,
+        "z": -35.0
+      },
+      "raw_action_success": true,
+      "action_verified": true,
+      "block_removed": true,
+      "target_block_before": "dark_oak_log",
+      "target_block_after": "air",
+      "pickup_observed": true,
+      "pickup_count": 1,
+      "delayed_pickup_reconciled": false
+    }
+  ],
+  "pending_log_pickup_proofs": [],
+  "delayed_log_pickup_reconciliation_proofs": [],
+  "surface_clearance_transition_proofs": [
+    {
+      "index": 10,
+      "source_id": "grass_block:124:142:-37",
+      "source_block": "grass_block",
+      "support_source_id": "stone:124:139:-37",
+      "action_verified": true,
+      "block_removed": true,
+      "target_block_before": "grass_block",
+      "target_block_after": "air",
+      "proof_fingerprint": "48fa5b989866317c264387a51f670e60d703a4a8c3014d42f92130fdfcc1fe9f",
+      "proof": {
+        "type": "sp003_stone_surface_clearance_proof",
+        "schema_version": 2,
+        "scan_complete": true,
+        "targeted_air_visibility_complete": false,
+        "scan_fingerprint": "e8ebfb8be27d7b1e12363b87064288500c5320f7944e010f5c631e71e7863d1e",
+        "scan_radius": 1,
+        "scan_origin_cell": {
+          "x": 123,
+          "y": 142,
+          "z": -37
+        },
+        "origin_stable": true,
+        "post_scan_player_cell": {
+          "x": 123,
+          "y": 142,
+          "z": -37
+        },
+        "vertical_min_offset": -3,
+        "vertical_max_offset": 3,
+        "scanned_cell_count": 63,
+        "backend_path": "src/bot/bot_server.js",
+        "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+        "response_limit": 50,
+        "response_count": 36,
+        "completeness_basis": "result_count_below_frozen_backend_limit",
+        "priority_unique_name_prefix_count": 0,
+        "visibility_distance_strict_upper_bound": null,
+        "selection_trace_fingerprint": "",
+        "priority_selection_trace": [],
+        "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+        "downstep_transition_clearance_required": false,
+        "transition_upper_head_position": {},
+        "transition_upper_head_cell_state_before": "not_required",
+        "transition_upper_head_included_in_shaft": true,
+        "support_block": "stone",
+        "support_source_id": "stone:124:139:-37",
+        "support_position": {
+          "x": 124,
+          "y": 139,
+          "z": -37
+        },
+        "support_not_player_column": true,
+        "entry_shaft_positions": [
+          {
+            "x": 124,
+            "y": 140,
+            "z": -37
+          },
+          {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          {
+            "x": 124,
+            "y": 142,
+            "z": -37
+          }
+        ],
+        "entry_shaft_cell_states": [
+          {
+            "position": {
+              "x": 124,
+              "y": 140,
+              "z": -37
+            },
+            "state": "dirt",
+            "source_id": "dirt:124:140:-37"
+          },
+          {
+            "position": {
+              "x": 124,
+              "y": 141,
+              "z": -37
+            },
+            "state": "dirt",
+            "source_id": "dirt:124:141:-37"
+          },
+          {
+            "position": {
+              "x": 124,
+              "y": 142,
+              "z": -37
+            },
+            "state": "grass_block",
+            "source_id": "grass_block:124:142:-37"
+          }
+        ],
+        "obstruction_source_ids_top_down": [
+          "grass_block:124:142:-37",
+          "dirt:124:141:-37",
+          "dirt:124:140:-37"
+        ],
+        "allowed_blocks": [
+          "grass_block",
+          "dirt"
+        ],
+        "maximum_removals": 3,
+        "selected_block": "grass_block",
+        "selected_source_id": "grass_block:124:142:-37",
+        "selected_position": {
+          "x": 124,
+          "y": 142,
+          "z": -37
+        },
+        "selected_is_highest_obstruction": true
+      }
+    },
+    {
+      "index": 11,
+      "source_id": "dirt:124:141:-37",
+      "source_block": "dirt",
+      "support_source_id": "stone:124:139:-37",
+      "action_verified": true,
+      "block_removed": true,
+      "target_block_before": "dirt",
+      "target_block_after": "air",
+      "proof_fingerprint": "f847fce50add8925e925f83c27e082b620995ba5f0aaea502334a15e76685482",
+      "proof": {
+        "type": "sp003_stone_surface_clearance_proof",
+        "schema_version": 2,
+        "scan_complete": true,
+        "targeted_air_visibility_complete": false,
+        "scan_fingerprint": "7428fba8924bd8d24f40b04100eada05b52a8c8462a1b306338532d3679fbf0c",
+        "scan_radius": 1,
+        "scan_origin_cell": {
+          "x": 123,
+          "y": 142,
+          "z": -37
+        },
+        "origin_stable": true,
+        "post_scan_player_cell": {
+          "x": 123,
+          "y": 142,
+          "z": -37
+        },
+        "vertical_min_offset": -3,
+        "vertical_max_offset": 3,
+        "scanned_cell_count": 63,
+        "backend_path": "src/bot/bot_server.js",
+        "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+        "response_limit": 50,
+        "response_count": 35,
+        "completeness_basis": "result_count_below_frozen_backend_limit",
+        "priority_unique_name_prefix_count": 0,
+        "visibility_distance_strict_upper_bound": null,
+        "selection_trace_fingerprint": "",
+        "priority_selection_trace": [],
+        "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+        "downstep_transition_clearance_required": false,
+        "transition_upper_head_position": {},
+        "transition_upper_head_cell_state_before": "not_required",
+        "transition_upper_head_included_in_shaft": true,
+        "support_block": "stone",
+        "support_source_id": "stone:124:139:-37",
+        "support_position": {
+          "x": 124,
+          "y": 139,
+          "z": -37
+        },
+        "support_not_player_column": true,
+        "entry_shaft_positions": [
+          {
+            "x": 124,
+            "y": 140,
+            "z": -37
+          },
+          {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          {
+            "x": 124,
+            "y": 142,
+            "z": -37
+          }
+        ],
+        "entry_shaft_cell_states": [
+          {
+            "position": {
+              "x": 124,
+              "y": 140,
+              "z": -37
+            },
+            "state": "dirt",
+            "source_id": "dirt:124:140:-37"
+          },
+          {
+            "position": {
+              "x": 124,
+              "y": 141,
+              "z": -37
+            },
+            "state": "dirt",
+            "source_id": "dirt:124:141:-37"
+          },
+          {
+            "position": {
+              "x": 124,
+              "y": 142,
+              "z": -37
+            },
+            "state": "air",
+            "source_id": ""
+          }
+        ],
+        "obstruction_source_ids_top_down": [
+          "dirt:124:141:-37",
+          "dirt:124:140:-37"
+        ],
+        "allowed_blocks": [
+          "grass_block",
+          "dirt"
+        ],
+        "maximum_removals": 3,
+        "selected_block": "dirt",
+        "selected_source_id": "dirt:124:141:-37",
+        "selected_position": {
+          "x": 124,
+          "y": 141,
+          "z": -37
+        },
+        "selected_is_highest_obstruction": true
+      }
+    }
+  ],
+  "stone_pickup_access_transition_proofs": [],
+  "craft_backend_proofs": [
+    {
+      "index": 5,
+      "item": "dark_oak_planks",
+      "requested_count": 12,
+      "backend_requested_count": 12,
+      "action_verified": false,
+      "success": true,
+      "craft_attempts": 1,
+      "craft_retry_count": 0,
+      "crafting_table_found": false,
+      "crafting_table_position": {}
+    },
+    {
+      "index": 6,
+      "item": "stick",
+      "requested_count": 4,
+      "backend_requested_count": 4,
+      "action_verified": true,
+      "success": true,
+      "craft_attempts": 1,
+      "craft_retry_count": 0,
+      "crafting_table_found": false,
+      "crafting_table_position": {}
+    },
+    {
+      "index": 7,
+      "item": "dark_oak_planks",
+      "requested_count": 2,
+      "backend_requested_count": null,
+      "action_verified": false,
+      "success": false,
+      "craft_attempts": null,
+      "craft_retry_count": null,
+      "crafting_table_found": false,
+      "crafting_table_position": {}
+    },
+    {
+      "index": 8,
+      "item": "crafting_table",
+      "requested_count": 1,
+      "backend_requested_count": 1,
+      "action_verified": true,
+      "success": true,
+      "craft_attempts": 1,
+      "craft_retry_count": 0,
+      "crafting_table_found": false,
+      "crafting_table_position": {}
+    }
+  ],
+  "table_placement_proofs": [],
+  "initial_observation": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "food_saturation": 5,
+    "oxygen": null,
+    "xp_level": 0,
+    "dimension": "overworld",
+    "game_mode": "survival",
+    "selected_slot": 0,
+    "equipment": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "yaw": 3.141592653589793,
+    "pitch": 0,
+    "player_lifecycle": {
+      "type": "m4_player_lifecycle",
+      "schema_version": 1,
+      "verifier_id": "m4-player-lifecycle-verifier-v1",
+      "source": "mineflayer_events",
+      "profile": "m4-fixed-v1",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "tracker_id": "87e94f06-2c08-4df4-b81a-f23f01845f3e",
+      "episode_id": "sp003_baseline_20260720_064839_abb7c5cb",
+      "level_name": "sp003_baseline_20260720_064839_abb7c5cb_world",
+      "baseline_id": "413c93f642db10a670e56697ec5986d11e49e13fcd6196467c727dd0fa28d27f",
+      "baseline_established": true,
+      "initial_spawn_observed": true,
+      "baseline_death_count_total": 0,
+      "baseline_respawn_count_total": 0,
+      "baseline_spawn_count_total": 1,
+      "baseline_observed_at_ms": 1784501593774,
+      "baseline_bridge_monotonic_ms": 251782966,
+      "death_count_total": 0,
+      "respawn_count_total": 0,
+      "spawn_count_total": 1,
+      "death_count": 0,
+      "respawn_count": 0,
+      "spawn_count": 0,
+      "pending_respawn_count": 0,
+      "uninterrupted": true,
+      "last_death": null,
+      "last_respawn": null
+    },
+    "inventory": {},
+    "inventory_count": 0,
+    "nearby_entities": [],
+    "time_of_day": 103,
+    "is_daytime": true,
+    "weather": "clear",
+    "nearby_blocks": [
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 1
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 96,
+          "y": 141,
+          "z": -32
+        },
+        "distance": 3
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -33
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -33
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 142,
+          "z": -33
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 142,
+          "z": -33
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 141,
+          "z": -32
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 141,
+          "z": -33
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 96,
+          "y": 141,
+          "z": -31
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 141,
+          "z": -32
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 141,
+          "z": -33
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 141,
+          "z": -31
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 141,
+          "z": -33
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 141,
+          "z": -31
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 94,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 3
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 93,
+          "y": 141,
+          "z": -34
+        },
+        "distance": 4.69041575982343
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 111,
+          "y": 141,
+          "z": -28
+        },
+        "distance": 15.811388300841896
+      },
+      {
+        "name": "birch_leaves",
+        "position": {
+          "x": 116,
+          "y": 144,
+          "z": -32
+        },
+        "distance": 20
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 118,
+          "y": 144,
+          "z": -31
+        },
+        "distance": 22.02271554554524
+      },
+      {
+        "name": "short_grass",
+        "position": {
+          "x": 120,
+          "y": 141,
+          "z": -39
+        },
+        "distance": 25.179356624028344
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 121,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 25.495097567963924
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 121,
+          "y": 141,
+          "z": -38
+        },
+        "distance": 25.88435821108957
+      },
+      {
+        "name": "red_mushroom_block",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -10
+        },
+        "distance": 34.19064199455752
+      },
+      {
+        "name": "mushroom_stem",
+        "position": {
+          "x": 127,
+          "y": 144,
+          "z": -49
+        },
+        "distance": 35.35533905932738
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 144,
+          "z": -32
+        },
+        "distance": 2
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 144,
+          "z": -31
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -34
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 144,
+          "z": -33
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 143,
+          "z": -30
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -30
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 144,
+          "z": -30
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -34
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -30
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 144,
+          "z": -34
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 142,
+          "z": -33
+        },
+        "distance": 3
+      }
+    ],
+    "trees_found": [
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 94,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 3
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 99,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 94,
+          "y": 142,
+          "z": -30
+        },
+        "distance": 3.4641016151377544
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 93,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 3.7416573867739413
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 99,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 3.7416573867739413
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 93,
+          "y": 142,
+          "z": -30
+        },
+        "distance": 4.123105625617661
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 100,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 4.242640687119285
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 100,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 4.47213595499958
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 100,
+          "y": 142,
+          "z": -33
+        },
+        "distance": 4.58257569495584
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 100,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 4.58257569495584
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 118,
+          "y": 144,
+          "z": -31
+        },
+        "distance": 22.02271554554524
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 117,
+          "y": 144,
+          "z": -50
+        },
+        "distance": 27.65863337187866
+      }
+    ],
+    "ground_block": "dark_oak_leaves",
+    "stone_pickaxe_runtime_mode": "sp003",
+    "sp003_complete_local_scan": {
+      "type": "sp003_bounded_complete_nearby_block_scan",
+      "schema_version": 1,
+      "scan_complete": true,
+      "targeted_air_visibility_complete": false,
+      "radius": 1,
+      "vertical_min_offset": -3,
+      "vertical_max_offset": 3,
+      "origin_cell": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "origin_stable": true,
+      "post_scan_player_cell": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "scanned_cell_count": 63,
+      "backend_path": "src/bot/bot_server.js",
+      "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+      "response_limit": 50,
+      "response_count": 27,
+      "completeness_basis": "result_count_below_frozen_backend_limit",
+      "priority_unique_name_prefix_count": 0,
+      "visibility_distance_strict_upper_bound": null,
+      "selection_trace_fingerprint": "",
+      "blocks": [
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 143,
+            "z": -32
+          },
+          "distance": 1
+        },
+        {
+          "name": "dark_oak_log",
+          "position": {
+            "x": 96,
+            "y": 141,
+            "z": -32
+          },
+          "distance": 3
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 143,
+            "z": -32
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 143,
+            "z": -33
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 143,
+            "z": -31
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 143,
+            "z": -32
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -33
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 143,
+            "z": -31
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 143,
+            "z": -33
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 143,
+            "z": -31
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 142,
+            "z": -32
+          },
+          "distance": 2
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 142,
+            "z": -32
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 142,
+            "z": -33
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 142,
+            "z": -31
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 142,
+            "z": -32
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 142,
+            "z": -33
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 142,
+            "z": -31
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 142,
+            "z": -33
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 142,
+            "z": -31
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 141,
+            "z": -32
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 141,
+            "z": -33
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dark_oak_log",
+          "position": {
+            "x": 96,
+            "y": 141,
+            "z": -31
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 141,
+            "z": -32
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 141,
+            "z": -33
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 141,
+            "z": -31
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 141,
+            "z": -33
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 141,
+            "z": -31
+          },
+          "distance": 3.3166247903554
+        }
+      ]
+    },
+    "sp003_stone_approach_stands": [],
+    "sp003_stone_pickup_accesses": [],
+    "sp003_stone_surface_clearances": [],
+    "flags": [],
+    "sp003_progress": {
+      "log_source_ids": [],
+      "log_source_removal_count": 0,
+      "log_item": "",
+      "pending_log_pickup_count": 0,
+      "pending_log_pickups": [],
+      "delayed_log_pickup_reconciliation_count": 0,
+      "delayed_log_pickup_reconciliations": [],
+      "plank_craft_count": 0,
+      "stick_craft_count": 0,
+      "crafting_table_craft_count": 0,
+      "crafting_table_place_count": 0,
+      "crafting_table_position": {},
+      "wooden_pickaxe_craft_count": 0,
+      "wooden_pickaxe_equip_count": 0,
+      "surface_clearance_source_ids": [],
+      "surface_clearance_removal_count": 0,
+      "stone_source_ids": [],
+      "stone_source_removal_count": 0,
+      "stone_pickaxe_craft_count": 0,
+      "iron_mining_action_count": 0,
+      "successful_mutation_count": 0,
+      "successful_mutations": []
+    },
+    "sp003_arm": "baseline",
+    "sp003_targets": [
+      {
+        "source_id": "grass_block:121:141:-36",
+        "name": "grass_block",
+        "position": {
+          "x": 121.0,
+          "y": 141.0,
+          "z": -36.0
+        },
+        "distance": 25.495098,
+        "horizontal_distance": 24.909837,
+        "stand_position": {
+          "x": 121,
+          "y": 142,
+          "z": -36
+        },
+        "navigation_only": true,
+        "canopy_egress": true
+      },
+      {
+        "source_id": "dirt:121:141:-38",
+        "name": "dirt",
+        "position": {
+          "x": 121.0,
+          "y": 141.0,
+          "z": -38.0
+        },
+        "distance": 25.884358,
+        "horizontal_distance": 25.347584,
+        "stand_position": {
+          "x": 121,
+          "y": 142,
+          "z": -38
+        },
+        "navigation_only": true,
+        "canopy_egress": true
+      }
+    ]
+  },
+  "stable_observation": {
+    "position": {
+      "x": 124.44388136299679,
+      "y": 141,
+      "z": -36.49702142098682
+    },
+    "health": 20,
+    "hunger": 20,
+    "food_saturation": 5,
+    "oxygen": null,
+    "xp_level": 0,
+    "dimension": "overworld",
+    "game_mode": "survival",
+    "selected_slot": 0,
+    "equipment": [
+      {
+        "slot": 0,
+        "name": "dirt",
+        "count": 2
+      },
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "yaw": 1.521054443113159,
+    "pitch": 0,
+    "player_lifecycle": {
+      "type": "m4_player_lifecycle",
+      "schema_version": 1,
+      "verifier_id": "m4-player-lifecycle-verifier-v1",
+      "source": "mineflayer_events",
+      "profile": "m4-fixed-v1",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "tracker_id": "87e94f06-2c08-4df4-b81a-f23f01845f3e",
+      "episode_id": "sp003_baseline_20260720_064839_abb7c5cb",
+      "level_name": "sp003_baseline_20260720_064839_abb7c5cb_world",
+      "baseline_id": "413c93f642db10a670e56697ec5986d11e49e13fcd6196467c727dd0fa28d27f",
+      "baseline_established": true,
+      "initial_spawn_observed": true,
+      "baseline_death_count_total": 0,
+      "baseline_respawn_count_total": 0,
+      "baseline_spawn_count_total": 1,
+      "baseline_observed_at_ms": 1784501593774,
+      "baseline_bridge_monotonic_ms": 251782966,
+      "death_count_total": 0,
+      "respawn_count_total": 0,
+      "spawn_count_total": 1,
+      "death_count": 0,
+      "respawn_count": 0,
+      "spawn_count": 0,
+      "pending_respawn_count": 0,
+      "uninterrupted": true,
+      "last_death": null,
+      "last_respawn": null
+    },
+    "inventory": {
+      "dark_oak_planks": 6,
+      "stick": 4,
+      "crafting_table": 1,
+      "dirt": 2
+    },
+    "inventory_count": 4,
+    "nearby_entities": [],
+    "time_of_day": 1923,
+    "is_daytime": true,
+    "weather": "clear",
+    "nearby_blocks": [
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -37
+        },
+        "distance": 1
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 124,
+          "y": 140,
+          "z": -37
+        },
+        "distance": 1
+      },
+      {
+        "name": "short_grass",
+        "position": {
+          "x": 123,
+          "y": 142,
+          "z": -36
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 124,
+          "y": 139,
+          "z": -37
+        },
+        "distance": 2
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 143,
+          "z": -37
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 124,
+          "y": 141,
+          "z": -38
+        },
+        "distance": 1
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 124,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 1
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 141,
+          "z": -37
+        },
+        "distance": 1
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 140,
+          "z": -37
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -38
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 124,
+          "y": 140,
+          "z": -38
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 124,
+          "y": 140,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 124,
+          "y": 142,
+          "z": -38
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 124,
+          "y": 142,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 140,
+          "z": -37
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 141,
+          "z": -38
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 142,
+          "z": -37
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 140,
+          "z": -38
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 140,
+          "z": -36
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 140,
+          "z": -38
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 140,
+          "z": -36
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 125,
+          "y": 142,
+          "z": -38
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 125,
+          "y": 142,
+          "z": -36
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 139,
+          "z": -37
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 124,
+          "y": 139,
+          "z": -38
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 124,
+          "y": 139,
+          "z": -36
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 125,
+          "y": 139,
+          "z": -37
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 139,
+          "z": -38
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 139,
+          "z": -36
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 139,
+          "z": -38
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 139,
+          "z": -36
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 124,
+          "y": 138,
+          "z": -37
+        },
+        "distance": 3
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 138,
+          "z": -37
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 124,
+          "y": 138,
+          "z": -38
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 124,
+          "y": 138,
+          "z": -36
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 125,
+          "y": 138,
+          "z": -37
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 144,
+          "z": -37
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 123,
+          "y": 138,
+          "z": -38
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 138,
+          "z": -36
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 125,
+          "y": 138,
+          "z": -38
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 125,
+          "y": 138,
+          "z": -36
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 121,
+          "y": 143,
+          "z": -35
+        },
+        "distance": 4.123105625617661
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 123,
+          "y": 144,
+          "z": -41
+        },
+        "distance": 5.0990195135927845
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -43
+        },
+        "distance": 6.324555320336759
+      },
+      {
+        "name": "birch_leaves",
+        "position": {
+          "x": 119,
+          "y": 144,
+          "z": -33
+        },
+        "distance": 7.0710678118654755
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 115,
+          "y": 144,
+          "z": -37
+        },
+        "distance": 9.486832980505138
+      },
+      {
+        "name": "mushroom_stem",
+        "position": {
+          "x": 127,
+          "y": 143,
+          "z": -49
+        },
+        "distance": 12.529964086141668
+      },
+      {
+        "name": "iron_ore",
+        "position": {
+          "x": 132,
+          "y": 139,
+          "z": -48
+        },
+        "distance": 13.74772708486752
+      },
+      {
+        "name": "brown_mushroom_block",
+        "position": {
+          "x": 113,
+          "y": 140,
+          "z": -46
+        },
+        "distance": 14.247806848775006
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 123,
+          "y": 138,
+          "z": -55
+        },
+        "distance": 18.275666882497067
+      },
+      {
+        "name": "snow",
+        "position": {
+          "x": 141,
+          "y": 144,
+          "z": -48
+        },
+        "distance": 20.46948949045872
+      },
+      {
+        "name": "packed_ice",
+        "position": {
+          "x": 141,
+          "y": 140,
+          "z": -49
+        },
+        "distance": 20.83266665599966
+      },
+      {
+        "name": "snow_block",
+        "position": {
+          "x": 141,
+          "y": 143,
+          "z": -49
+        },
+        "distance": 20.904544960366874
+      },
+      {
+        "name": "red_mushroom_block",
+        "position": {
+          "x": 124,
+          "y": 140,
+          "z": -11
+        },
+        "distance": 26.019223662515376
+      },
+      {
+        "name": "gravel",
+        "position": {
+          "x": 148,
+          "y": 139,
+          "z": -48
+        },
+        "distance": 26.476404589747453
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -37
+        },
+        "distance": 2
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 124,
+          "y": 141,
+          "z": -39
+        },
+        "distance": 2
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 124,
+          "y": 141,
+          "z": -35
+        },
+        "distance": 2
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 126,
+          "y": 141,
+          "z": -37
+        },
+        "distance": 2
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 122,
+          "y": 140,
+          "z": -37
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -38
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -39
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -35
+        },
+        "distance": 2.23606797749979
+      }
+    ],
+    "trees_found": [
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 143,
+          "z": -37
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 144,
+          "z": -37
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 121,
+          "y": 142,
+          "z": -38
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 121,
+          "y": 143,
+          "z": -38
+        },
+        "distance": 3.7416573867739413
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 121,
+          "y": 143,
+          "z": -35
+        },
+        "distance": 4.123105625617661
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 145,
+          "z": -37
+        },
+        "distance": 4.123105625617661
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 121,
+          "y": 141,
+          "z": -34
+        },
+        "distance": 4.242640687119285
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 121,
+          "y": 142,
+          "z": -34
+        },
+        "distance": 4.358898943540674
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 121,
+          "y": 144,
+          "z": -38
+        },
+        "distance": 4.358898943540674
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 120,
+          "y": 141,
+          "z": -35
+        },
+        "distance": 4.47213595499958
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -43
+        },
+        "distance": 6.324555320336759
+      }
+    ],
+    "ground_block": "dirt",
+    "stone_pickaxe_runtime_mode": "sp003",
+    "sp003_complete_local_scan": {
+      "type": "sp003_bounded_complete_nearby_block_scan",
+      "schema_version": 1,
+      "scan_complete": true,
+      "targeted_air_visibility_complete": false,
+      "radius": 1,
+      "vertical_min_offset": -3,
+      "vertical_max_offset": 3,
+      "origin_cell": {
+        "x": 124,
+        "y": 141,
+        "z": -37
+      },
+      "origin_stable": true,
+      "post_scan_player_cell": {
+        "x": 124,
+        "y": 141,
+        "z": -37
+      },
+      "scanned_cell_count": 63,
+      "backend_path": "src/bot/bot_server.js",
+      "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+      "response_limit": 50,
+      "response_count": 43,
+      "completeness_basis": "result_count_below_frozen_backend_limit",
+      "priority_unique_name_prefix_count": 0,
+      "visibility_distance_strict_upper_bound": null,
+      "selection_trace_fingerprint": "",
+      "blocks": [
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 123,
+            "y": 141,
+            "z": -37
+          },
+          "distance": 1
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 124,
+            "y": 140,
+            "z": -37
+          },
+          "distance": 1
+        },
+        {
+          "name": "short_grass",
+          "position": {
+            "x": 123,
+            "y": 142,
+            "z": -36
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 124,
+            "y": 139,
+            "z": -37
+          },
+          "distance": 2
+        },
+        {
+          "name": "birch_log",
+          "position": {
+            "x": 125,
+            "y": 143,
+            "z": -37
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 124,
+            "y": 141,
+            "z": -38
+          },
+          "distance": 1
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 124,
+            "y": 141,
+            "z": -36
+          },
+          "distance": 1
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 125,
+            "y": 141,
+            "z": -37
+          },
+          "distance": 1
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 140,
+            "z": -37
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 123,
+            "y": 141,
+            "z": -38
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 123,
+            "y": 141,
+            "z": -36
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 124,
+            "y": 140,
+            "z": -38
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 124,
+            "y": 140,
+            "z": -36
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 124,
+            "y": 142,
+            "z": -38
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 124,
+            "y": 142,
+            "z": -36
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 125,
+            "y": 140,
+            "z": -37
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 125,
+            "y": 141,
+            "z": -38
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 125,
+            "y": 141,
+            "z": -36
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 125,
+            "y": 142,
+            "z": -37
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 140,
+            "z": -38
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 140,
+            "z": -36
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 125,
+            "y": 140,
+            "z": -38
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 125,
+            "y": 140,
+            "z": -36
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 125,
+            "y": 142,
+            "z": -38
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 125,
+            "y": 142,
+            "z": -36
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 139,
+            "z": -37
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 124,
+            "y": 139,
+            "z": -38
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 124,
+            "y": 139,
+            "z": -36
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 125,
+            "y": 139,
+            "z": -37
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 139,
+            "z": -38
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 139,
+            "z": -36
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 125,
+            "y": 139,
+            "z": -38
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 125,
+            "y": 139,
+            "z": -36
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 124,
+            "y": 138,
+            "z": -37
+          },
+          "distance": 3
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 138,
+            "z": -37
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 124,
+            "y": 138,
+            "z": -38
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 124,
+            "y": 138,
+            "z": -36
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 125,
+            "y": 138,
+            "z": -37
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "birch_log",
+          "position": {
+            "x": 125,
+            "y": 144,
+            "z": -37
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 123,
+            "y": 138,
+            "z": -38
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 138,
+            "z": -36
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 125,
+            "y": 138,
+            "z": -38
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "stone",
+          "position": {
+            "x": 125,
+            "y": 138,
+            "z": -36
+          },
+          "distance": 3.3166247903554
+        }
+      ]
+    },
+    "sp003_stone_approach_stands": [],
+    "sp003_stone_pickup_accesses": [],
+    "sp003_stone_surface_clearances": [
+      {
+        "source_id": "grass_block:124:142:-38",
+        "name": "grass_block",
+        "position": {
+          "x": 124,
+          "y": 142,
+          "z": -38
+        },
+        "distance": 1.414214,
+        "support_source_id": "stone:124:139:-38",
+        "support_position": {
+          "x": 124,
+          "y": 139,
+          "z": -38
+        },
+        "support_distance": 2.236068,
+        "remaining_clearance_count": 3,
+        "stone_surface_clearance": true,
+        "clearance_proof": {
+          "type": "sp003_stone_surface_clearance_proof",
+          "schema_version": 2,
+          "scan_complete": true,
+          "targeted_air_visibility_complete": false,
+          "scan_fingerprint": "06155cafbfd239db76158e3658dc7fa9e83208b4f7305df26198309dc76bbdb8",
+          "scan_radius": 1,
+          "scan_origin_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "origin_stable": true,
+          "post_scan_player_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "vertical_min_offset": -3,
+          "vertical_max_offset": 3,
+          "scanned_cell_count": 63,
+          "backend_path": "src/bot/bot_server.js",
+          "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+          "response_limit": 50,
+          "response_count": 43,
+          "completeness_basis": "result_count_below_frozen_backend_limit",
+          "priority_unique_name_prefix_count": 0,
+          "visibility_distance_strict_upper_bound": null,
+          "selection_trace_fingerprint": "",
+          "priority_selection_trace": [],
+          "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+          "downstep_transition_clearance_required": true,
+          "transition_upper_head_position": {
+            "x": 124,
+            "y": 142,
+            "z": -38
+          },
+          "transition_upper_head_cell_state_before": "grass_block",
+          "transition_upper_head_included_in_shaft": true,
+          "support_block": "stone",
+          "support_source_id": "stone:124:139:-38",
+          "support_position": {
+            "x": 124,
+            "y": 139,
+            "z": -38
+          },
+          "support_not_player_column": true,
+          "entry_shaft_positions": [
+            {
+              "x": 124,
+              "y": 140,
+              "z": -38
+            },
+            {
+              "x": 124,
+              "y": 141,
+              "z": -38
+            },
+            {
+              "x": 124,
+              "y": 142,
+              "z": -38
+            }
+          ],
+          "entry_shaft_cell_states": [
+            {
+              "position": {
+                "x": 124,
+                "y": 140,
+                "z": -38
+              },
+              "state": "dirt",
+              "source_id": "dirt:124:140:-38"
+            },
+            {
+              "position": {
+                "x": 124,
+                "y": 141,
+                "z": -38
+              },
+              "state": "dirt",
+              "source_id": "dirt:124:141:-38"
+            },
+            {
+              "position": {
+                "x": 124,
+                "y": 142,
+                "z": -38
+              },
+              "state": "grass_block",
+              "source_id": "grass_block:124:142:-38"
+            }
+          ],
+          "obstruction_source_ids_top_down": [
+            "grass_block:124:142:-38",
+            "dirt:124:141:-38",
+            "dirt:124:140:-38"
+          ],
+          "allowed_blocks": [
+            "grass_block",
+            "dirt"
+          ],
+          "maximum_removals": 3,
+          "selected_block": "grass_block",
+          "selected_source_id": "grass_block:124:142:-38",
+          "selected_position": {
+            "x": 124,
+            "y": 142,
+            "z": -38
+          },
+          "selected_is_highest_obstruction": true
+        }
+      },
+      {
+        "source_id": "dirt:125:142:-37",
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 142,
+          "z": -37
+        },
+        "distance": 1.414214,
+        "support_source_id": "stone:125:139:-37",
+        "support_position": {
+          "x": 125,
+          "y": 139,
+          "z": -37
+        },
+        "support_distance": 2.236068,
+        "remaining_clearance_count": 3,
+        "stone_surface_clearance": true,
+        "clearance_proof": {
+          "type": "sp003_stone_surface_clearance_proof",
+          "schema_version": 2,
+          "scan_complete": true,
+          "targeted_air_visibility_complete": false,
+          "scan_fingerprint": "06155cafbfd239db76158e3658dc7fa9e83208b4f7305df26198309dc76bbdb8",
+          "scan_radius": 1,
+          "scan_origin_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "origin_stable": true,
+          "post_scan_player_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "vertical_min_offset": -3,
+          "vertical_max_offset": 3,
+          "scanned_cell_count": 63,
+          "backend_path": "src/bot/bot_server.js",
+          "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+          "response_limit": 50,
+          "response_count": 43,
+          "completeness_basis": "result_count_below_frozen_backend_limit",
+          "priority_unique_name_prefix_count": 0,
+          "visibility_distance_strict_upper_bound": null,
+          "selection_trace_fingerprint": "",
+          "priority_selection_trace": [],
+          "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+          "downstep_transition_clearance_required": true,
+          "transition_upper_head_position": {
+            "x": 125,
+            "y": 142,
+            "z": -37
+          },
+          "transition_upper_head_cell_state_before": "dirt",
+          "transition_upper_head_included_in_shaft": true,
+          "support_block": "stone",
+          "support_source_id": "stone:125:139:-37",
+          "support_position": {
+            "x": 125,
+            "y": 139,
+            "z": -37
+          },
+          "support_not_player_column": true,
+          "entry_shaft_positions": [
+            {
+              "x": 125,
+              "y": 140,
+              "z": -37
+            },
+            {
+              "x": 125,
+              "y": 141,
+              "z": -37
+            },
+            {
+              "x": 125,
+              "y": 142,
+              "z": -37
+            }
+          ],
+          "entry_shaft_cell_states": [
+            {
+              "position": {
+                "x": 125,
+                "y": 140,
+                "z": -37
+              },
+              "state": "dirt",
+              "source_id": "dirt:125:140:-37"
+            },
+            {
+              "position": {
+                "x": 125,
+                "y": 141,
+                "z": -37
+              },
+              "state": "dirt",
+              "source_id": "dirt:125:141:-37"
+            },
+            {
+              "position": {
+                "x": 125,
+                "y": 142,
+                "z": -37
+              },
+              "state": "dirt",
+              "source_id": "dirt:125:142:-37"
+            }
+          ],
+          "obstruction_source_ids_top_down": [
+            "dirt:125:142:-37",
+            "dirt:125:141:-37",
+            "dirt:125:140:-37"
+          ],
+          "allowed_blocks": [
+            "grass_block",
+            "dirt"
+          ],
+          "maximum_removals": 3,
+          "selected_block": "dirt",
+          "selected_source_id": "dirt:125:142:-37",
+          "selected_position": {
+            "x": 125,
+            "y": 142,
+            "z": -37
+          },
+          "selected_is_highest_obstruction": true
+        }
+      },
+      {
+        "source_id": "dirt:124:141:-36",
+        "name": "dirt",
+        "position": {
+          "x": 124,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 1.0,
+        "support_source_id": "stone:124:138:-36",
+        "support_position": {
+          "x": 124,
+          "y": 138,
+          "z": -36
+        },
+        "support_distance": 3.162278,
+        "remaining_clearance_count": 3,
+        "stone_surface_clearance": true,
+        "clearance_proof": {
+          "type": "sp003_stone_surface_clearance_proof",
+          "schema_version": 2,
+          "scan_complete": true,
+          "targeted_air_visibility_complete": false,
+          "scan_fingerprint": "06155cafbfd239db76158e3658dc7fa9e83208b4f7305df26198309dc76bbdb8",
+          "scan_radius": 1,
+          "scan_origin_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "origin_stable": true,
+          "post_scan_player_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "vertical_min_offset": -3,
+          "vertical_max_offset": 3,
+          "scanned_cell_count": 63,
+          "backend_path": "src/bot/bot_server.js",
+          "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+          "response_limit": 50,
+          "response_count": 43,
+          "completeness_basis": "result_count_below_frozen_backend_limit",
+          "priority_unique_name_prefix_count": 0,
+          "visibility_distance_strict_upper_bound": null,
+          "selection_trace_fingerprint": "",
+          "priority_selection_trace": [],
+          "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+          "downstep_transition_clearance_required": false,
+          "transition_upper_head_position": {},
+          "transition_upper_head_cell_state_before": "not_required",
+          "transition_upper_head_included_in_shaft": true,
+          "support_block": "stone",
+          "support_source_id": "stone:124:138:-36",
+          "support_position": {
+            "x": 124,
+            "y": 138,
+            "z": -36
+          },
+          "support_not_player_column": true,
+          "entry_shaft_positions": [
+            {
+              "x": 124,
+              "y": 139,
+              "z": -36
+            },
+            {
+              "x": 124,
+              "y": 140,
+              "z": -36
+            },
+            {
+              "x": 124,
+              "y": 141,
+              "z": -36
+            }
+          ],
+          "entry_shaft_cell_states": [
+            {
+              "position": {
+                "x": 124,
+                "y": 139,
+                "z": -36
+              },
+              "state": "dirt",
+              "source_id": "dirt:124:139:-36"
+            },
+            {
+              "position": {
+                "x": 124,
+                "y": 140,
+                "z": -36
+              },
+              "state": "dirt",
+              "source_id": "dirt:124:140:-36"
+            },
+            {
+              "position": {
+                "x": 124,
+                "y": 141,
+                "z": -36
+              },
+              "state": "dirt",
+              "source_id": "dirt:124:141:-36"
+            }
+          ],
+          "obstruction_source_ids_top_down": [
+            "dirt:124:141:-36",
+            "dirt:124:140:-36",
+            "dirt:124:139:-36"
+          ],
+          "allowed_blocks": [
+            "grass_block",
+            "dirt"
+          ],
+          "maximum_removals": 3,
+          "selected_block": "dirt",
+          "selected_source_id": "dirt:124:141:-36",
+          "selected_position": {
+            "x": 124,
+            "y": 141,
+            "z": -36
+          },
+          "selected_is_highest_obstruction": true
+        }
+      },
+      {
+        "source_id": "grass_block:123:141:-38",
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -38
+        },
+        "distance": 1.414214,
+        "support_source_id": "stone:123:138:-38",
+        "support_position": {
+          "x": 123,
+          "y": 138,
+          "z": -38
+        },
+        "support_distance": 3.316625,
+        "remaining_clearance_count": 3,
+        "stone_surface_clearance": true,
+        "clearance_proof": {
+          "type": "sp003_stone_surface_clearance_proof",
+          "schema_version": 2,
+          "scan_complete": true,
+          "targeted_air_visibility_complete": false,
+          "scan_fingerprint": "06155cafbfd239db76158e3658dc7fa9e83208b4f7305df26198309dc76bbdb8",
+          "scan_radius": 1,
+          "scan_origin_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "origin_stable": true,
+          "post_scan_player_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "vertical_min_offset": -3,
+          "vertical_max_offset": 3,
+          "scanned_cell_count": 63,
+          "backend_path": "src/bot/bot_server.js",
+          "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+          "response_limit": 50,
+          "response_count": 43,
+          "completeness_basis": "result_count_below_frozen_backend_limit",
+          "priority_unique_name_prefix_count": 0,
+          "visibility_distance_strict_upper_bound": null,
+          "selection_trace_fingerprint": "",
+          "priority_selection_trace": [],
+          "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+          "downstep_transition_clearance_required": false,
+          "transition_upper_head_position": {},
+          "transition_upper_head_cell_state_before": "not_required",
+          "transition_upper_head_included_in_shaft": true,
+          "support_block": "stone",
+          "support_source_id": "stone:123:138:-38",
+          "support_position": {
+            "x": 123,
+            "y": 138,
+            "z": -38
+          },
+          "support_not_player_column": true,
+          "entry_shaft_positions": [
+            {
+              "x": 123,
+              "y": 139,
+              "z": -38
+            },
+            {
+              "x": 123,
+              "y": 140,
+              "z": -38
+            },
+            {
+              "x": 123,
+              "y": 141,
+              "z": -38
+            }
+          ],
+          "entry_shaft_cell_states": [
+            {
+              "position": {
+                "x": 123,
+                "y": 139,
+                "z": -38
+              },
+              "state": "dirt",
+              "source_id": "dirt:123:139:-38"
+            },
+            {
+              "position": {
+                "x": 123,
+                "y": 140,
+                "z": -38
+              },
+              "state": "dirt",
+              "source_id": "dirt:123:140:-38"
+            },
+            {
+              "position": {
+                "x": 123,
+                "y": 141,
+                "z": -38
+              },
+              "state": "grass_block",
+              "source_id": "grass_block:123:141:-38"
+            }
+          ],
+          "obstruction_source_ids_top_down": [
+            "grass_block:123:141:-38",
+            "dirt:123:140:-38",
+            "dirt:123:139:-38"
+          ],
+          "allowed_blocks": [
+            "grass_block",
+            "dirt"
+          ],
+          "maximum_removals": 3,
+          "selected_block": "grass_block",
+          "selected_source_id": "grass_block:123:141:-38",
+          "selected_position": {
+            "x": 123,
+            "y": 141,
+            "z": -38
+          },
+          "selected_is_highest_obstruction": true
+        }
+      },
+      {
+        "source_id": "dirt:125:141:-36",
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 1.414214,
+        "support_source_id": "stone:125:138:-36",
+        "support_position": {
+          "x": 125,
+          "y": 138,
+          "z": -36
+        },
+        "support_distance": 3.316625,
+        "remaining_clearance_count": 3,
+        "stone_surface_clearance": true,
+        "clearance_proof": {
+          "type": "sp003_stone_surface_clearance_proof",
+          "schema_version": 2,
+          "scan_complete": true,
+          "targeted_air_visibility_complete": false,
+          "scan_fingerprint": "06155cafbfd239db76158e3658dc7fa9e83208b4f7305df26198309dc76bbdb8",
+          "scan_radius": 1,
+          "scan_origin_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "origin_stable": true,
+          "post_scan_player_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "vertical_min_offset": -3,
+          "vertical_max_offset": 3,
+          "scanned_cell_count": 63,
+          "backend_path": "src/bot/bot_server.js",
+          "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+          "response_limit": 50,
+          "response_count": 43,
+          "completeness_basis": "result_count_below_frozen_backend_limit",
+          "priority_unique_name_prefix_count": 0,
+          "visibility_distance_strict_upper_bound": null,
+          "selection_trace_fingerprint": "",
+          "priority_selection_trace": [],
+          "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+          "downstep_transition_clearance_required": false,
+          "transition_upper_head_position": {},
+          "transition_upper_head_cell_state_before": "not_required",
+          "transition_upper_head_included_in_shaft": true,
+          "support_block": "stone",
+          "support_source_id": "stone:125:138:-36",
+          "support_position": {
+            "x": 125,
+            "y": 138,
+            "z": -36
+          },
+          "support_not_player_column": true,
+          "entry_shaft_positions": [
+            {
+              "x": 125,
+              "y": 139,
+              "z": -36
+            },
+            {
+              "x": 125,
+              "y": 140,
+              "z": -36
+            },
+            {
+              "x": 125,
+              "y": 141,
+              "z": -36
+            }
+          ],
+          "entry_shaft_cell_states": [
+            {
+              "position": {
+                "x": 125,
+                "y": 139,
+                "z": -36
+              },
+              "state": "dirt",
+              "source_id": "dirt:125:139:-36"
+            },
+            {
+              "position": {
+                "x": 125,
+                "y": 140,
+                "z": -36
+              },
+              "state": "dirt",
+              "source_id": "dirt:125:140:-36"
+            },
+            {
+              "position": {
+                "x": 125,
+                "y": 141,
+                "z": -36
+              },
+              "state": "dirt",
+              "source_id": "dirt:125:141:-36"
+            }
+          ],
+          "obstruction_source_ids_top_down": [
+            "dirt:125:141:-36",
+            "dirt:125:140:-36",
+            "dirt:125:139:-36"
+          ],
+          "allowed_blocks": [
+            "grass_block",
+            "dirt"
+          ],
+          "maximum_removals": 3,
+          "selected_block": "dirt",
+          "selected_source_id": "dirt:125:141:-36",
+          "selected_position": {
+            "x": 125,
+            "y": 141,
+            "z": -36
+          },
+          "selected_is_highest_obstruction": true
+        }
+      },
+      {
+        "source_id": "dirt:125:141:-38",
+        "name": "dirt",
+        "position": {
+          "x": 125,
+          "y": 141,
+          "z": -38
+        },
+        "distance": 1.414214,
+        "support_source_id": "stone:125:138:-38",
+        "support_position": {
+          "x": 125,
+          "y": 138,
+          "z": -38
+        },
+        "support_distance": 3.316625,
+        "remaining_clearance_count": 3,
+        "stone_surface_clearance": true,
+        "clearance_proof": {
+          "type": "sp003_stone_surface_clearance_proof",
+          "schema_version": 2,
+          "scan_complete": true,
+          "targeted_air_visibility_complete": false,
+          "scan_fingerprint": "06155cafbfd239db76158e3658dc7fa9e83208b4f7305df26198309dc76bbdb8",
+          "scan_radius": 1,
+          "scan_origin_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "origin_stable": true,
+          "post_scan_player_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "vertical_min_offset": -3,
+          "vertical_max_offset": 3,
+          "scanned_cell_count": 63,
+          "backend_path": "src/bot/bot_server.js",
+          "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+          "response_limit": 50,
+          "response_count": 43,
+          "completeness_basis": "result_count_below_frozen_backend_limit",
+          "priority_unique_name_prefix_count": 0,
+          "visibility_distance_strict_upper_bound": null,
+          "selection_trace_fingerprint": "",
+          "priority_selection_trace": [],
+          "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+          "downstep_transition_clearance_required": false,
+          "transition_upper_head_position": {},
+          "transition_upper_head_cell_state_before": "not_required",
+          "transition_upper_head_included_in_shaft": true,
+          "support_block": "stone",
+          "support_source_id": "stone:125:138:-38",
+          "support_position": {
+            "x": 125,
+            "y": 138,
+            "z": -38
+          },
+          "support_not_player_column": true,
+          "entry_shaft_positions": [
+            {
+              "x": 125,
+              "y": 139,
+              "z": -38
+            },
+            {
+              "x": 125,
+              "y": 140,
+              "z": -38
+            },
+            {
+              "x": 125,
+              "y": 141,
+              "z": -38
+            }
+          ],
+          "entry_shaft_cell_states": [
+            {
+              "position": {
+                "x": 125,
+                "y": 139,
+                "z": -38
+              },
+              "state": "dirt",
+              "source_id": "dirt:125:139:-38"
+            },
+            {
+              "position": {
+                "x": 125,
+                "y": 140,
+                "z": -38
+              },
+              "state": "dirt",
+              "source_id": "dirt:125:140:-38"
+            },
+            {
+              "position": {
+                "x": 125,
+                "y": 141,
+                "z": -38
+              },
+              "state": "dirt",
+              "source_id": "dirt:125:141:-38"
+            }
+          ],
+          "obstruction_source_ids_top_down": [
+            "dirt:125:141:-38",
+            "dirt:125:140:-38",
+            "dirt:125:139:-38"
+          ],
+          "allowed_blocks": [
+            "grass_block",
+            "dirt"
+          ],
+          "maximum_removals": 3,
+          "selected_block": "dirt",
+          "selected_source_id": "dirt:125:141:-38",
+          "selected_position": {
+            "x": 125,
+            "y": 141,
+            "z": -38
+          },
+          "selected_is_highest_obstruction": true
+        }
+      }
+    ],
+    "flags": [
+      "sp003_wood_acquired"
+    ],
+    "sp003_progress": {
+      "log_source_ids": [
+        "dark_oak_log:120:142:-35",
+        "dark_oak_log:121:141:-35",
+        "dark_oak_log:121:142:-35"
+      ],
+      "log_source_removal_count": 3,
+      "log_item": "dark_oak_log",
+      "pending_log_pickup_count": 0,
+      "pending_log_pickups": [],
+      "delayed_log_pickup_reconciliation_count": 0,
+      "delayed_log_pickup_reconciliations": [],
+      "plank_craft_count": 1,
+      "stick_craft_count": 1,
+      "crafting_table_craft_count": 1,
+      "crafting_table_place_count": 0,
+      "crafting_table_position": {},
+      "wooden_pickaxe_craft_count": 0,
+      "wooden_pickaxe_equip_count": 0,
+      "surface_clearance_source_ids": [
+        "dirt:124:141:-37",
+        "grass_block:124:142:-37"
+      ],
+      "surface_clearance_removal_count": 2,
+      "stone_source_ids": [],
+      "stone_source_removal_count": 0,
+      "stone_pickaxe_craft_count": 0,
+      "iron_mining_action_count": 0,
+      "successful_mutation_count": 8,
+      "successful_mutations": [
+        {
+          "type": "dig",
+          "item": "",
+          "block": "dark_oak_log",
+          "source_id": "dark_oak_log:121:142:-35"
+        },
+        {
+          "type": "dig",
+          "item": "",
+          "block": "dark_oak_log",
+          "source_id": "dark_oak_log:120:142:-35"
+        },
+        {
+          "type": "dig",
+          "item": "",
+          "block": "dark_oak_log",
+          "source_id": "dark_oak_log:121:141:-35"
+        },
+        {
+          "type": "craft",
+          "item": "dark_oak_planks",
+          "block": ""
+        },
+        {
+          "type": "craft",
+          "item": "stick",
+          "block": ""
+        },
+        {
+          "type": "craft",
+          "item": "crafting_table",
+          "block": ""
+        },
+        {
+          "type": "dig",
+          "item": "",
+          "block": "grass_block",
+          "source_id": "grass_block:124:142:-37",
+          "support_source_id": "stone:124:139:-37",
+          "proof_fingerprint": "48fa5b989866317c264387a51f670e60d703a4a8c3014d42f92130fdfcc1fe9f"
+        },
+        {
+          "type": "dig",
+          "item": "",
+          "block": "dirt",
+          "source_id": "dirt:124:141:-37",
+          "support_source_id": "stone:124:139:-37",
+          "proof_fingerprint": "f847fce50add8925e925f83c27e082b620995ba5f0aaea502334a15e76685482"
+        }
+      ]
+    },
+    "sp003_arm": "baseline",
+    "sp003_targets": [
+      {
+        "source_id": "sp003_clearance_shaft_step_up_egress:123:142:-37",
+        "name": "sp003_clearance_shaft_step_up_egress",
+        "position": {
+          "x": 123.5,
+          "y": 142,
+          "z": -36.5
+        },
+        "stand_position": {
+          "x": 123.5,
+          "y": 142,
+          "z": -36.5
+        },
+        "distance": 1.375108,
+        "navigation_only": true,
+        "stone_clearance_shaft_step_up_egress": true,
+        "locked_support_source_id": "stone:124:139:-37",
+        "shaft_step_up_egress_proof": {
+          "type": "sp003_partial_clearance_shaft_step_up_egress_proof",
+          "schema_version": 1,
+          "policy_id": "sp003-partial-clearance-shaft-step-up-egress-v1",
+          "parent_policy_id": "sp003-partial-clearance-shaft-continuation-v1",
+          "scan_complete": true,
+          "targeted_air_visibility_complete": false,
+          "scan_fingerprint": "06155cafbfd239db76158e3658dc7fa9e83208b4f7305df26198309dc76bbdb8",
+          "scan_radius": 1,
+          "scan_origin_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "origin_stable": true,
+          "post_scan_player_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "vertical_min_offset": -3,
+          "vertical_max_offset": 3,
+          "scanned_cell_count": 63,
+          "backend_path": "src/bot/bot_server.js",
+          "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+          "response_limit": 50,
+          "response_count": 43,
+          "completeness_basis": "result_count_below_frozen_backend_limit",
+          "priority_unique_name_prefix_count": 0,
+          "visibility_distance_strict_upper_bound": null,
+          "selection_trace_fingerprint": "",
+          "priority_selection_trace": [],
+          "locked_support_source_id": "stone:124:139:-37",
+          "locked_support_position": {
+            "x": 124,
+            "y": 139,
+            "z": -37
+          },
+          "locked_clearance_count": 2,
+          "locked_clearance_source_ids": [
+            "grass_block:124:142:-37",
+            "dirt:124:141:-37"
+          ],
+          "locked_clearance_proof_fingerprints": [
+            "48fa5b989866317c264387a51f670e60d703a4a8c3014d42f92130fdfcc1fe9f",
+            "f847fce50add8925e925f83c27e082b620995ba5f0aaea502334a15e76685482"
+          ],
+          "player_in_locked_support_column": true,
+          "remaining_obstruction_source_ids_top_down": [
+            "dirt:124:140:-37"
+          ],
+          "remaining_obstruction_count": 1,
+          "clearance_episode_maximum_unchanged": 6,
+          "clearance_shaft_maximum_unchanged": 3,
+          "current_feet_position": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "current_feet_cell_state": "air",
+          "current_head_position": {
+            "x": 124,
+            "y": 142,
+            "z": -37
+          },
+          "current_head_cell_state": "air",
+          "egress_stand_position": {
+            "x": 123.5,
+            "y": 142,
+            "z": -36.5
+          },
+          "egress_ground_position": {
+            "x": 123,
+            "y": 141,
+            "z": -37
+          },
+          "egress_ground_block": "grass_block",
+          "egress_ground_source_id": "grass_block:123:141:-37",
+          "egress_feet_position": {
+            "x": 123,
+            "y": 142,
+            "z": -37
+          },
+          "egress_feet_cell_state": "air",
+          "egress_head_position": {
+            "x": 123,
+            "y": 143,
+            "z": -37
+          },
+          "egress_head_cell_state": "air",
+          "egress_cardinal_step_count": 1,
+          "egress_horizontal_manhattan_distance": 1,
+          "egress_vertical_delta": 1,
+          "inventory_preservation_required": true,
+          "attempt_limit": 1,
+          "world_mutation": false
+        },
+        "shaft_step_up_egress_proof_fingerprint": "6bc0f5776546c7ba2df087f37ed76d9382746dc9338c2f6f162527de13639e1e"
+      }
+    ],
+    "sp003_table_staging": {
+      "type": "sp003_table_staging_state",
+      "schema_version": 1,
+      "policy_id": "sp003-partial-clearance-shaft-step-up-egress-v1",
+      "parent_policy_id": "sp003-partial-clearance-shaft-continuation-v1",
+      "active": true,
+      "ready_for_table_placement": false,
+      "blocked": false,
+      "target": {
+        "source_id": "sp003_clearance_shaft_step_up_egress:123:142:-37",
+        "name": "sp003_clearance_shaft_step_up_egress",
+        "position": {
+          "x": 123.5,
+          "y": 142,
+          "z": -36.5
+        },
+        "stand_position": {
+          "x": 123.5,
+          "y": 142,
+          "z": -36.5
+        },
+        "distance": 1.375108,
+        "navigation_only": true,
+        "stone_clearance_shaft_step_up_egress": true,
+        "locked_support_source_id": "stone:124:139:-37",
+        "shaft_step_up_egress_proof": {
+          "type": "sp003_partial_clearance_shaft_step_up_egress_proof",
+          "schema_version": 1,
+          "policy_id": "sp003-partial-clearance-shaft-step-up-egress-v1",
+          "parent_policy_id": "sp003-partial-clearance-shaft-continuation-v1",
+          "scan_complete": true,
+          "targeted_air_visibility_complete": false,
+          "scan_fingerprint": "06155cafbfd239db76158e3658dc7fa9e83208b4f7305df26198309dc76bbdb8",
+          "scan_radius": 1,
+          "scan_origin_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "origin_stable": true,
+          "post_scan_player_cell": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "vertical_min_offset": -3,
+          "vertical_max_offset": 3,
+          "scanned_cell_count": 63,
+          "backend_path": "src/bot/bot_server.js",
+          "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+          "response_limit": 50,
+          "response_count": 43,
+          "completeness_basis": "result_count_below_frozen_backend_limit",
+          "priority_unique_name_prefix_count": 0,
+          "visibility_distance_strict_upper_bound": null,
+          "selection_trace_fingerprint": "",
+          "priority_selection_trace": [],
+          "locked_support_source_id": "stone:124:139:-37",
+          "locked_support_position": {
+            "x": 124,
+            "y": 139,
+            "z": -37
+          },
+          "locked_clearance_count": 2,
+          "locked_clearance_source_ids": [
+            "grass_block:124:142:-37",
+            "dirt:124:141:-37"
+          ],
+          "locked_clearance_proof_fingerprints": [
+            "48fa5b989866317c264387a51f670e60d703a4a8c3014d42f92130fdfcc1fe9f",
+            "f847fce50add8925e925f83c27e082b620995ba5f0aaea502334a15e76685482"
+          ],
+          "player_in_locked_support_column": true,
+          "remaining_obstruction_source_ids_top_down": [
+            "dirt:124:140:-37"
+          ],
+          "remaining_obstruction_count": 1,
+          "clearance_episode_maximum_unchanged": 6,
+          "clearance_shaft_maximum_unchanged": 3,
+          "current_feet_position": {
+            "x": 124,
+            "y": 141,
+            "z": -37
+          },
+          "current_feet_cell_state": "air",
+          "current_head_position": {
+            "x": 124,
+            "y": 142,
+            "z": -37
+          },
+          "current_head_cell_state": "air",
+          "egress_stand_position": {
+            "x": 123.5,
+            "y": 142,
+            "z": -36.5
+          },
+          "egress_ground_position": {
+            "x": 123,
+            "y": 141,
+            "z": -37
+          },
+          "egress_ground_block": "grass_block",
+          "egress_ground_source_id": "grass_block:123:141:-37",
+          "egress_feet_position": {
+            "x": 123,
+            "y": 142,
+            "z": -37
+          },
+          "egress_feet_cell_state": "air",
+          "egress_head_position": {
+            "x": 123,
+            "y": 143,
+            "z": -37
+          },
+          "egress_head_cell_state": "air",
+          "egress_cardinal_step_count": 1,
+          "egress_horizontal_manhattan_distance": 1,
+          "egress_vertical_delta": 1,
+          "inventory_preservation_required": true,
+          "attempt_limit": 1,
+          "world_mutation": false
+        },
+        "shaft_step_up_egress_proof_fingerprint": "6bc0f5776546c7ba2df087f37ed76d9382746dc9338c2f6f162527de13639e1e"
+      },
+      "partial_shaft_lock": {
+        "support_source_id": "stone:124:139:-37",
+        "support_cell": [
+          124,
+          139,
+          -37
+        ],
+        "clearance_count": 2,
+        "clearance_source_ids": [
+          "grass_block:124:142:-37",
+          "dirt:124:141:-37"
+        ],
+        "clearance_source_cells": [
+          [
+            124,
+            142,
+            -37
+          ],
+          [
+            124,
+            141,
+            -37
+          ]
+        ],
+        "clearance_proof_fingerprints": [
+          "48fa5b989866317c264387a51f670e60d703a4a8c3014d42f92130fdfcc1fe9f",
+          "f847fce50add8925e925f83c27e082b620995ba5f0aaea502334a15e76685482"
+        ]
+      },
+      "target_mode": "locked_shaft_step_up_egress"
+    }
+  },
+  "initial_state_audit": {
+    "type": "stone_pickaxe_sp003_initial_state_audit",
+    "schema_version": 1,
+    "passed": true,
+    "checks": {
+      "inventory_exact_empty": true,
+      "survival_mode": true,
+      "health_positive": true,
+      "finite_position": true,
+      "safe_ground": true,
+      "observed_log_source": true,
+      "no_crafting_table": true,
+      "no_stone_pickaxe": true,
+      "no_wooden_pickaxe": true,
+      "no_cobblestone": true
+    },
+    "issues": [],
+    "inventory": {},
+    "observed_log_source_count": 5,
+    "nearest_log_source": {
+      "source_id": "dark_oak_log:94:142:-31",
+      "name": "dark_oak_log",
+      "position": {
+        "x": 94.0,
+        "y": 142.0,
+        "z": -31.0
+      },
+      "distance": 3.0
+    },
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "reset_audit": {
+    "type": "stone_pickaxe_sp003_reset_audit",
+    "schema_version": 1,
+    "passed": true,
+    "policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+    "checks": {
+      "protocol_status_success": true,
+      "protocol_configured": true,
+      "protocol_profile": true,
+      "protocol_errors": true,
+      "episode_id": true,
+      "level_name": true,
+      "world_seed": true,
+      "minecraft_version": true,
+      "server_jar": true,
+      "reset_success": true,
+      "reset_task": true,
+      "reset_contract": true,
+      "expected_empty_inventory": true,
+      "observed_empty_inventory": true,
+      "no_fixture_blocks": true,
+      "survival": true,
+      "difficulty": true,
+      "daylight_start": true,
+      "lifecycle_baseline": true
+    },
+    "issues": [],
+    "reset_task_id": "BM-012",
+    "reset_only": true,
+    "bm012_terminal_started": false,
+    "granted_items": [],
+    "counts_toward_bm012": false,
+    "counts_toward_m4": false
+  },
+  "planner_request_controls": {
+    "type": "stone_pickaxe_planner_request_controls_audit",
+    "schema_version": 1,
+    "passed": false,
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "call_count": 12,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "calls": [
+      {
+        "call_id": "llm-3bb3974147064b2f",
+        "call_index": 0,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "d0fed36bc616a042c0331516e3a788ae17cd857de23382c9fe756edd7bee5d87",
+        "request_sha256": "e7f66478aa5067b9a878f212218c0ebe06ce87a5529040c7dc450665146557d8"
+      },
+      {
+        "call_id": "llm-612f6e67ef4e4085",
+        "call_index": 1,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "ebb07e55b258f26d9bcbc1d2833e528168311732f5d03f2f580391b813b41506",
+        "request_sha256": "30801415507907e77cb1d7db7824a02ba0b4b605e55c1f2b328c06507ac73f09"
+      },
+      {
+        "call_id": "llm-d6058816cbfb4981",
+        "call_index": 2,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "37e68e3f53dfcf6a0d87a1d411b6099fb11a0ed79338844c49b1874cba382aba",
+        "request_sha256": "feb003cb115f5eb2c20f32b4665c45c12ba4ba974a76b47b69d169d9c726ce63"
+      },
+      {
+        "call_id": "llm-7543e4c81dc249e1",
+        "call_index": 3,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "40ac8ce6aed6510f92c066f4ce2de7b4f1466a7b145237b207ba3005578dedc8",
+        "request_sha256": "f156d93db02d328bf4ec6a006c8a30049baa6ef124495ddfbae42e48b2c418cb"
+      },
+      {
+        "call_id": "llm-be74209d69754a75",
+        "call_index": 4,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "4534e02ab750155c4c75dbb3771b88f262c6d28f6ca52dcbe8f6b816158888c8",
+        "request_sha256": "9890f22273f3f817ad948598151e21b2d061d0ad9846cef8ee68683a1923bf01"
+      },
+      {
+        "call_id": "llm-6402d5ab421a4676",
+        "call_index": 5,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "f5991d92479aeaa421996779aeac71b8d7d96b1c24073a68e9af11f54981dbbd",
+        "request_sha256": "e0eafe129e6fd62be3710778565af9d9441e9338ccd4dffa9b9471657d16c19f"
+      },
+      {
+        "call_id": "llm-f09b6619029247ef",
+        "call_index": 6,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "2849b5d1ea5c86dd09addc043bf5ee2b82ac0b1485c48e736add7244d9d5d175",
+        "request_sha256": "0a2d76d4bc19ab4290977c62fdd2acd03e52ce4c6389ac679a40f10ebf32a0e8"
+      },
+      {
+        "call_id": "llm-a64e2e5aca86492b",
+        "call_index": 7,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "a51c1b8b5f0f36c0a044079c70ac3b91b93f993cf313ccbc69809176ce927f4a",
+        "request_sha256": "ffcdedbaa68f91fee0e108f5ac72442cfed3e73f943baa80777471768bc27a96"
+      },
+      {
+        "call_id": "llm-ea04935fd4754a8d",
+        "call_index": 8,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "34f8ff559a4d87578e941c406273380085bd35acca352a60b47b8810747c1ff6",
+        "request_sha256": "2435142520d732766bd9be67a86bdec8b9a3b6618623ba9db3f40f145a28fdfd"
+      },
+      {
+        "call_id": "llm-f5ff4f7ebf8f4fe4",
+        "call_index": 9,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "b5b58fc341bd907beaeb873380b94b92d34223dbb59c49e30b8b599deb42db36",
+        "request_sha256": "c7b7958e4d23ddbadbcf55bad6add938c9791c8f755f45349103515dad57fb3f"
+      },
+      {
+        "call_id": "llm-0aa1a929b56f4847",
+        "call_index": 10,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "5d63cac49bc0ca650f8ef40587a751468376d755929b1c5d6713e28a3a5a1e81",
+        "request_sha256": "cd1c137d2f6c69583c900f87999cc5686887973600c20d7bf64a8ae21adf3878"
+      },
+      {
+        "call_id": "llm-40b18ad4997845b0",
+        "call_index": 11,
+        "passed": false,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": false,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "1d982a0a925e3cdb2f5dd671c579bd599c8b5253800ead9ee662eb22a54cc649",
+        "request_sha256": "ca7188a54f971bf0cd6018a338878246b24880388d8906fa4469811d8d6442c9"
+      }
+    ],
+    "issues": [
+      "llm-40b18ad4997845b0:schema_valid"
+    ]
+  },
+  "selected_skills": [],
+  "skill_action_map": [],
+  "local_skill_attributions": [],
+  "components": {
+    "sp001": {
+      "type": "stone_pickaxe_microbenchmark_episode",
+      "schema_version": 1,
+      "protocol_id": "stone-pickaxe-skill-fixed-v1",
+      "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+      "task_id": "SP-001",
+      "session_id": "1dcad8c7-096",
+      "episode_id": "sp003_baseline_20260720_064839_abb7c5cb",
+      "session_sha256": "c8783f38842e4e4b0be8b807e06c645737db77754917d53fecd242db7c1ef176",
+      "level_name": "sp003_baseline_20260720_064839_abb7c5cb_world",
+      "evidence_kind": "live_verified",
+      "episode_started_monotonic": 251784.484,
+      "episode_deadline_monotonic": 252084.484,
+      "episode_ended_monotonic": 251784.484,
+      "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+      "action_count": 0,
+      "action_failure_count": 0,
+      "false_success_dig_count": 0,
+      "world_mutating_non_target_actions": [],
+      "initial_observation": {
+        "role": "sp003_sp001_initial",
+        "monotonic_s": 251784.484,
+        "position": {},
+        "inventory": {},
+        "health": null,
+        "hunger": null,
+        "game_mode": "",
+        "dimension": "",
+        "ground_block": "",
+        "safe": false,
+        "movable": false,
+        "observed_blocks": [],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "observation_id": "97c39cddc8f91de5cba5147ae5dedad3db4b0eabf386f0c9583ebdde99f057d3"
+      },
+      "transitions": [],
+      "terminal_observation": {},
+      "goal_result": {
+        "goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+        "cycles": 12,
+        "completed": false,
+        "termination_reason": "empty_plan",
+        "max_cycles": 40,
+        "max_duration_s": 300.0,
+        "max_actions": 32,
+        "action_count": 11,
+        "elapsed_s": 90.234,
+        "episode_started_monotonic": 251784.484,
+        "episode_ended_monotonic": 251874.718,
+        "episode_deadline_monotonic": 252084.484,
+        "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "deadline_eligible": true,
+        "summary": {
+          "session_id": "1dcad8c7-096",
+          "duration_s": 91.76,
+          "total_events": 248,
+          "action_count": 11,
+          "error_count": 0,
+          "intervention_metrics": {
+            "policy_hint_count": 0,
+            "policy_intervention_count": 0,
+            "policy_intervention_actions": 0,
+            "policy_intervention_successes": 0,
+            "policy_intervention_failures": 0,
+            "policy_intervention_success_rate": 0.0,
+            "policy_intervention_skills": [],
+            "visual_action_suggestion_event_count": 0,
+            "visual_action_suggestion_count": 0,
+            "visual_action_intervention_count": 0,
+            "visual_action_suggestion_kinds": {},
+            "visual_action_intervention_kinds": {},
+            "visual_action_intervention_phases": {},
+            "visual_action_action_types": {},
+            "visual_action_goals": [],
+            "skill_memory_hint_event_count": 0,
+            "skill_memory_hint_count": 0,
+            "skill_memory_task_families": {},
+            "skill_selected_count": 0,
+            "skill_executed_count": 0,
+            "skill_successful_action_count": 0,
+            "skill_failed_action_count": 0,
+            "skill_completion_count": 0,
+            "skill_outcome_count": 0,
+            "skill_fallback_count": 0,
+            "skill_shadow_plan_count": 0,
+            "skill_advisory_hint_count": 0,
+            "skill_candidate_extraction_count": 0,
+            "skill_attribution_confidence": 0.0,
+            "skill_ids": [],
+            "action_verification_event_count": 10,
+            "action_verification_status_counts": {
+              "accept": 9,
+              "review": 1
+            },
+            "action_verification_action_types": {
+              "move_to": 2,
+              "dig": 5,
+              "craft": 3
+            },
+            "action_verification_blocked_count": 0,
+            "action_candidate_selection_event_count": 0,
+            "action_candidate_selection_repaired_reject_count": 0,
+            "action_candidate_selection_selected_types": {}
+          },
+          "visual_action_metrics": {
+            "visual_action_suggestion_event_count": 0,
+            "visual_action_suggestion_count": 0,
+            "visual_action_intervention_count": 0,
+            "visual_action_suggestion_kinds": {},
+            "visual_action_intervention_kinds": {},
+            "visual_action_intervention_phases": {},
+            "visual_action_action_types": {},
+            "visual_action_goals": []
+          },
+          "skill_memory_metrics": {
+            "skill_memory_hint_event_count": 0,
+            "skill_memory_hint_count": 0,
+            "skill_memory_task_families": {}
+          },
+          "skill_learning_metrics": {
+            "skill_selected_count": 0,
+            "skill_executed_count": 0,
+            "skill_successful_action_count": 0,
+            "skill_failed_action_count": 0,
+            "skill_completion_count": 0,
+            "skill_outcome_count": 0,
+            "skill_fallback_count": 0,
+            "skill_shadow_plan_count": 0,
+            "skill_advisory_hint_count": 0,
+            "skill_candidate_extraction_count": 0,
+            "skill_attribution_confidence": 0.0,
+            "skill_ids": []
+          },
+          "action_verification_metrics": {
+            "action_verification_event_count": 10,
+            "action_verification_status_counts": {
+              "accept": 9,
+              "review": 1
+            },
+            "action_verification_action_types": {
+              "move_to": 2,
+              "dig": 5,
+              "craft": 3
+            },
+            "action_verification_blocked_count": 0
+          },
+          "action_candidate_selection_metrics": {
+            "action_candidate_selection_event_count": 0,
+            "action_candidate_selection_repaired_reject_count": 0,
+            "action_candidate_selection_selected_types": {}
+          },
+          "goal_verification_metrics": {
+            "count": 22,
+            "achieved": 0,
+            "failed": 22,
+            "unknown": 0,
+            "accepted": 0,
+            "rejected": 22,
+            "acceptance_reasons": {}
+          },
+          "plan_cache_metrics": {
+            "plan_cache_hit_count": 0,
+            "plan_cache_hybrid_hint_count": 0,
+            "plan_cache_workflow_intervention_count": 0,
+            "plan_cache_miss_count": 0,
+            "plan_cache_signature_count": 0,
+            "plan_cache_hit_rate": 0.0,
+            "plan_cache_hit_entries": {},
+            "plan_cache_hit_goals": [],
+            "plan_cache_execution_stage_counts": {
+              "hybrid": 0,
+              "deterministic": 0
+            }
+          },
+          "episode_abort_metrics": {
+            "runtime_gate_event_count": 0,
+            "requested_mode": "off",
+            "effective_mode": "off",
+            "gate_readiness": "not_configured",
+            "viability_probe_count": 0,
+            "early_abort_trigger_count": 0,
+            "active_early_abort_count": 0,
+            "shadow_would_abort_count": 0,
+            "probe_round_counts": {},
+            "average_viability_risk_score": 0.0
+          },
+          "frontier_budget_metrics": {
+            "runtime_gate_event_count": 0,
+            "requested_mode": "off",
+            "effective_mode": "off",
+            "policy": "information",
+            "allocation_event_count": 0,
+            "planner_context_event_count": 0,
+            "outcome_event_count": 0,
+            "completed_outcome_count": 0,
+            "recovery_credit_event_count": 0,
+            "recovered_rounds": 0,
+            "reallocated_rounds_consumed": 0,
+            "allocation_pool_rounds": 0,
+            "allocated_rounds": 0,
+            "budget_conservation_failure_count": 0,
+            "policy_counts": {}
+          },
+          "memory_policy_metrics": {
+            "memory_write_count": 93,
+            "memory_read_count": 12,
+            "memory_manage_count": 0,
+            "memory_write_layers": {
+              "episodic": 58,
+              "context": 35
+            },
+            "memory_write_types": {
+              "goal_start": 1,
+              "context": 35,
+              "goal_verification": 22,
+              "action_verification": 10,
+              "task_state_update": 11,
+              "action": 11,
+              "failure": 1,
+              "empty_plan": 1,
+              "goal_end": 1
+            },
+            "memory_read_types": {
+              "opportunity_context": 12
+            },
+            "memory_manage_operations": {},
+            "memory_policy_decisions": {
+              "write_blocked": 93,
+              "read_allowed": 12
+            },
+            "memory_read_filter_event_count": 0,
+            "memory_read_filtered_entries": 0,
+            "memory_read_filter_reasons": {},
+            "memory_retrieval_trace_event_count": 0,
+            "weighted_memory_read_count": 0,
+            "weighted_memory_match_count": 0,
+            "weighted_transfer_match_count": 0,
+            "memory_attribution_policy_counts": {}
+          },
+          "log_path": "workspace/evals/sp003_runs/sp003_baseline_20260720_064839_abb7c5cb\\session_1dcad8c7-096.jsonl"
+        }
+      },
+      "eligibility": {
+        "passed": false,
+        "protocol_match": true,
+        "planner_request_controls": false,
+        "reset_clean": true,
+        "no_forbidden_intervention": true,
+        "no_post_deadline_action": true
+      },
+      "reset_contamination": false,
+      "post_deadline_action_count": 0,
+      "forbidden_interventions": [],
+      "selected_skills": [],
+      "counts_toward_capability": false,
+      "counts_toward_m4": false
+    },
+    "sp002": {
+      "type": "stone_pickaxe_microbenchmark_episode",
+      "schema_version": 1,
+      "protocol_id": "stone-pickaxe-skill-fixed-v1",
+      "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+      "task_id": "SP-002",
+      "session_id": "1dcad8c7-096",
+      "episode_id": "sp003_baseline_20260720_064839_abb7c5cb",
+      "session_sha256": "c8783f38842e4e4b0be8b807e06c645737db77754917d53fecd242db7c1ef176",
+      "level_name": "sp003_baseline_20260720_064839_abb7c5cb_world",
+      "evidence_kind": "live_verified",
+      "episode_started_monotonic": 251784.484,
+      "episode_deadline_monotonic": 252084.484,
+      "episode_ended_monotonic": 251875.156,
+      "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+      "action_count": 0,
+      "action_failure_count": 0,
+      "world_mutating_non_target_actions": [],
+      "initial_observation": {},
+      "transitions": [],
+      "terminal_observation": {},
+      "goal_result": {
+        "goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+        "cycles": 12,
+        "completed": false,
+        "termination_reason": "empty_plan",
+        "max_cycles": 40,
+        "max_duration_s": 300.0,
+        "max_actions": 32,
+        "action_count": 11,
+        "elapsed_s": 90.234,
+        "episode_started_monotonic": 251784.484,
+        "episode_ended_monotonic": 251874.718,
+        "episode_deadline_monotonic": 252084.484,
+        "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "deadline_eligible": true,
+        "summary": {
+          "session_id": "1dcad8c7-096",
+          "duration_s": 91.76,
+          "total_events": 248,
+          "action_count": 11,
+          "error_count": 0,
+          "intervention_metrics": {
+            "policy_hint_count": 0,
+            "policy_intervention_count": 0,
+            "policy_intervention_actions": 0,
+            "policy_intervention_successes": 0,
+            "policy_intervention_failures": 0,
+            "policy_intervention_success_rate": 0.0,
+            "policy_intervention_skills": [],
+            "visual_action_suggestion_event_count": 0,
+            "visual_action_suggestion_count": 0,
+            "visual_action_intervention_count": 0,
+            "visual_action_suggestion_kinds": {},
+            "visual_action_intervention_kinds": {},
+            "visual_action_intervention_phases": {},
+            "visual_action_action_types": {},
+            "visual_action_goals": [],
+            "skill_memory_hint_event_count": 0,
+            "skill_memory_hint_count": 0,
+            "skill_memory_task_families": {},
+            "skill_selected_count": 0,
+            "skill_executed_count": 0,
+            "skill_successful_action_count": 0,
+            "skill_failed_action_count": 0,
+            "skill_completion_count": 0,
+            "skill_outcome_count": 0,
+            "skill_fallback_count": 0,
+            "skill_shadow_plan_count": 0,
+            "skill_advisory_hint_count": 0,
+            "skill_candidate_extraction_count": 0,
+            "skill_attribution_confidence": 0.0,
+            "skill_ids": [],
+            "action_verification_event_count": 10,
+            "action_verification_status_counts": {
+              "accept": 9,
+              "review": 1
+            },
+            "action_verification_action_types": {
+              "move_to": 2,
+              "dig": 5,
+              "craft": 3
+            },
+            "action_verification_blocked_count": 0,
+            "action_candidate_selection_event_count": 0,
+            "action_candidate_selection_repaired_reject_count": 0,
+            "action_candidate_selection_selected_types": {}
+          },
+          "visual_action_metrics": {
+            "visual_action_suggestion_event_count": 0,
+            "visual_action_suggestion_count": 0,
+            "visual_action_intervention_count": 0,
+            "visual_action_suggestion_kinds": {},
+            "visual_action_intervention_kinds": {},
+            "visual_action_intervention_phases": {},
+            "visual_action_action_types": {},
+            "visual_action_goals": []
+          },
+          "skill_memory_metrics": {
+            "skill_memory_hint_event_count": 0,
+            "skill_memory_hint_count": 0,
+            "skill_memory_task_families": {}
+          },
+          "skill_learning_metrics": {
+            "skill_selected_count": 0,
+            "skill_executed_count": 0,
+            "skill_successful_action_count": 0,
+            "skill_failed_action_count": 0,
+            "skill_completion_count": 0,
+            "skill_outcome_count": 0,
+            "skill_fallback_count": 0,
+            "skill_shadow_plan_count": 0,
+            "skill_advisory_hint_count": 0,
+            "skill_candidate_extraction_count": 0,
+            "skill_attribution_confidence": 0.0,
+            "skill_ids": []
+          },
+          "action_verification_metrics": {
+            "action_verification_event_count": 10,
+            "action_verification_status_counts": {
+              "accept": 9,
+              "review": 1
+            },
+            "action_verification_action_types": {
+              "move_to": 2,
+              "dig": 5,
+              "craft": 3
+            },
+            "action_verification_blocked_count": 0
+          },
+          "action_candidate_selection_metrics": {
+            "action_candidate_selection_event_count": 0,
+            "action_candidate_selection_repaired_reject_count": 0,
+            "action_candidate_selection_selected_types": {}
+          },
+          "goal_verification_metrics": {
+            "count": 22,
+            "achieved": 0,
+            "failed": 22,
+            "unknown": 0,
+            "accepted": 0,
+            "rejected": 22,
+            "acceptance_reasons": {}
+          },
+          "plan_cache_metrics": {
+            "plan_cache_hit_count": 0,
+            "plan_cache_hybrid_hint_count": 0,
+            "plan_cache_workflow_intervention_count": 0,
+            "plan_cache_miss_count": 0,
+            "plan_cache_signature_count": 0,
+            "plan_cache_hit_rate": 0.0,
+            "plan_cache_hit_entries": {},
+            "plan_cache_hit_goals": [],
+            "plan_cache_execution_stage_counts": {
+              "hybrid": 0,
+              "deterministic": 0
+            }
+          },
+          "episode_abort_metrics": {
+            "runtime_gate_event_count": 0,
+            "requested_mode": "off",
+            "effective_mode": "off",
+            "gate_readiness": "not_configured",
+            "viability_probe_count": 0,
+            "early_abort_trigger_count": 0,
+            "active_early_abort_count": 0,
+            "shadow_would_abort_count": 0,
+            "probe_round_counts": {},
+            "average_viability_risk_score": 0.0
+          },
+          "frontier_budget_metrics": {
+            "runtime_gate_event_count": 0,
+            "requested_mode": "off",
+            "effective_mode": "off",
+            "policy": "information",
+            "allocation_event_count": 0,
+            "planner_context_event_count": 0,
+            "outcome_event_count": 0,
+            "completed_outcome_count": 0,
+            "recovery_credit_event_count": 0,
+            "recovered_rounds": 0,
+            "reallocated_rounds_consumed": 0,
+            "allocation_pool_rounds": 0,
+            "allocated_rounds": 0,
+            "budget_conservation_failure_count": 0,
+            "policy_counts": {}
+          },
+          "memory_policy_metrics": {
+            "memory_write_count": 93,
+            "memory_read_count": 12,
+            "memory_manage_count": 0,
+            "memory_write_layers": {
+              "episodic": 58,
+              "context": 35
+            },
+            "memory_write_types": {
+              "goal_start": 1,
+              "context": 35,
+              "goal_verification": 22,
+              "action_verification": 10,
+              "task_state_update": 11,
+              "action": 11,
+              "failure": 1,
+              "empty_plan": 1,
+              "goal_end": 1
+            },
+            "memory_read_types": {
+              "opportunity_context": 12
+            },
+            "memory_manage_operations": {},
+            "memory_policy_decisions": {
+              "write_blocked": 93,
+              "read_allowed": 12
+            },
+            "memory_read_filter_event_count": 0,
+            "memory_read_filtered_entries": 0,
+            "memory_read_filter_reasons": {},
+            "memory_retrieval_trace_event_count": 0,
+            "weighted_memory_read_count": 0,
+            "weighted_memory_match_count": 0,
+            "weighted_transfer_match_count": 0,
+            "memory_attribution_policy_counts": {}
+          },
+          "log_path": "workspace/evals/sp003_runs/sp003_baseline_20260720_064839_abb7c5cb\\session_1dcad8c7-096.jsonl"
+        }
+      },
+      "eligibility": {
+        "passed": false,
+        "protocol_match": true,
+        "planner_request_controls": false,
+        "reset_clean": true,
+        "no_forbidden_intervention": true,
+        "no_post_deadline_action": true,
+        "backend_single_craft_attempt": false
+      },
+      "reset_contamination": false,
+      "post_deadline_action_count": 0,
+      "forbidden_interventions": [],
+      "selected_skills": [],
+      "counts_toward_capability": false,
+      "counts_toward_m4": false
+    }
+  },
+  "task_graph": {
+    "task_count": 5,
+    "tasks": [
+      {
+        "id": "0dc011fc",
+        "title": "Mine exactly three stone blocks for cobblestone",
+        "type": "gather",
+        "parent_id": null,
+        "status": "accepted",
+        "priority": 1,
+        "preconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "success_criteria": {
+          "inventory": {
+            "cobblestone": 3
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784501600.7097385,
+        "updated_at": 1784501600.7107387,
+        "attempts": 0,
+        "observations": [],
+        "blockers": [],
+        "result": null,
+        "children": [],
+        "depends_on": [
+          "322545d6"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "acquire_cobblestone",
+        "root_plan_id": "root-aa5389ec055e4857",
+        "planner_call_id": "llm-3bb3974147064b2f",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "0dc011fc",
+            "task_title": "Mine exactly three stone blocks for cobblestone",
+            "plan_node_id": "acquire_cobblestone",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784501600.7097385
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "0dc011fc",
+            "task_title": "Mine exactly three stone blocks for cobblestone",
+            "plan_node_id": "acquire_cobblestone",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784501600.7107387
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "322545d6",
+        "title": "Craft exactly one wooden pickaxe",
+        "type": "craft",
+        "parent_id": null,
+        "status": "accepted",
+        "priority": 1,
+        "preconditions": {
+          "nearby_block_present": "crafting_table"
+        },
+        "success_criteria": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784501600.7097385,
+        "updated_at": 1784501600.7107387,
+        "attempts": 0,
+        "observations": [],
+        "blockers": [],
+        "result": null,
+        "children": [],
+        "depends_on": [
+          "61e2f94d"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "craft_wooden_pickaxe",
+        "root_plan_id": "root-aa5389ec055e4857",
+        "planner_call_id": "llm-3bb3974147064b2f",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "322545d6",
+            "task_title": "Craft exactly one wooden pickaxe",
+            "plan_node_id": "craft_wooden_pickaxe",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784501600.7097385
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "322545d6",
+            "task_title": "Craft exactly one wooden pickaxe",
+            "plan_node_id": "craft_wooden_pickaxe",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784501600.7107387
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "61e2f94d",
+        "title": "Craft and place exactly one crafting table",
+        "type": "craft",
+        "parent_id": null,
+        "status": "active",
+        "priority": 1,
+        "preconditions": {
+          "flags": [
+            "sp003_wood_acquired"
+          ]
+        },
+        "success_criteria": {
+          "nearby_block_present": "crafting_table"
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784501600.7097385,
+        "updated_at": 1784501681.6882837,
+        "attempts": 1,
+        "observations": [
+          {
+            "action": {
+              "type": "craft",
+              "parameters": {
+                "item": "dark_oak_planks",
+                "count": 12
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "craft"
+          },
+          {
+            "action": {
+              "type": "craft",
+              "parameters": {
+                "item": "stick",
+                "count": 4
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "craft"
+          },
+          {
+            "action": {
+              "type": "craft",
+              "parameters": {
+                "item": "dark_oak_planks",
+                "count": 2
+              }
+            },
+            "success": false,
+            "error": "SP-003 action guard rejected: sp003_exact_one_table_craft_required",
+            "action_type": "craft"
+          },
+          {
+            "action": {
+              "type": "craft",
+              "parameters": {
+                "item": "crafting_table",
+                "count": 1
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "craft"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 124.5,
+                "z": -36.5,
+                "tolerance": 1.6,
+                "preserve_inventory": true
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "block": "grass_block",
+                "x": 124,
+                "y": 142,
+                "z": -37,
+                "source_id": "grass_block:124:142:-37",
+                "stone_surface_clearance": true,
+                "support_source_id": "stone:124:139:-37",
+                "surface_clearance_proof": {
+                  "type": "sp003_stone_surface_clearance_proof",
+                  "schema_version": 2,
+                  "scan_complete": true,
+                  "targeted_air_visibility_complete": false,
+                  "scan_fingerprint": "e8ebfb8be27d7b1e12363b87064288500c5320f7944e010f5c631e71e7863d1e",
+                  "scan_radius": 1,
+                  "scan_origin_cell": {
+                    "x": 123,
+                    "y": 142,
+                    "z": -37
+                  },
+                  "origin_stable": true,
+                  "post_scan_player_cell": {
+                    "x": 123,
+                    "y": 142,
+                    "z": -37
+                  },
+                  "vertical_min_offset": -3,
+                  "vertical_max_offset": 3,
+                  "scanned_cell_count": 63,
+                  "backend_path": "src/bot/bot_server.js",
+                  "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+                  "response_limit": 50,
+                  "response_count": 36,
+                  "completeness_basis": "result_count_below_frozen_backend_limit",
+                  "priority_unique_name_prefix_count": 0,
+                  "visibility_distance_strict_upper_bound": null,
+                  "selection_trace_fingerprint": "",
+                  "priority_selection_trace": [],
+                  "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+                  "downstep_transition_clearance_required": false,
+                  "transition_upper_head_position": {},
+                  "transition_upper_head_cell_state_before": "not_required",
+                  "transition_upper_head_included_in_shaft": true,
+                  "support_block": "stone",
+                  "support_source_id": "stone:124:139:-37",
+                  "support_position": {
+                    "x": 124,
+                    "y": 139,
+                    "z": -37
+                  },
+                  "support_not_player_column": true,
+                  "entry_shaft_positions": [
+                    {
+                      "x": 124,
+                      "y": 140,
+                      "z": -37
+                    },
+                    {
+                      "x": 124,
+                      "y": 141,
+                      "z": -37
+                    },
+                    {
+                      "x": 124,
+                      "y": 142,
+                      "z": -37
+                    }
+                  ],
+                  "entry_shaft_cell_states": [
+                    {
+                      "position": {
+                        "x": 124,
+                        "y": 140,
+                        "z": -37
+                      },
+                      "state": "dirt",
+                      "source_id": "dirt:124:140:-37"
+                    },
+                    {
+                      "position": {
+                        "x": 124,
+                        "y": 141,
+                        "z": -37
+                      },
+                      "state": "dirt",
+                      "source_id": "dirt:124:141:-37"
+                    },
+                    {
+                      "position": {
+                        "x": 124,
+                        "y": 142,
+                        "z": -37
+                      },
+                      "state": "grass_block",
+                      "source_id": "grass_block:124:142:-37"
+                    }
+                  ],
+                  "obstruction_source_ids_top_down": [
+                    "grass_block:124:142:-37",
+                    "dirt:124:141:-37",
+                    "dirt:124:140:-37"
+                  ],
+                  "allowed_blocks": [
+                    "grass_block",
+                    "dirt"
+                  ],
+                  "maximum_removals": 3,
+                  "selected_block": "grass_block",
+                  "selected_source_id": "grass_block:124:142:-37",
+                  "selected_position": {
+                    "x": 124,
+                    "y": 142,
+                    "z": -37
+                  },
+                  "selected_is_highest_obstruction": true
+                },
+                "surface_clearance_proof_fingerprint": "48fa5b989866317c264387a51f670e60d703a4a8c3014d42f92130fdfcc1fe9f"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "dig"
+          },
+          {
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "block": "dirt",
+                "x": 124,
+                "y": 141,
+                "z": -37,
+                "source_id": "dirt:124:141:-37",
+                "stone_surface_clearance": true,
+                "support_source_id": "stone:124:139:-37",
+                "surface_clearance_proof": {
+                  "type": "sp003_stone_surface_clearance_proof",
+                  "schema_version": 2,
+                  "scan_complete": true,
+                  "targeted_air_visibility_complete": false,
+                  "scan_fingerprint": "7428fba8924bd8d24f40b04100eada05b52a8c8462a1b306338532d3679fbf0c",
+                  "scan_radius": 1,
+                  "scan_origin_cell": {
+                    "x": 123,
+                    "y": 142,
+                    "z": -37
+                  },
+                  "origin_stable": true,
+                  "post_scan_player_cell": {
+                    "x": 123,
+                    "y": 142,
+                    "z": -37
+                  },
+                  "vertical_min_offset": -3,
+                  "vertical_max_offset": 3,
+                  "scanned_cell_count": 63,
+                  "backend_path": "src/bot/bot_server.js",
+                  "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+                  "response_limit": 50,
+                  "response_count": 35,
+                  "completeness_basis": "result_count_below_frozen_backend_limit",
+                  "priority_unique_name_prefix_count": 0,
+                  "visibility_distance_strict_upper_bound": null,
+                  "selection_trace_fingerprint": "",
+                  "priority_selection_trace": [],
+                  "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+                  "downstep_transition_clearance_required": false,
+                  "transition_upper_head_position": {},
+                  "transition_upper_head_cell_state_before": "not_required",
+                  "transition_upper_head_included_in_shaft": true,
+                  "support_block": "stone",
+                  "support_source_id": "stone:124:139:-37",
+                  "support_position": {
+                    "x": 124,
+                    "y": 139,
+                    "z": -37
+                  },
+                  "support_not_player_column": true,
+                  "entry_shaft_positions": [
+                    {
+                      "x": 124,
+                      "y": 140,
+                      "z": -37
+                    },
+                    {
+                      "x": 124,
+                      "y": 141,
+                      "z": -37
+                    },
+                    {
+                      "x": 124,
+                      "y": 142,
+                      "z": -37
+                    }
+                  ],
+                  "entry_shaft_cell_states": [
+                    {
+                      "position": {
+                        "x": 124,
+                        "y": 140,
+                        "z": -37
+                      },
+                      "state": "dirt",
+                      "source_id": "dirt:124:140:-37"
+                    },
+                    {
+                      "position": {
+                        "x": 124,
+                        "y": 141,
+                        "z": -37
+                      },
+                      "state": "dirt",
+                      "source_id": "dirt:124:141:-37"
+                    },
+                    {
+                      "position": {
+                        "x": 124,
+                        "y": 142,
+                        "z": -37
+                      },
+                      "state": "air",
+                      "source_id": ""
+                    }
+                  ],
+                  "obstruction_source_ids_top_down": [
+                    "dirt:124:141:-37",
+                    "dirt:124:140:-37"
+                  ],
+                  "allowed_blocks": [
+                    "grass_block",
+                    "dirt"
+                  ],
+                  "maximum_removals": 3,
+                  "selected_block": "dirt",
+                  "selected_source_id": "dirt:124:141:-37",
+                  "selected_position": {
+                    "x": 124,
+                    "y": 141,
+                    "z": -37
+                  },
+                  "selected_is_highest_obstruction": true
+                },
+                "surface_clearance_proof_fingerprint": "f847fce50add8925e925f83c27e082b620995ba5f0aaea502334a15e76685482"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "dig"
+          }
+        ],
+        "blockers": [
+          "SP-003 action guard rejected: sp003_exact_one_table_craft_required"
+        ],
+        "result": {
+          "last_action": {
+            "type": "dig",
+            "parameters": {
+              "block": "dirt",
+              "x": 124,
+              "y": 141,
+              "z": -37,
+              "source_id": "dirt:124:141:-37",
+              "stone_surface_clearance": true,
+              "support_source_id": "stone:124:139:-37",
+              "surface_clearance_proof": {
+                "type": "sp003_stone_surface_clearance_proof",
+                "schema_version": 2,
+                "scan_complete": true,
+                "targeted_air_visibility_complete": false,
+                "scan_fingerprint": "7428fba8924bd8d24f40b04100eada05b52a8c8462a1b306338532d3679fbf0c",
+                "scan_radius": 1,
+                "scan_origin_cell": {
+                  "x": 123,
+                  "y": 142,
+                  "z": -37
+                },
+                "origin_stable": true,
+                "post_scan_player_cell": {
+                  "x": 123,
+                  "y": 142,
+                  "z": -37
+                },
+                "vertical_min_offset": -3,
+                "vertical_max_offset": 3,
+                "scanned_cell_count": 63,
+                "backend_path": "src/bot/bot_server.js",
+                "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+                "response_limit": 50,
+                "response_count": 35,
+                "completeness_basis": "result_count_below_frozen_backend_limit",
+                "priority_unique_name_prefix_count": 0,
+                "visibility_distance_strict_upper_bound": null,
+                "selection_trace_fingerprint": "",
+                "priority_selection_trace": [],
+                "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+                "downstep_transition_clearance_required": false,
+                "transition_upper_head_position": {},
+                "transition_upper_head_cell_state_before": "not_required",
+                "transition_upper_head_included_in_shaft": true,
+                "support_block": "stone",
+                "support_source_id": "stone:124:139:-37",
+                "support_position": {
+                  "x": 124,
+                  "y": 139,
+                  "z": -37
+                },
+                "support_not_player_column": true,
+                "entry_shaft_positions": [
+                  {
+                    "x": 124,
+                    "y": 140,
+                    "z": -37
+                  },
+                  {
+                    "x": 124,
+                    "y": 141,
+                    "z": -37
+                  },
+                  {
+                    "x": 124,
+                    "y": 142,
+                    "z": -37
+                  }
+                ],
+                "entry_shaft_cell_states": [
+                  {
+                    "position": {
+                      "x": 124,
+                      "y": 140,
+                      "z": -37
+                    },
+                    "state": "dirt",
+                    "source_id": "dirt:124:140:-37"
+                  },
+                  {
+                    "position": {
+                      "x": 124,
+                      "y": 141,
+                      "z": -37
+                    },
+                    "state": "dirt",
+                    "source_id": "dirt:124:141:-37"
+                  },
+                  {
+                    "position": {
+                      "x": 124,
+                      "y": 142,
+                      "z": -37
+                    },
+                    "state": "air",
+                    "source_id": ""
+                  }
+                ],
+                "obstruction_source_ids_top_down": [
+                  "dirt:124:141:-37",
+                  "dirt:124:140:-37"
+                ],
+                "allowed_blocks": [
+                  "grass_block",
+                  "dirt"
+                ],
+                "maximum_removals": 3,
+                "selected_block": "dirt",
+                "selected_source_id": "dirt:124:141:-37",
+                "selected_position": {
+                  "x": 124,
+                  "y": 141,
+                  "z": -37
+                },
+                "selected_is_highest_obstruction": true
+              },
+              "surface_clearance_proof_fingerprint": "f847fce50add8925e925f83c27e082b620995ba5f0aaea502334a15e76685482"
+            }
+          },
+          "last_result": {
+            "success": true,
+            "block": "dirt",
+            "expected_drops": [
+              "dirt"
+            ],
+            "target": {
+              "x": 124,
+              "y": 141,
+              "z": -37
+            },
+            "block_removed": true,
+            "target_block_before": {
+              "name": "dirt",
+              "type": 9,
+              "position": {
+                "x": 124,
+                "y": 141,
+                "z": -37
+              }
+            },
+            "target_block_after": {
+              "name": "air",
+              "type": 0,
+              "position": {
+                "x": 124,
+                "y": 141,
+                "z": -37
+              }
+            },
+            "pickup_observed": true,
+            "pickup_inventory_delta": {
+              "dirt": 1
+            },
+            "pickup_waited_ms": 1000,
+            "pickup_collection": {
+              "detected": true,
+              "attempted": true,
+              "detection_waited_ms": 0,
+              "entity_id": 909,
+              "item_name": "dirt",
+              "position": {
+                "x": 124.353271484375,
+                "y": 141,
+                "z": -36.875
+              },
+              "initial_distance": 1.4880938050130776,
+              "goal_range": 1,
+              "completion_policy": "m4-pickup-collection-completion-grounding-v1",
+              "navigation_budget_ms": 6000,
+              "fallback_attempt_limit": 1,
+              "fallback_attempt_count": 1,
+              "fallback_candidate_margin": 0.5,
+              "fallback_candidate_max_distance": 1.5,
+              "fallback_same_cell_nudge_attempt_limit": 1,
+              "fallback_same_cell_nudge_attempt_count": 1,
+              "direct_navigation": {
+                "attempted": true,
+                "goal_type": "GoalNear",
+                "timeout_ms": 6000,
+                "pathfinder_resolved": true,
+                "position": {
+                  "x": 124.65376148126073,
+                  "y": 141.9215999984741,
+                  "z": -36.49214872443181
+                },
+                "drop_position": {
+                  "x": 124.353271484375,
+                  "y": 141,
+                  "z": -36.875
+                },
+                "final_distance": 1.042216817471323,
+                "goal_range": 1,
+                "distance_grounded": false,
+                "inventory_delta_observed": false,
+                "inventory_delta": {},
+                "completion_grounded": false
+              },
+              "final_distance": 0.42885789391282436,
+              "inventory_delta_observed": true,
+              "inventory_delta": {
+                "dirt": 1
+              },
+              "fallback_candidate": {
+                "position": {
+                  "x": 124,
+                  "y": 141,
+                  "z": -37
+                },
+                "expected_player_position": {
+                  "x": 124.5,
+                  "y": 141,
+                  "z": -36.5
+                },
+                "expected_pickup_distance": 0.40268381802291964,
+                "current_distance": 0.934371870742595,
+                "support": {
+                  "name": "dirt",
+                  "type": 9,
+                  "position": {
+                    "x": 124,
+                    "y": 140,
+                    "z": -37
+                  },
+                  "collision": "block",
+                  "solid": true,
+                  "passable": false
+                },
+                "feet": {
+                  "name": "air",
+                  "type": 0,
+                  "position": {
+                    "x": 124,
+                    "y": 141,
+                    "z": -37
+                  },
+                  "collision": "empty",
+                  "solid": false,
+                  "passable": true
+                },
+                "head": {
+                  "name": "air",
+                  "type": 0,
+                  "position": {
+                    "x": 124,
+                    "y": 142,
+                    "z": -37
+                  },
+                  "collision": "empty",
+                  "solid": false,
+                  "passable": true
+                }
+              },
+              "fallback_same_cell_nudge": {
+                "policy_id": "m4-pickup-same-cell-center-nudge-v1",
+                "required": true,
+                "attempted": true,
+                "duration_ms": 100,
+                "initial_position": {
+                  "x": 124.65376148126073,
+                  "y": 141.9215999984741,
+                  "z": -36.49214872443181
+                },
+                "target_position": {
+                  "x": 124.5,
+                  "y": 141,
+                  "z": -36.5
+                },
+                "initial_center_distance": 0.15396179931249693,
+                "inventory_delta_observed": true,
+                "inventory_delta": {
+                  "dirt": 1
+                },
+                "completion_grounded": true,
+                "position": {
+                  "x": 124.55588265627458,
+                  "y": 141,
+                  "z": -36.49702142098682
+                },
+                "drop_position": {
+                  "x": 124.353271484375,
+                  "y": 141,
+                  "z": -36.875
+                },
+                "final_distance": 0.42885789391282436,
+                "distance_grounded": true
+              },
+              "success": true,
+              "completion_grounded": true,
+              "completion_grounded_by": "inventory_delta"
+            },
+            "dig_tool_equip": {
+              "schema_version": 1,
+              "policy": "m4-dig-required-tool-equip-v1",
+              "required": false,
+              "block": "dirt",
+              "metadata_valid": true,
+              "harvest_tool_item_types": [],
+              "compatible_inventory_tools": [],
+              "selected_tool": null,
+              "selected_tool_type": null,
+              "equipped_tool": null,
+              "equipped_tool_type": null,
+              "equip_attempted": false,
+              "equip_confirmed": null,
+              "mutation_allowed": true,
+              "passed": true
+            },
+            "dig_postcondition": {
+              "schema_version": 1,
+              "policy": "m4-expected-drop-pickup-postcondition-v1",
+              "required": true,
+              "block_removed": true,
+              "expected_drop_required": true,
+              "expected_drop_observed": true,
+              "passed": true
+            },
+            "action_started_monotonic": 251867.359,
+            "action_finished_monotonic": 251870.718,
+            "duration_ms": 3358,
+            "action_type": "dig",
+            "backend": "mineflayer",
+            "backend_command": "dig",
+            "backend_params": {
+              "block": "dirt",
+              "x": 124,
+              "y": 141,
+              "z": -37,
+              "source_id": "dirt:124:141:-37",
+              "stone_surface_clearance": true,
+              "support_source_id": "stone:124:139:-37",
+              "surface_clearance_proof": {
+                "type": "sp003_stone_surface_clearance_proof",
+                "schema_version": 2,
+                "scan_complete": true,
+                "targeted_air_visibility_complete": false,
+                "scan_fingerprint": "7428fba8924bd8d24f40b04100eada05b52a8c8462a1b306338532d3679fbf0c",
+                "scan_radius": 1,
+                "scan_origin_cell": {
+                  "x": 123,
+                  "y": 142,
+                  "z": -37
+                },
+                "origin_stable": true,
+                "post_scan_player_cell": {
+                  "x": 123,
+                  "y": 142,
+                  "z": -37
+                },
+                "vertical_min_offset": -3,
+                "vertical_max_offset": 3,
+                "scanned_cell_count": 63,
+                "backend_path": "src/bot/bot_server.js",
+                "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+                "response_limit": 50,
+                "response_count": 35,
+                "completeness_basis": "result_count_below_frozen_backend_limit",
+                "priority_unique_name_prefix_count": 0,
+                "visibility_distance_strict_upper_bound": null,
+                "selection_trace_fingerprint": "",
+                "priority_selection_trace": [],
+                "downstep_transition_policy_id": "sp003-downstep-transition-clearance-v1",
+                "downstep_transition_clearance_required": false,
+                "transition_upper_head_position": {},
+                "transition_upper_head_cell_state_before": "not_required",
+                "transition_upper_head_included_in_shaft": true,
+                "support_block": "stone",
+                "support_source_id": "stone:124:139:-37",
+                "support_position": {
+                  "x": 124,
+                  "y": 139,
+                  "z": -37
+                },
+                "support_not_player_column": true,
+                "entry_shaft_positions": [
+                  {
+                    "x": 124,
+                    "y": 140,
+                    "z": -37
+                  },
+                  {
+                    "x": 124,
+                    "y": 141,
+                    "z": -37
+                  },
+                  {
+                    "x": 124,
+                    "y": 142,
+                    "z": -37
+                  }
+                ],
+                "entry_shaft_cell_states": [
+                  {
+                    "position": {
+                      "x": 124,
+                      "y": 140,
+                      "z": -37
+                    },
+                    "state": "dirt",
+                    "source_id": "dirt:124:140:-37"
+                  },
+                  {
+                    "position": {
+                      "x": 124,
+                      "y": 141,
+                      "z": -37
+                    },
+                    "state": "dirt",
+                    "source_id": "dirt:124:141:-37"
+                  },
+                  {
+                    "position": {
+                      "x": 124,
+                      "y": 142,
+                      "z": -37
+                    },
+                    "state": "air",
+                    "source_id": ""
+                  }
+                ],
+                "obstruction_source_ids_top_down": [
+                  "dirt:124:141:-37",
+                  "dirt:124:140:-37"
+                ],
+                "allowed_blocks": [
+                  "grass_block",
+                  "dirt"
+                ],
+                "maximum_removals": 3,
+                "selected_block": "dirt",
+                "selected_source_id": "dirt:124:141:-37",
+                "selected_position": {
+                  "x": 124,
+                  "y": 141,
+                  "z": -37
+                },
+                "selected_is_highest_obstruction": true
+              },
+              "surface_clearance_proof_fingerprint": "f847fce50add8925e925f83c27e082b620995ba5f0aaea502334a15e76685482",
+              "timeout_ms": 60000
+            },
+            "control_policy": {
+              "action_type": "dig",
+              "backend": "mineflayer",
+              "preferred_backend": "mineflayer",
+              "preferred_control": "mineflayer_api_ok",
+              "reason": "default_backend"
+            },
+            "action_budget_s": 60.0,
+            "action_deadline_monotonic": 251927.359,
+            "accepted_within_episode_deadline": true,
+            "accepted_within_action_deadline": true,
+            "action_verification": {
+              "action_type": "dig",
+              "status": "accept",
+              "score": 0.9,
+              "reason": "available tool can mine dirt",
+              "evidence": [
+                "observed:dirt"
+              ]
+            }
+          }
+        },
+        "children": [],
+        "depends_on": [
+          "9f6be14d"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "place_crafting_table",
+        "root_plan_id": "root-aa5389ec055e4857",
+        "planner_call_id": "llm-3bb3974147064b2f",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "61e2f94d",
+            "task_title": "Craft and place exactly one crafting table",
+            "plan_node_id": "place_crafting_table",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784501600.7097385
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "61e2f94d",
+            "task_title": "Craft and place exactly one crafting table",
+            "plan_node_id": "place_crafting_table",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784501600.7107387
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "61e2f94d",
+            "task_title": "Craft and place exactly one crafting table",
+            "plan_node_id": "place_crafting_table",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "accepted",
+            "to_status": "active",
+            "reason": "action_started",
+            "timestamp": 1784501636.1568067
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "9f6be14d",
+        "title": "Acquire exactly three logs from empty hands",
+        "type": "gather",
+        "parent_id": null,
+        "status": "completed",
+        "priority": 1,
+        "preconditions": {},
+        "success_criteria": {
+          "flags": [
+            "sp003_wood_acquired"
+          ]
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784501600.7097385,
+        "updated_at": 1784501631.8822615,
+        "attempts": 0,
+        "observations": [
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121,
+                "y": 142,
+                "z": -36,
+                "preserve_inventory": true
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "block": "dark_oak_log",
+                "x": 121,
+                "y": 142,
+                "z": -35,
+                "source_id": "dark_oak_log:121:142:-35"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "dig"
+          },
+          {
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "block": "dark_oak_log",
+                "x": 120,
+                "y": 142,
+                "z": -35,
+                "source_id": "dark_oak_log:120:142:-35"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "dig"
+          },
+          {
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "block": "dark_oak_log",
+                "x": 121,
+                "y": 141,
+                "z": -35,
+                "source_id": "dark_oak_log:121:141:-35"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "dig"
+          }
+        ],
+        "blockers": [],
+        "result": {
+          "completed_by": "action_result",
+          "action": {
+            "type": "dig",
+            "parameters": {
+              "block": "dark_oak_log",
+              "x": 121,
+              "y": 141,
+              "z": -35,
+              "source_id": "dark_oak_log:121:141:-35"
+            }
+          },
+          "result": {
+            "success": true,
+            "block": "dark_oak_log",
+            "expected_drops": [
+              "dark_oak_log"
+            ],
+            "target": {
+              "x": 121,
+              "y": 141,
+              "z": -35
+            },
+            "block_removed": true,
+            "target_block_before": {
+              "name": "dark_oak_log",
+              "type": 52,
+              "position": {
+                "x": 121,
+                "y": 141,
+                "z": -35
+              }
+            },
+            "target_block_after": {
+              "name": "air",
+              "type": 0,
+              "position": {
+                "x": 121,
+                "y": 141,
+                "z": -35
+              }
+            },
+            "pickup_observed": true,
+            "pickup_inventory_delta": {
+              "dark_oak_log": 1
+            },
+            "pickup_waited_ms": 400,
+            "pickup_collection": {
+              "detected": false,
+              "attempted": false
+            },
+            "dig_tool_equip": {
+              "schema_version": 1,
+              "policy": "m4-dig-required-tool-equip-v1",
+              "required": false,
+              "block": "dark_oak_log",
+              "metadata_valid": true,
+              "harvest_tool_item_types": [],
+              "compatible_inventory_tools": [],
+              "selected_tool": null,
+              "selected_tool_type": null,
+              "equipped_tool": null,
+              "equipped_tool_type": null,
+              "equip_attempted": false,
+              "equip_confirmed": null,
+              "mutation_allowed": true,
+              "passed": true
+            },
+            "dig_postcondition": {
+              "schema_version": 1,
+              "policy": "m4-expected-drop-pickup-postcondition-v1",
+              "required": true,
+              "block_removed": true,
+              "expected_drop_required": true,
+              "expected_drop_observed": true,
+              "passed": true
+            },
+            "action_started_monotonic": 251817.281,
+            "action_finished_monotonic": 251820.953,
+            "duration_ms": 3672,
+            "action_type": "dig",
+            "backend": "mineflayer",
+            "backend_command": "dig",
+            "backend_params": {
+              "block": "dark_oak_log",
+              "x": 121,
+              "y": 141,
+              "z": -35,
+              "source_id": "dark_oak_log:121:141:-35",
+              "timeout_ms": 60000
+            },
+            "control_policy": {
+              "action_type": "dig",
+              "backend": "mineflayer",
+              "preferred_backend": "mineflayer",
+              "preferred_control": "mineflayer_api_ok",
+              "reason": "default_backend"
+            },
+            "action_budget_s": 60.0,
+            "action_deadline_monotonic": 251877.281,
+            "accepted_within_episode_deadline": true,
+            "accepted_within_action_deadline": true,
+            "action_verification": {
+              "action_type": "dig",
+              "status": "accept",
+              "score": 0.9,
+              "reason": "available tool can mine dark_oak_log",
+              "evidence": [
+                "observed:dark_oak_log"
+              ]
+            }
+          },
+          "world_state": {
+            "inventory": {
+              "dark_oak_log": 3
+            },
+            "health": 20,
+            "position": {
+              "x": 121.5,
+              "y": 142,
+              "z": -35.538308373194226
+            },
+            "time_of_day": 843
+          }
+        },
+        "children": [],
+        "depends_on": [],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "acquire_wood",
+        "root_plan_id": "root-aa5389ec055e4857",
+        "planner_call_id": "llm-3bb3974147064b2f",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "9f6be14d",
+            "task_title": "Acquire exactly three logs from empty hands",
+            "plan_node_id": "acquire_wood",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784501600.7097385
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "9f6be14d",
+            "task_title": "Acquire exactly three logs from empty hands",
+            "plan_node_id": "acquire_wood",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784501600.7107387
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "9f6be14d",
+            "task_title": "Acquire exactly three logs from empty hands",
+            "plan_node_id": "acquire_wood",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "accepted",
+            "to_status": "active",
+            "reason": "action_started",
+            "timestamp": 1784501609.8335164
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "9f6be14d",
+            "task_title": "Acquire exactly three logs from empty hands",
+            "plan_node_id": "acquire_wood",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "active",
+            "to_status": "completed",
+            "reason": "success_criteria_satisfied",
+            "timestamp": 1784501631.8822615
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "b081aa1a",
+        "title": "Craft exactly one stone pickaxe",
+        "type": "craft",
+        "parent_id": null,
+        "status": "accepted",
+        "priority": 1,
+        "preconditions": {
+          "inventory": {
+            "cobblestone": 3,
+            "stick": 2
+          },
+          "nearby_block_present": "crafting_table"
+        },
+        "success_criteria": {
+          "inventory": {
+            "stone_pickaxe": 1
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784501600.7097385,
+        "updated_at": 1784501600.7107387,
+        "attempts": 0,
+        "observations": [],
+        "blockers": [],
+        "result": null,
+        "children": [],
+        "depends_on": [
+          "0dc011fc"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "craft_stone_pickaxe",
+        "root_plan_id": "root-aa5389ec055e4857",
+        "planner_call_id": "llm-3bb3974147064b2f",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "b081aa1a",
+            "task_title": "Craft exactly one stone pickaxe",
+            "plan_node_id": "craft_stone_pickaxe",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784501600.7097385
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "b081aa1a",
+            "task_title": "Craft exactly one stone pickaxe",
+            "plan_node_id": "craft_stone_pickaxe",
+            "root_plan_id": "root-aa5389ec055e4857",
+            "planner_call_id": "llm-3bb3974147064b2f",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784501600.7107387
+          }
+        ],
+        "metadata": {}
+      }
+    ],
+    "transition_count": 0,
+    "transitions": [],
+    "sha256": "be47410d7bb8ed56a9bddfc0b148e3528ec61b4cde51dd33af7f63f45f13bf31"
+  },
+  "goal_result": {
+    "goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+    "cycles": 12,
+    "completed": false,
+    "termination_reason": "empty_plan",
+    "max_cycles": 40,
+    "max_duration_s": 300.0,
+    "max_actions": 32,
+    "action_count": 11,
+    "elapsed_s": 90.234,
+    "episode_started_monotonic": 251784.484,
+    "episode_ended_monotonic": 251874.718,
+    "episode_deadline_monotonic": 252084.484,
+    "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "deadline_eligible": true,
+    "summary": {
+      "session_id": "1dcad8c7-096",
+      "duration_s": 91.76,
+      "total_events": 248,
+      "action_count": 11,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 10,
+        "action_verification_status_counts": {
+          "accept": 9,
+          "review": 1
+        },
+        "action_verification_action_types": {
+          "move_to": 2,
+          "dig": 5,
+          "craft": 3
+        },
+        "action_verification_blocked_count": 0,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 10,
+        "action_verification_status_counts": {
+          "accept": 9,
+          "review": 1
+        },
+        "action_verification_action_types": {
+          "move_to": 2,
+          "dig": 5,
+          "craft": 3
+        },
+        "action_verification_blocked_count": 0
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 22,
+        "achieved": 0,
+        "failed": 22,
+        "unknown": 0,
+        "accepted": 0,
+        "rejected": 22,
+        "acceptance_reasons": {}
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 93,
+        "memory_read_count": 12,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 58,
+          "context": 35
+        },
+        "memory_write_types": {
+          "goal_start": 1,
+          "context": 35,
+          "goal_verification": 22,
+          "action_verification": 10,
+          "task_state_update": 11,
+          "action": 11,
+          "failure": 1,
+          "empty_plan": 1,
+          "goal_end": 1
+        },
+        "memory_read_types": {
+          "opportunity_context": 12
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 93,
+          "read_allowed": 12
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "workspace/evals/sp003_runs/sp003_baseline_20260720_064839_abb7c5cb\\session_1dcad8c7-096.jsonl"
+    }
+  },
+  "stable_reobservation_delay_s": 0.4379999999946449,
+  "skill_store_sha256_before": "beb99b61daf99c638036ed8d12e4d1a836c209b11e5ad31d6b19122d8a9c8c0b",
+  "skill_store_sha256_after": "beb99b61daf99c638036ed8d12e4d1a836c209b11e5ad31d6b19122d8a9c8c0b",
+  "external_step_script": false,
+  "automatic_retry_allowed": false,
+  "bm012_terminal_started": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
