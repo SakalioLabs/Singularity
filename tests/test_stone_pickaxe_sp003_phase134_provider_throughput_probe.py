@@ -170,16 +170,14 @@ def test_phase134_probe_opens_only_the_separate_authorization_gate():
     )
     assert phase135["authorization_consumed"] is True
     assert phase135["authorization_reuse_allowed"] is False
-    assert gate["id"] == (
-        "sp003_phase_140_continuation_provider_transport_recovery_gate"
-    )
+    assert gate["id"] == "sp003_phase_141_probe_evaluator_reconciliation_gate"
     assert (
         "phase_134_bounded_no_minecraft_provider_throughput_probe_passes_against_the_fixed_provider"
         in gate["prerequisites"]
     )
     assert gate["prerequisites"][-2:] == [
-        "phase_140_probe_evidence_commit_must_be_pushed_before_any_further_provider_probe",
-        "one_new_bounded_no_minecraft_continuation_provider_probe_must_pass_before_any_new_authorization",
+        "phase_141_probe_evidence_commit_must_be_pushed_before_the_offline_evaluator_repair",
+        "runtime_guard_normalized_probe_evaluator_repair_must_be_offline_verified_and_pushed_before_any_new_authorization",
     ]
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0

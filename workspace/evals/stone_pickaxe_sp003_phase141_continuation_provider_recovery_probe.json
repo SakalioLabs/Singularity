@@ -1,0 +1,228 @@
+{
+  "type": "stone_pickaxe_sp003_continuation_provider_probe",
+  "schema_version": 1,
+  "phase": 141,
+  "policy_id": "sp003-continuation-provider-recovery-gate-v1",
+  "task_id": "SP-003",
+  "purpose": "recover_from_phase_140_continuation_provider_connection_error",
+  "predecessor_commit": "009a3cfe56e40fb03e08e8d1eba6d4630cce0c85",
+  "started_at_utc": "2026-07-20T08:39:35.228200+00:00",
+  "ended_at_utc": "2026-07-20T08:39:39.343381+00:00",
+  "passed": false,
+  "decision": "hold_new_authorization_provider_continuation_ineligible",
+  "thresholds": {
+    "request_timeout_s": 12.0,
+    "max_acceptable_duration_ms": 7500,
+    "min_representative_prompt_tokens": 2500,
+    "min_representative_request_bytes": 10000,
+    "max_request_count": 1,
+    "max_retry_count": 0
+  },
+  "criteria": {
+    "phase_140_failure_is_exact": true,
+    "source_artifact_is_exact": true,
+    "source_state_matches": true,
+    "source_predecessor_is_exact_tls_eof": true,
+    "precomputed_request_shape_matches": true,
+    "request_payload_matches_provider_sha256": true,
+    "representative_request_size": true,
+    "representative_prompt_tokens": true,
+    "fixed_provider_controls": true,
+    "single_request": true,
+    "zero_retries": true,
+    "within_latency_gate": true,
+    "real_llm_call": true,
+    "schema_valid": true,
+    "continuation_plan": true,
+    "exact_expected_action": false,
+    "no_probe_exception": true
+  },
+  "source": {
+    "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/session_0420e30c-1b8.jsonl",
+    "sha256": "caeea8567f124b8fae638037059b049edf5a8ad115fde50ebd97f7c1eba230bf",
+    "observation_line_number": 77,
+    "observation_canonical_sha256": "9d6f6bff05e668586f41f6d10a84d64dc3f087b8a9cd31a45a88b2d48b060caa",
+    "predecessor_call_id": "llm-124e7e9947b04a13",
+    "predecessor_call_index": 3,
+    "predecessor_plan_kind": "continuation",
+    "predecessor_parent_call_id": "llm-34675e6feebf47e7",
+    "predecessor_root_plan_id": "root-a9494909f5f74130",
+    "predecessor_request_sha256": "375766bb9f4aac6e0608bf4430daf6faf943b2987924f5c6bcec682000a570d2",
+    "predecessor_error_chain": [
+      "APIConnectionError",
+      "ConnectError",
+      "ConnectError",
+      "SSLEOFError"
+    ],
+    "state": {
+      "runtime_mode": "sp003",
+      "arm": "baseline",
+      "stage": "acquire_wood",
+      "inventory": {
+        "dark_oak_log": 2
+      },
+      "log_source_removal_count": 2,
+      "pending_log_pickup_count": 0,
+      "delayed_log_pickup_reconciliation_count": 1,
+      "target_count": 1,
+      "target_source_id": "dark_oak_log:118:141:-38",
+      "target_name": "dark_oak_log",
+      "target_position": {
+        "x": 118.0,
+        "y": 141.0,
+        "z": -38.0
+      },
+      "target_navigation_only": false,
+      "target_canopy_egress": false
+    }
+  },
+  "expected_plan_kind": "continuation",
+  "expected_action": {
+    "type": "dig",
+    "parameters": {
+      "block": "dark_oak_log",
+      "x": 118,
+      "y": 141,
+      "z": -38,
+      "source_id": "dark_oak_log:118:141:-38"
+    }
+  },
+  "request": {
+    "request_sha256": "a93b634c940d0ffdacbdb260b7409220250634439379ca79a6b71cf81e98532c",
+    "request_payload_byte_count": 11686,
+    "system_message_byte_count": 8482,
+    "user_message_byte_count": 2779,
+    "request_message_count": 2,
+    "precomputed_request_sha256": "a93b634c940d0ffdacbdb260b7409220250634439379ca79a6b71cf81e98532c",
+    "provider_request_sha256": "a93b634c940d0ffdacbdb260b7409220250634439379ca79a6b71cf81e98532c"
+  },
+  "request_count": 1,
+  "retry_count": 0,
+  "transport_evidence": {
+    "policy_id": "single-attempt",
+    "attempt_count": 1,
+    "retry_count": 0,
+    "attempts": [
+      {
+        "attempt_index": 0,
+        "success": true,
+        "timeout_s": 12.0,
+        "sdk_max_retries": 0,
+        "error_type": "",
+        "error_chain": []
+      }
+    ]
+  },
+  "provider": "openai",
+  "base_url": "https://opencode.ai/zen/go/v1",
+  "model": "deepseek-v4-flash",
+  "temperature": 0.0,
+  "max_tokens": 4096,
+  "response_format": {
+    "type": "json_object"
+  },
+  "extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "timeout_s": 12.0,
+  "sdk_max_retries": 0,
+  "response_sha256": "ca946548743600b286599ba1f554fc6388cea927f426292d49de84a1fb84613e",
+  "response_byte_count": 542,
+  "response_id": "14044088-80f6-43ac-8517-baf951d4a325",
+  "finish_reason": "stop",
+  "reasoning_content_byte_count": 0,
+  "duration_ms": 4108,
+  "wall_duration_ms": 4108,
+  "prompt_tokens": 2753,
+  "completion_tokens": 171,
+  "total_tokens": 2924,
+  "real_llm_call": true,
+  "schema_valid": true,
+  "schema_validation": {
+    "type": "stone_pickaxe_plan_envelope_validation",
+    "schema_version": 1,
+    "passed": true,
+    "expected_goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+    "expected_kind": "continuation",
+    "status": "planning",
+    "subtask_count": 0,
+    "action_count": 1,
+    "compact_plan_chars": 503,
+    "completion_requires_machine_verifier": true,
+    "issues": [],
+    "reasoning_normalization": {
+      "type": "planner_reasoning_normalization",
+      "schema_version": 1,
+      "policy_id": "sp003-nonexecutive-reasoning-normalization-v1",
+      "runtime_mode": "sp003",
+      "field": "reasoning",
+      "limit_chars": 320,
+      "applied": false,
+      "original_char_count": 140,
+      "normalized_char_count": 140,
+      "original_sha256": "7bdc9f38d5bbfa5927eaf808691abe88dc554d89d592806029e5dc20e261b6b1",
+      "normalized_sha256": "7bdc9f38d5bbfa5927eaf808691abe88dc554d89d592806029e5dc20e261b6b1",
+      "executable_envelope_sha256": "3758809935c3f2752f5a58a16e4445e3e58b6b4c7f1b3b8acf17989f81856886",
+      "executable_fields_preserved": true,
+      "provider_response_preserved": true,
+      "action_rewrite": false
+    }
+  },
+  "returned_plan": {
+    "plan_kind": "continuation",
+    "status": "planning",
+    "subtask_count": 0,
+    "actions": [
+      {
+        "type": "dig",
+        "parameters": {
+          "block": "dark_oak_log",
+          "x": 118,
+          "y": 141,
+          "z": -38
+        }
+      }
+    ]
+  },
+  "probe_exception_type": "",
+  "credential_value_retained": false,
+  "minecraft_process_started": false,
+  "authorization_created": false,
+  "automatic_retry_attempted": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "recovery_predecessor": {
+    "path": "workspace/evals/stone_pickaxe_sp003_phase140_continuation_provider_probe.json",
+    "sha256": "966c214f0a8117406137c4b59aceee59c2922949c3dd3e96eeda4413c601ebca",
+    "evidence_commit": "c38e09a9e1c95966e87fcca70bfd13f2cad710f8",
+    "passed": false,
+    "decision": "hold_new_authorization_provider_continuation_ineligible",
+    "request_sha256": "a93b634c940d0ffdacbdb260b7409220250634439379ca79a6b71cf81e98532c",
+    "request_count": 1,
+    "retry_count": 0,
+    "response_byte_count": 0,
+    "schema_validation_issues": [
+      "Connection error."
+    ],
+    "checks": {
+      "artifact_sha256": true,
+      "phase": true,
+      "policy": true,
+      "tooling_commit": true,
+      "failed": true,
+      "decision": true,
+      "single_request": true,
+      "zero_retries": true,
+      "request_sha256": true,
+      "provider_request_sha256": true,
+      "zero_response_bytes": true,
+      "connection_error": true,
+      "not_real_or_schema_valid": true,
+      "no_minecraft_or_authorization": true,
+      "no_retry_or_credit": true
+    }
+  }
+}

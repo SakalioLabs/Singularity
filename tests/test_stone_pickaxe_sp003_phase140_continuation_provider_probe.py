@@ -183,9 +183,7 @@ def test_phase140_failed_probe_keeps_live_gate_closed() -> None:
     ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
     gate = ledger["next_required_gate"]
 
-    assert gate["id"] == (
-        "sp003_phase_140_continuation_provider_transport_recovery_gate"
-    )
+    assert gate["id"] == "sp003_phase_141_probe_evaluator_reconciliation_gate"
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False

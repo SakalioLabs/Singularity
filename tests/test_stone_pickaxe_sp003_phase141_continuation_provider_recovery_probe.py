@@ -6,6 +6,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+from singularity.evaluation.stone_pickaxe_sp003_runtime import guard_sp003_action
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = (
@@ -17,6 +19,12 @@ BASE_SCRIPT_PATH = (
     ROOT / "scripts/stone_pickaxe_sp003_phase140_continuation_provider_probe.py"
 )
 LEDGER_PATH = ROOT / "workspace/evals/stone_pickaxe_failure_ledger.json"
+PROBE_PATH = (
+    ROOT
+    / "workspace/evals/"
+    "stone_pickaxe_sp003_phase141_continuation_provider_recovery_probe.json"
+)
+PROBE_SHA256 = "2c67ac6a3706871a10c42c35d617fad6c0e63879884babf3f2308c5b7a6dbb40"
 
 
 def _module():
@@ -188,13 +196,105 @@ def test_phase141_probe_is_single_request_zero_retry_and_no_minecraft() -> None:
     assert "Start-Process" not in text
 
 
-def test_phase141_tooling_does_not_open_phase140_live_gate() -> None:
+def test_phase141_probe_retains_provider_recovery_false_negative() -> None:
+    module = _module()
+    probe = json.loads(PROBE_PATH.read_text(encoding="utf-8"))
+
+    assert module.base.file_sha256(PROBE_PATH) == PROBE_SHA256
+    assert probe["phase"] == 141
+    assert probe["predecessor_commit"] == (
+        "009a3cfe56e40fb03e08e8d1eba6d4630cce0c85"
+    )
+    assert probe["passed"] is False
+    assert [name for name, passed in probe["criteria"].items() if not passed] == [
+        "exact_expected_action"
+    ]
+    assert probe["request_count"] == 1
+    assert probe["retry_count"] == 0
+    assert probe["duration_ms"] == probe["wall_duration_ms"] == 4108
+    assert probe["response_byte_count"] == 542
+    assert probe["response_sha256"] == (
+        "ca946548743600b286599ba1f554fc6388cea927f426292d49de84a1fb84613e"
+    )
+    assert probe["prompt_tokens"] == 2753
+    assert probe["completion_tokens"] == 171
+    assert probe["real_llm_call"] is True
+    assert probe["schema_valid"] is True
+    assert probe["schema_validation"]["passed"] is True
+    assert probe["returned_plan"] == {
+        "plan_kind": "continuation",
+        "status": "planning",
+        "subtask_count": 0,
+        "actions": [
+            {
+                "type": "dig",
+                "parameters": {
+                    "block": "dark_oak_log",
+                    "x": 118,
+                    "y": 141,
+                    "z": -38,
+                },
+            }
+        ],
+    }
+    assert probe["transport_evidence"] == {
+        "policy_id": "single-attempt",
+        "attempt_count": 1,
+        "retry_count": 0,
+        "attempts": [
+            {
+                "attempt_index": 0,
+                "success": True,
+                "timeout_s": 12.0,
+                "sdk_max_retries": 0,
+                "error_type": "",
+                "error_chain": [],
+            }
+        ],
+    }
+    assert probe["minecraft_process_started"] is False
+    assert probe["authorization_created"] is False
+    assert probe["automatic_retry_attempted"] is False
+    assert probe["counts_toward_baseline_success"] is False
+    assert probe["counts_toward_capability"] is False
+    assert probe["counts_toward_m4"] is False
+
+
+def test_phase141_raw_action_normalizes_to_exact_runtime_guard_action() -> None:
+    module = _module()
+    base = module.base
+    probe = json.loads(PROBE_PATH.read_text(encoding="utf-8"))
+    source = base.repo_path(module.DEFAULT_SOURCE)
+    observation, _ = base.retained_observation_before_call(
+        source, base.SOURCE_CALL_ID
+    )
+    world_state = observation["event"]["data"]
+    raw_action = probe["returned_plan"]["actions"][0]
+
+    assert "source_id" not in raw_action["parameters"]
+    guarded = guard_sp003_action(
+        raw_action,
+        world_state,
+        world_state["sp003_progress"],
+        arm="baseline",
+    )
+
+    assert guarded["allowed"] is True
+    assert guarded["issues"] == []
+    assert guarded["action"] == base.EXPECTED_ACTION
+    assert guarded["selected_source"] == {
+        "source_id": "dark_oak_log:118:141:-38",
+        "name": "dark_oak_log",
+        "position": {"x": 118.0, "y": 141.0, "z": -38.0},
+        "distance": 1.414214,
+    }
+
+
+def test_phase141_evidence_keeps_live_gate_closed_for_offline_repair() -> None:
     ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
     gate = ledger["next_required_gate"]
 
-    assert gate["id"] == (
-        "sp003_phase_140_continuation_provider_transport_recovery_gate"
-    )
+    assert gate["id"] == "sp003_phase_141_probe_evaluator_reconciliation_gate"
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False
