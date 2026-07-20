@@ -69,13 +69,11 @@ def test_phase138_probe_is_single_request_zero_retry_and_no_minecraft() -> None:
     assert "Start-Process" not in text
 
 
-def test_phase138_probe_keeps_live_gate_closed_until_evidence_push() -> None:
+def test_phase138_probe_remains_bound_after_phase139_failure() -> None:
     ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
     gate = ledger["next_required_gate"]
 
-    assert gate["id"] == (
-        "sp003_phase_138_probe_commit_push_then_separate_baseline_authorization"
-    )
+    assert gate["id"] == "sp003_phase_139_continuation_provider_recovery_gate"
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False

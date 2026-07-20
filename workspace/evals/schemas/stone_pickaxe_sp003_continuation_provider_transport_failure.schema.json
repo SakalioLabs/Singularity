@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stone_pickaxe_sp003_continuation_provider_transport_failure.schema.json",
+  "title": "SP-003 Continuation Provider Transport Failure Classification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "type",
+    "schema_version",
+    "generated_at_utc",
+    "phase",
+    "policy_id",
+    "task_id",
+    "episode_id",
+    "session_id",
+    "classification",
+    "intervention_outcome",
+    "authorization",
+    "runtime_identity",
+    "preflight",
+    "planner_success_prefix",
+    "planner_failure",
+    "phase_136_intervention",
+    "terminal_progress",
+    "source_artifact",
+    "retained_payloads",
+    "cleanup",
+    "eligibility",
+    "retry_policy",
+    "next_gate"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "workspace/evals/schemas/stone_pickaxe_sp003_continuation_provider_transport_failure.schema.json"
+    },
+    "type": {"const": "stone_pickaxe_sp003_continuation_provider_transport_failure"},
+    "schema_version": {"const": 1},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "phase": {"const": 139},
+    "policy_id": {"const": "sp003-continuation-provider-transport-failure-classification-v1"},
+    "task_id": {"const": "SP-003"},
+    "episode_id": {"const": "sp003_baseline_20260720_150508_7a645e08"},
+    "session_id": {"const": "0420e30c-1b8"},
+    "classification": {"const": "infrastructure_ineligible"},
+    "intervention_outcome": {"const": "intervention_not_exercised_new_blocker"},
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorization_id", "authorization_commit", "authorization_predecessor", "authorization_sha256", "consumed", "reuse_allowed"],
+      "properties": {
+        "authorization_id": {"const": "f854286268d0a877e3c8a99cf45499eaa85162df0b2cdbc93f12c277cde20c73"},
+        "authorization_commit": {"const": "45aa6a8dc8a6af3c69d386256191f16cf2643c6a"},
+        "authorization_predecessor": {"const": "21bd9764a083a8a60e560df2c03c9a3f79e27f1e"},
+        "authorization_sha256": {"$ref": "#/$defs/sha256"},
+        "consumed": {"const": true},
+        "reuse_allowed": {"const": false}
+      }
+    },
+    "runtime_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime_policy_id", "runtime_policy_sha256", "protocol_id", "protocol_sha256", "arm", "replicate_id"],
+      "properties": {
+        "runtime_policy_id": {"const": "stone-pickaxe-sp003-empty-hand-runtime-v2"},
+        "runtime_policy_sha256": {"const": "48dbb75af5a736e29726d29845dd130ef622bcccb2719d8b0a1a321cc0d6c643"},
+        "protocol_id": {"const": "stone-pickaxe-skill-fixed-v1"},
+        "protocol_sha256": {"const": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"},
+        "arm": {"const": "baseline"},
+        "replicate_id": {"const": "baseline"}
+      }
+    },
+    "preflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "authorization_passed", "reset_passed", "initial_state_passed", "paper_ready", "bridge_ready", "empty_inventory", "observed_log_source_count"],
+      "properties": {
+        "passed": {"const": true},
+        "authorization_passed": {"const": true},
+        "reset_passed": {"const": true},
+        "initial_state_passed": {"const": true},
+        "paper_ready": {"const": true},
+        "bridge_ready": {"const": true},
+        "empty_inventory": {"const": true},
+        "observed_log_source_count": {"const": 5}
+      }
+    },
+    "planner_success_prefix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["call_count", "real_llm_call_count", "schema_valid_call_count", "call_indexes", "plan_kinds", "transport_attempt_count", "transport_retry_count", "response_byte_count", "provider_duration_ms", "action_count", "raw_action_failure_count", "reconciled_action_failure_count", "unreconciled_action_failure_count"],
+      "properties": {
+        "call_count": {"const": 3},
+        "real_llm_call_count": {"const": 3},
+        "schema_valid_call_count": {"const": 3},
+        "call_indexes": {"const": [0, 1, 2]},
+        "plan_kinds": {"const": ["root", "continuation", "replan"]},
+        "transport_attempt_count": {"const": 3},
+        "transport_retry_count": {"const": 0},
+        "response_byte_count": {"const": 3197},
+        "provider_duration_ms": {"const": 11312},
+        "action_count": {"const": 3},
+        "raw_action_failure_count": {"const": 1},
+        "reconciled_action_failure_count": {"const": 1},
+        "unreconciled_action_failure_count": {"const": 0}
+      }
+    },
+    "planner_failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["earliest_blocker", "call_id", "call_index", "plan_kind", "parent_call_id", "provider", "base_url", "model", "request_sha256", "real_llm_call", "schema_valid", "response_sha256", "response_byte_count", "attempt_count", "retry_count", "error_type", "error_chain", "action_count", "termination_reason"],
+      "properties": {
+        "earliest_blocker": {"const": "continuation_planner_call_3_provider_tls_eof_before_any_response_bytes"},
+        "call_id": {"const": "llm-124e7e9947b04a13"},
+        "call_index": {"const": 3},
+        "plan_kind": {"const": "continuation"},
+        "parent_call_id": {"const": "llm-34675e6feebf47e7"},
+        "provider": {"const": "openai"},
+        "base_url": {"const": "https://opencode.ai/zen/go/v1"},
+        "model": {"const": "deepseek-v4-flash"},
+        "request_sha256": {"const": "375766bb9f4aac6e0608bf4430daf6faf943b2987924f5c6bcec682000a570d2"},
+        "real_llm_call": {"const": false},
+        "schema_valid": {"const": false},
+        "response_sha256": {"const": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+        "response_byte_count": {"const": 0},
+        "attempt_count": {"const": 1},
+        "retry_count": {"const": 0},
+        "error_type": {"const": "APIConnectionError"},
+        "error_chain": {"const": ["APIConnectionError", "ConnectError", "ConnectError", "SSLEOFError"]},
+        "action_count": {"const": 3},
+        "termination_reason": {"const": "empty_plan"}
+      }
+    },
+    "phase_136_intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "exercised", "reason", "observation_reconciliation_event_count", "action_result_reconciliation_event_count", "action_result_policy_id", "reconciled_pending_source_ids", "remaining_pending_log_pickup_count"],
+      "properties": {
+        "policy_id": {"const": "sp003-observation-delayed-log-pickup-reconciliation-v1"},
+        "exercised": {"const": false},
+        "reason": {"const": "the_existing_action_result_reconciliation_succeeded_but_the_phase_136_observation_only_boundary_was_not_needed_before_transport_failure"},
+        "observation_reconciliation_event_count": {"const": 0},
+        "action_result_reconciliation_event_count": {"const": 1},
+        "action_result_policy_id": {"const": "sp003-delayed-log-pickup-reconciliation-v1"},
+        "reconciled_pending_source_ids": {"const": ["dark_oak_log:119:142:-38"]},
+        "remaining_pending_log_pickup_count": {"const": 0}
+      }
+    },
+    "terminal_progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inventory", "log_source_removal_count", "plank_craft_count", "stick_craft_count", "crafting_table_craft_count", "crafting_table_place_count", "wooden_pickaxe_craft_count", "stone_source_removal_count", "stone_pickaxe_craft_count", "behavioral_loop_completed"],
+      "properties": {
+        "inventory": {"const": {"dark_oak_log": 2}},
+        "log_source_removal_count": {"const": 2},
+        "plank_craft_count": {"const": 0},
+        "stick_craft_count": {"const": 0},
+        "crafting_table_craft_count": {"const": 0},
+        "crafting_table_place_count": {"const": 0},
+        "wooden_pickaxe_craft_count": {"const": 0},
+        "stone_source_removal_count": {"const": 0},
+        "stone_pickaxe_craft_count": {"const": 0},
+        "behavioral_loop_completed": {"const": false}
+      }
+    },
+    "source_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "immutable", "rewritten"],
+      "properties": {
+        "path": {"const": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/manifest.json"},
+        "sha256": {"const": "1ead5fe34aa0d03641294950efb0b4cbc71d57ff70af2ffb9fbd88f17e1176c0"},
+        "immutable": {"const": true},
+        "rewritten": {"const": false}
+      }
+    },
+    "retained_payloads": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "immutable"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "immutable": {"const": true}
+        }
+      }
+    },
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minecraft_port_listening", "bridge_port_listening", "matching_runtime_process_count", "fresh_world_retained"],
+      "properties": {
+        "minecraft_port_listening": {"const": false},
+        "bridge_port_listening": {"const": false},
+        "matching_runtime_process_count": {"const": 0},
+        "fresh_world_retained": {"const": true}
+      }
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strict_baseline_passed", "behavioral_loop_completed", "counts_toward_baseline_success", "counts_toward_skill_gate", "counts_toward_capability", "counts_toward_m4"],
+      "properties": {
+        "strict_baseline_passed": {"const": false},
+        "behavioral_loop_completed": {"const": false},
+        "counts_toward_baseline_success": {"const": false},
+        "counts_toward_skill_gate": {"const": false},
+        "counts_toward_capability": {"const": false},
+        "counts_toward_m4": {"const": false}
+      }
+    },
+    "retry_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["automatic_retry_attempted", "automatic_retry_allowed", "authorization_reuse_allowed", "fresh_authorization_required"],
+      "properties": {
+        "automatic_retry_attempted": {"const": false},
+        "automatic_retry_allowed": {"const": false},
+        "authorization_reuse_allowed": {"const": false},
+        "fresh_authorization_required": {"const": true}
+      }
+    },
+    "next_gate": {"const": "retain_and_push_then_run_one_bounded_no_minecraft_continuation_provider_probe_before_any_new_authorization"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

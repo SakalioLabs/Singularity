@@ -1,0 +1,138 @@
+{
+  "$schema": "workspace/evals/schemas/stone_pickaxe_sp003_continuation_provider_transport_failure.schema.json",
+  "type": "stone_pickaxe_sp003_continuation_provider_transport_failure",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-20T07:13:02.350686+00:00",
+  "phase": 139,
+  "policy_id": "sp003-continuation-provider-transport-failure-classification-v1",
+  "task_id": "SP-003",
+  "episode_id": "sp003_baseline_20260720_150508_7a645e08",
+  "session_id": "0420e30c-1b8",
+  "classification": "infrastructure_ineligible",
+  "intervention_outcome": "intervention_not_exercised_new_blocker",
+  "authorization": {
+    "authorization_id": "f854286268d0a877e3c8a99cf45499eaa85162df0b2cdbc93f12c277cde20c73",
+    "authorization_commit": "45aa6a8dc8a6af3c69d386256191f16cf2643c6a",
+    "authorization_predecessor": "21bd9764a083a8a60e560df2c03c9a3f79e27f1e",
+    "authorization_sha256": "9e304f3f896f02f1f091300c52826d54f093a4c9305d8b077f5cbb4419abfa29",
+    "consumed": true,
+    "reuse_allowed": false
+  },
+  "runtime_identity": {
+    "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+    "runtime_policy_sha256": "48dbb75af5a736e29726d29845dd130ef622bcccb2719d8b0a1a321cc0d6c643",
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "arm": "baseline",
+    "replicate_id": "baseline"
+  },
+  "preflight": {
+    "passed": true,
+    "authorization_passed": true,
+    "reset_passed": true,
+    "initial_state_passed": true,
+    "paper_ready": true,
+    "bridge_ready": true,
+    "empty_inventory": true,
+    "observed_log_source_count": 5
+  },
+  "planner_success_prefix": {
+    "call_count": 3,
+    "real_llm_call_count": 3,
+    "schema_valid_call_count": 3,
+    "call_indexes": [0, 1, 2],
+    "plan_kinds": ["root", "continuation", "replan"],
+    "transport_attempt_count": 3,
+    "transport_retry_count": 0,
+    "response_byte_count": 3197,
+    "provider_duration_ms": 11312,
+    "action_count": 3,
+    "raw_action_failure_count": 1,
+    "reconciled_action_failure_count": 1,
+    "unreconciled_action_failure_count": 0
+  },
+  "planner_failure": {
+    "earliest_blocker": "continuation_planner_call_3_provider_tls_eof_before_any_response_bytes",
+    "call_id": "llm-124e7e9947b04a13",
+    "call_index": 3,
+    "plan_kind": "continuation",
+    "parent_call_id": "llm-34675e6feebf47e7",
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "request_sha256": "375766bb9f4aac6e0608bf4430daf6faf943b2987924f5c6bcec682000a570d2",
+    "real_llm_call": false,
+    "schema_valid": false,
+    "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "response_byte_count": 0,
+    "attempt_count": 1,
+    "retry_count": 0,
+    "error_type": "APIConnectionError",
+    "error_chain": ["APIConnectionError", "ConnectError", "ConnectError", "SSLEOFError"],
+    "action_count": 3,
+    "termination_reason": "empty_plan"
+  },
+  "phase_136_intervention": {
+    "policy_id": "sp003-observation-delayed-log-pickup-reconciliation-v1",
+    "exercised": false,
+    "reason": "the_existing_action_result_reconciliation_succeeded_but_the_phase_136_observation_only_boundary_was_not_needed_before_transport_failure",
+    "observation_reconciliation_event_count": 0,
+    "action_result_reconciliation_event_count": 1,
+    "action_result_policy_id": "sp003-delayed-log-pickup-reconciliation-v1",
+    "reconciled_pending_source_ids": ["dark_oak_log:119:142:-38"],
+    "remaining_pending_log_pickup_count": 0
+  },
+  "terminal_progress": {
+    "inventory": {"dark_oak_log": 2},
+    "log_source_removal_count": 2,
+    "plank_craft_count": 0,
+    "stick_craft_count": 0,
+    "crafting_table_craft_count": 0,
+    "crafting_table_place_count": 0,
+    "wooden_pickaxe_craft_count": 0,
+    "stone_source_removal_count": 0,
+    "stone_pickaxe_craft_count": 0,
+    "behavioral_loop_completed": false
+  },
+  "source_artifact": {
+    "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/manifest.json",
+    "sha256": "1ead5fe34aa0d03641294950efb0b4cbc71d57ff70af2ffb9fbd88f17e1176c0",
+    "immutable": true,
+    "rewritten": false
+  },
+  "retained_payloads": [
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/authorization.json", "sha256": "9e304f3f896f02f1f091300c52826d54f093a4c9305d8b077f5cbb4419abfa29", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/authorization_consumption.json", "sha256": "ccd10068cf834df02a705376ab8cf879bf21f4dc65367e5179df298f794f5840", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/protocol_status.json", "sha256": "d877d71af935c7c18ad844e10cc6e9d031dc9251ddb13ab4338b4f1950e1648f", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/reset.json", "sha256": "13c842fb3bc5d05133e038246d0eb7f8a5b0897e99768f16d8b9aa8463ed8f5f", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/reset_audit.json", "sha256": "a8c8be85aee67d4e2231146b3de369e7e892637307cbe12d4bf4d28e29e3aade", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/preflight.json", "sha256": "e969ea21a017f2354043ec7631891b220a8b108cc97cb3f6631c35de608a9690", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/session.json", "sha256": "675efd0451997023c61abe365161c03156c246186f68fd4bf36cd66f5bbb3cbc", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/episode.json", "sha256": "6ed37d2c0b6a74ad4c4af5e68053cec05b23673fa18c8cbada0485ea93c9dcb2", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/verification.json", "sha256": "4e8fddc6caba1bcf48c09f4a0eb0509fbadd5ef09bfa4574d8aa8b36409147d8", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/audit.json", "sha256": "84486867dd340bfa6f5ecb0c67ac632babe08656808afc8d8b00ebe27c6f717a", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/session_0420e30c-1b8.jsonl", "sha256": "caeea8567f124b8fae638037059b049edf5a8ad115fde50ebd97f7c1eba230bf", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/session_0420e30c-1b8_summary.json", "sha256": "f5b636b5a45fb2d949eb1257f3f633271d1a0d0757bd68c48731327a6d41f5f8", "immutable": true}
+  ],
+  "cleanup": {
+    "minecraft_port_listening": false,
+    "bridge_port_listening": false,
+    "matching_runtime_process_count": 0,
+    "fresh_world_retained": true
+  },
+  "eligibility": {
+    "strict_baseline_passed": false,
+    "behavioral_loop_completed": false,
+    "counts_toward_baseline_success": false,
+    "counts_toward_skill_gate": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "retry_policy": {
+    "automatic_retry_attempted": false,
+    "automatic_retry_allowed": false,
+    "authorization_reuse_allowed": false,
+    "fresh_authorization_required": true
+  },
+  "next_gate": "retain_and_push_then_run_one_bounded_no_minecraft_continuation_provider_probe_before_any_new_authorization"
+}

@@ -170,20 +170,14 @@ def test_phase134_probe_opens_only_the_separate_authorization_gate():
     )
     assert phase135["authorization_consumed"] is True
     assert phase135["authorization_reuse_allowed"] is False
-    assert gate["id"] == (
-        "sp003_phase_138_probe_commit_push_then_separate_baseline_authorization"
-    )
+    assert gate["id"] == "sp003_phase_139_continuation_provider_recovery_gate"
     assert (
         "phase_134_bounded_no_minecraft_provider_throughput_probe_passes_against_the_fixed_provider"
         in gate["prerequisites"]
     )
-    assert gate["prerequisites"][-6:] == [
-        "phase_137_evidence_commit_fc6a78f3_is_pushed_and_main_synchronized",
-        "phase_138_probe_tooling_commit_bef42a1f_is_pushed_and_main_synchronized",
-        "phase_138_bounded_no_minecraft_root_provider_probe_passed_in_5625ms_with_one_request_and_zero_retries",
-        "phase_138_probe_returned_the_exact_five_node_root_plan_and_expected_first_action",
-        "phase_138_probe_artifact_8cd727c1_is_hash_verified",
-        "phase_138_probe_evidence_commit_must_be_pushed_before_any_new_authorization",
+    assert gate["prerequisites"][-2:] == [
+        "phase_139_evidence_commit_must_be_pushed_before_any_provider_probe",
+        "one_bounded_no_minecraft_continuation_provider_probe_must_pass_before_any_new_authorization",
     ]
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
