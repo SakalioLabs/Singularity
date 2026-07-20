@@ -10,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "scripts/stone_pickaxe_sp003_phase138_root_provider_probe.py"
 LEDGER_PATH = ROOT / "workspace/evals/stone_pickaxe_failure_ledger.json"
+PROBE_PATH = ROOT / "workspace/evals/stone_pickaxe_sp003_phase138_root_provider_probe.json"
+PROBE_SHA256 = "8cd727c130b8d9522a097a141164584fed85b1e3afc07d9c75723bc35e45d0be"
 
 
 def _module():
@@ -67,13 +69,63 @@ def test_phase138_probe_is_single_request_zero_retry_and_no_minecraft() -> None:
     assert "Start-Process" not in text
 
 
-def test_phase138_probe_preserves_the_closed_phase137_live_gate() -> None:
+def test_phase138_probe_keeps_live_gate_closed_until_evidence_push() -> None:
     ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
     gate = ledger["next_required_gate"]
 
-    assert gate["id"] == "sp003_phase_137_provider_transport_recovery_gate"
+    assert gate["id"] == (
+        "sp003_phase_138_probe_commit_push_then_separate_baseline_authorization"
+    )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False
     assert gate["automatic_retry_allowed"] is False
     assert ledger["live_authorization"] is False
+
+
+def test_phase138_probe_passes_exact_single_request_root_gate() -> None:
+    probe = json.loads(PROBE_PATH.read_text(encoding="utf-8"))
+
+    assert _module().file_sha256(PROBE_PATH) == PROBE_SHA256
+    assert probe["type"] == "stone_pickaxe_sp003_root_provider_probe"
+    assert probe["phase"] == 138
+    assert probe["predecessor_commit"] == (
+        "bef42a1fc826bb21eb85154c30ca6e3d4c3106c9"
+    )
+    assert probe["passed"] is True
+    assert probe["decision"] == "permit_one_new_authorization"
+    assert all(probe["criteria"].values())
+    assert probe["request_count"] == 1
+    assert probe["retry_count"] == 0
+    assert probe["duration_ms"] == 5625
+    assert probe["duration_ms"] <= probe["thresholds"][
+        "max_acceptable_duration_ms"
+    ]
+    assert probe["prompt_tokens"] == 3228
+    assert probe["request"]["request_payload_byte_count"] == 13525
+    assert probe["request"]["request_sha256"] == probe["request"][
+        "provider_request_sha256"
+    ]
+    assert probe["response_sha256"] == (
+        "d0fed36bc616a042c0331516e3a788ae17cd857de23382c9fe756edd7bee5d87"
+    )
+    assert probe["real_llm_call"] is True
+    assert probe["schema_valid"] is True
+    assert probe["schema_validation"]["passed"] is True
+    assert probe["returned_plan"] == {
+        "plan_kind": "root",
+        "status": "planning",
+        "subtask_count": 5,
+        "actions": [
+            {
+                "type": "move_to",
+                "parameters": {"x": 121, "y": 142, "z": -36},
+            }
+        ],
+    }
+    assert probe["minecraft_process_started"] is False
+    assert probe["authorization_created"] is False
+    assert probe["automatic_retry_attempted"] is False
+    assert probe["counts_toward_baseline_success"] is False
+    assert probe["counts_toward_capability"] is False
+    assert probe["counts_toward_m4"] is False

@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 137 stopped at the first root Planner transport attempt with TLS EOF; Phase 136 was not exercised |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 138 root-provider recovery probe passed; no new live authorization exists until its evidence is pushed |
 
-Current phase: **Phase 136 repair commit `9af7db44` and separate Phase 137 authorization commit `5aa70afa` are pushed. Episode `sp003_baseline_20260720_135522_c835c71d` consumed that authorization exactly once. Its authorization, reset, empty inventory, natural log sources, Paper, and Bridge passed. Root Planner call 0 made one zero-retry provider attempt, received zero bytes, and failed with `APIConnectionError -> ConnectError -> ConnectError -> SSLEOFError`. The episode ended `empty_plan` before any action, so the Phase 136 delayed-pickup reconciliation was not exercised. Manifest `553e8731...` and a schema-valid derived infrastructure record bind the run; SP-003 remains 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 137 evidence commit `fc6a78f3` and Phase 138 probe tooling commit `bef42a1f` are pushed. The bounded no-Minecraft recovery probe replayed the exact failed root state and made one zero-retry fixed-provider request. It returned the schema-valid five-node root graph and exact expected first move in `5.625s`; artifact `8cd727c1...` binds the result. No Minecraft process or authorization was created, and SP-003 remains 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all thirty-one SP-003 baseline authorizations through `sp003_baseline_20260720_135522_c835c71d` cannot be reused. Phase 137 ran exactly once and cannot be retried. Its evidence must be committed and pushed, then one bounded no-Minecraft root-provider probe must reestablish the fixed provider before another parent-bound one-use baseline authorization may be created. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all thirty-one SP-003 baseline authorizations through `sp003_baseline_20260720_135522_c835c71d` cannot be reused. Phase 137 ran exactly once and cannot be retried. Phase 138 reestablished the fixed provider without Minecraft, but its evidence must be committed and pushed before another parent-bound one-use baseline authorization may be created. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -209,7 +209,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 136 repair is pushed at `9af7db44`; thirty-one authorizations consumed; baseline 0/1 and candidates 0/3; Phase 137 is infrastructure-ineligible after a first-call provider TLS EOF and awaits evidence push plus a bounded provider probe |
+| 8. SP-003 composite acceptance | Phase 136 repair is pushed at `9af7db44`; thirty-one authorizations consumed; baseline 0/1 and candidates 0/3; Phase 138 root-provider probe passed and awaits evidence push before one separate authorization |
 
 ## Frozen Baseline
 
@@ -221,4 +221,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 137 evidence is committed and pushed, one bounded no-Minecraft root-provider probe passes, and a separate parent-bound authorization is committed and pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 138 probe evidence and a separate parent-bound authorization are each committed and pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

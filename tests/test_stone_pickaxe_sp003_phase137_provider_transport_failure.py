@@ -167,7 +167,17 @@ def test_phase137_ledger_classifies_provider_failure_and_holds_live_gate() -> No
     assert entry["counts_toward_baseline_success"] is False
     assert entry["counts_toward_capability"] is False
     assert entry["counts_toward_m4"] is False
-    assert gate["id"] == "sp003_phase_137_provider_transport_recovery_gate"
+    recovery = entry["provider_recovery"]
+    assert recovery["phase"] == 138
+    assert recovery["artifact_sha256"] == (
+        "8cd727c130b8d9522a097a141164584fed85b1e3afc07d9c75723bc35e45d0be"
+    )
+    assert recovery["request_count"] == 1
+    assert recovery["retry_count"] == 0
+    assert recovery["passed"] is True
+    assert gate["id"] == (
+        "sp003_phase_138_probe_commit_push_then_separate_baseline_authorization"
+    )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False
