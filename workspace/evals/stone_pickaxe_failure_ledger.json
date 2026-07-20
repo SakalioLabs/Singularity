@@ -10583,7 +10583,7 @@
       "phase": "sp003_baseline",
       "task_id": "SP-003",
       "classification": "sp003_external_planner_latency_deadline_exhaustion",
-      "status": "retained_failure_evidence_pending_commit_push",
+      "status": "retained_failure_evidence_committed_and_pushed",
       "attributable_to_learned_skill": false,
       "episode_id": "sp003_baseline_20260720_111853_3cd46332",
       "session_id": "78921484-8ab",
@@ -10626,6 +10626,26 @@
         "shared_bridge_modified": false,
         "vendored_dependency_modified": false,
         "base_protocol_modified": false
+      },
+      "provider_throughput_recovery": {
+        "phase": 134,
+        "policy_id": "sp003-representative-provider-throughput-gate-v1",
+        "artifact_path": "workspace/evals/stone_pickaxe_sp003_representative_provider_throughput_probe.json",
+        "artifact_sha256": "f348f0953b728120d83fbebca1fdfe72a2c9e1be36f19dd6a411540a0441e676",
+        "source_phase_133_observation_canonical_sha256": "69e329584834a689aa994d131d9a5a10b3ca1be5585baf0af4f8a12ef35bac2b",
+        "representative_prompt_tokens": 2643,
+        "request_count": 1,
+        "retry_count": 0,
+        "duration_ms": 3750,
+        "max_acceptable_duration_ms": 7500,
+        "schema_valid": true,
+        "exact_expected_action": true,
+        "passed": true,
+        "minecraft_process_started": false,
+        "authorization_created": false,
+        "counts_toward_baseline_success": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
       },
       "runtime_result": {
         "bridge_ready": true,
@@ -10674,8 +10694,8 @@
       "counts_toward_skill_gate": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
-      "single_next_offline_fix": "none_external_provider_throughput_must_be_reestablished_by_a_bounded_no_minecraft_probe",
-      "next_gate": "commit_and_push_phase_133_evidence_then_pass_one_bounded_provider_throughput_probe_before_any_new_authorization"
+      "single_next_offline_fix": "none_phase_134_provider_throughput_probe_passed",
+      "next_gate": "commit_and_push_phase_134_probe_then_create_one_separate_parent_bound_authorization"
     }
   ],
   "eligible_successes": [
@@ -12560,10 +12580,29 @@
     "sp003_phase_133_counts_toward_baseline_success": false,
     "sp003_phase_133_counts_toward_skill_gate": false,
     "sp003_phase_133_counts_toward_capability": false,
-    "sp003_phase_133_counts_toward_m4": false
+    "sp003_phase_133_counts_toward_m4": false,
+    "sp003_phase_134_provider_probe_cases": "3/3",
+    "sp003_phase_134_all_stone_pickaxe_cases": "357/357",
+    "sp003_phase_134_full_repository_cases": "1112/1112",
+    "sp003_phase_134_json_files_parsed": 1779,
+    "sp003_phase_134_credential_matches": 0,
+    "sp003_phase_134_python_compilation_passed": true,
+    "sp003_phase_134_git_diff_check_passed": true,
+    "sp003_phase_134_provider_probe_passed": true,
+    "sp003_phase_134_provider_probe_duration_ms": 3750,
+    "sp003_phase_134_provider_probe_request_count": 1,
+    "sp003_phase_134_provider_probe_retry_count": 0,
+    "sp003_phase_134_provider_probe_schema_valid": true,
+    "sp003_phase_134_provider_probe_exact_action": true,
+    "sp003_phase_134_live_episode_run": false,
+    "sp003_phase_134_live_authorization": false,
+    "sp003_phase_134_counts_toward_baseline_success": false,
+    "sp003_phase_134_counts_toward_skill_gate": false,
+    "sp003_phase_134_counts_toward_capability": false,
+    "sp003_phase_134_counts_toward_m4": false
   },
   "next_required_gate": {
-    "id": "sp003_phase_133_evidence_commit_push_then_bounded_provider_throughput_probe",
+    "id": "sp003_phase_134_probe_commit_push_then_separate_parent_bound_baseline_authorization",
     "authorization": false,
     "prerequisites": [
       "phase_130_offline_repair_a7f8cc14_is_committed_and_pushed",
@@ -12579,14 +12618,17 @@
       "phase_133_authorization_commit_77199001_was_consumed_exactly_once_without_retry",
       "phase_133_external_planner_latency_failure_is_hash_bound",
       "phase_133_all_thirteen_evidence_payload_hashes_are_verified",
-      "phase_133_evidence_commit_is_pushed_and_main_synchronized",
-      "one_bounded_no_minecraft_provider_throughput_probe_passes_against_the_fixed_provider"
+      "phase_133_evidence_commit_b16a65e9_is_pushed_and_main_synchronized",
+      "phase_134_bounded_no_minecraft_provider_throughput_probe_passes_against_the_fixed_provider",
+      "phase_134_probe_artifact_f348f095_is_hash_verified",
+      "phase_134_probe_evidence_commit_is_pushed_and_main_synchronized",
+      "new_authorization_is_bound_to_the_pushed_phase_134_probe_commit"
     ],
     "arm": "baseline",
     "replicate_id": "baseline",
     "live_episode_limit": 0,
     "normal_runtime_permission": false,
-    "normal_runtime_permission_scope": "no_live_execution_until_phase_133_evidence_is_committed_and_pushed_and_a_bounded_provider_throughput_probe_passes_then_a_separate_parent_bound_one_use_baseline_authorization_is_committed_and_pushed",
+    "normal_runtime_permission_scope": "no_live_execution_until_phase_134_probe_evidence_is_committed_and_pushed_then_a_separate_parent_bound_one_use_baseline_authorization_is_committed_and_pushed",
     "automatic_retry_allowed": false
   },
   "artifact_state": {

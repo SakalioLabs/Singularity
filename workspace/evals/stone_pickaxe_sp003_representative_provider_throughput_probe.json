@@ -1,0 +1,151 @@
+{
+  "type": "stone_pickaxe_sp003_representative_provider_throughput_probe",
+  "schema_version": 1,
+  "phase": 134,
+  "policy_id": "sp003-representative-provider-throughput-gate-v1",
+  "task_id": "SP-003",
+  "purpose": "gate_a_new_strict_live_baseline_after_phase_133_external_planner_latency",
+  "predecessor_commit": "b16a65e9c7c7e943046dcf214c278c6a8f5a1b86",
+  "started_at_utc": "2026-07-20T03:59:17.034004+00:00",
+  "ended_at_utc": "2026-07-20T03:59:20.780365+00:00",
+  "passed": true,
+  "decision": "permit_one_new_authorization",
+  "thresholds": {
+    "request_timeout_s": 12.0,
+    "max_acceptable_duration_ms": 7500,
+    "min_representative_prompt_tokens": 2500,
+    "min_representative_request_bytes": 10000,
+    "max_request_count": 1,
+    "max_retry_count": 0
+  },
+  "criteria": {
+    "source_state_matches": true,
+    "request_payload_matches_precomputed_sha256": true,
+    "representative_request_size": true,
+    "representative_prompt_tokens": true,
+    "fixed_provider_controls": true,
+    "single_request": true,
+    "zero_retries": true,
+    "within_latency_gate": true,
+    "real_llm_call": true,
+    "schema_valid": true,
+    "continuation_plan": true,
+    "exact_expected_action": true,
+    "no_probe_exception": true
+  },
+  "source": {
+    "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_111853_3cd46332/session_78921484-8ab.jsonl",
+    "sha256": "cf2e0e2dabf0d600030f893f159c7c986a4065165045976387a2752393cc6a44",
+    "observation_line_number": 97,
+    "observation_canonical_sha256": "69e329584834a689aa994d131d9a5a10b3ca1be5585baf0af4f8a12ef35bac2b",
+    "predecessor_call_id": "llm-e0ace62ed2294be7",
+    "predecessor_call_index": 4,
+    "predecessor_request_sha256": "9ecee522548019c9f1f2691b6bca19db3a74dd3cb98f553f783f44277eab9b51",
+    "state": {
+      "runtime_mode": "sp003",
+      "arm": "baseline",
+      "stage": "craft_matching_planks",
+      "inventory": {
+        "oak_log": 3
+      },
+      "log_source_removal_count": 3,
+      "target_count": 0
+    }
+  },
+  "expected_plan_kind": "continuation",
+  "expected_action": {
+    "type": "craft",
+    "parameters": {
+      "item": "oak_planks",
+      "count": 12
+    }
+  },
+  "request": {
+    "request_sha256": "4ce102c525e2248281793e5ce86f4f324e77c83340079f2e1bdc4c02b33de85f",
+    "request_payload_byte_count": 11287,
+    "system_message_byte_count": 8482,
+    "user_message_byte_count": 2412,
+    "request_message_count": 2,
+    "provider_request_sha256": "4ce102c525e2248281793e5ce86f4f324e77c83340079f2e1bdc4c02b33de85f"
+  },
+  "request_count": 1,
+  "retry_count": 0,
+  "provider": "openai",
+  "base_url": "https://opencode.ai/zen/go/v1",
+  "model": "deepseek-v4-flash",
+  "temperature": 0.0,
+  "max_tokens": 4096,
+  "response_format": {
+    "type": "json_object"
+  },
+  "extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "timeout_s": 12.0,
+  "sdk_max_retries": 0,
+  "response_sha256": "b04abd6f7fa3871374999afe09c8ae959e3ad1549754d425301e412a0ad5f459",
+  "response_byte_count": 499,
+  "response_id": "53fce87c-677e-4d3d-ba35-28eb7cdde290",
+  "finish_reason": "stop",
+  "reasoning_content_byte_count": 0,
+  "duration_ms": 3750,
+  "wall_duration_ms": 3750,
+  "prompt_tokens": 2643,
+  "completion_tokens": 146,
+  "total_tokens": 2789,
+  "real_llm_call": true,
+  "schema_valid": true,
+  "schema_validation": {
+    "type": "stone_pickaxe_plan_envelope_validation",
+    "schema_version": 1,
+    "passed": true,
+    "expected_goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+    "expected_kind": "continuation",
+    "status": "planning",
+    "subtask_count": 0,
+    "action_count": 1,
+    "compact_plan_chars": 414,
+    "completion_requires_machine_verifier": true,
+    "issues": [],
+    "reasoning_normalization": {
+      "type": "planner_reasoning_normalization",
+      "schema_version": 1,
+      "policy_id": "sp003-nonexecutive-reasoning-normalization-v1",
+      "runtime_mode": "sp003",
+      "field": "reasoning",
+      "limit_chars": 320,
+      "applied": false,
+      "original_char_count": 65,
+      "normalized_char_count": 65,
+      "original_sha256": "14c918490e561a8a3a610e07eda8aa982e0673e10804c8bc1748244db8a4bbff",
+      "normalized_sha256": "14c918490e561a8a3a610e07eda8aa982e0673e10804c8bc1748244db8a4bbff",
+      "executable_envelope_sha256": "d8709d29ceee60899b12cfe02b781fc267b8be9327cfc74bc71b227e21f921e9",
+      "executable_fields_preserved": true,
+      "provider_response_preserved": true,
+      "action_rewrite": false
+    }
+  },
+  "returned_plan": {
+    "plan_kind": "continuation",
+    "status": "planning",
+    "actions": [
+      {
+        "type": "craft",
+        "parameters": {
+          "item": "oak_planks",
+          "count": 12
+        }
+      }
+    ]
+  },
+  "probe_exception_type": "",
+  "credential_value_retained": false,
+  "minecraft_process_started": false,
+  "authorization_created": false,
+  "automatic_retry_attempted": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
