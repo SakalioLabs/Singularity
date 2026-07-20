@@ -211,8 +211,8 @@ def test_phase143_ledger_holds_live_gate_for_phase144_offline_repair() -> None:
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
     assert gate["id"] == (
-        "sp003_phase_146_failure_evidence_commit_push_then_phase_147_"
-        "bounded_no_minecraft_root_provider_recovery_probe"
+        "sp003_phase_147_probe_tooling_commit_push_then_one_bounded_"
+        "no_minecraft_root_provider_recovery_probe"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0

@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-20T19:55:54+08:00",
+  "generated_at": "2026-07-20T20:34:17+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_146_sp003_root_provider_transport_failure_retained",
-  "status": "sp003_phase_146_infrastructure_failure_pending_evidence_commit_push_and_bounded_root_provider_recovery_probe",
+  "phase": "phase_147_sp003_root_provider_recovery_probe_tooling_ready",
+  "status": "sp003_phase_147_probe_tooling_pending_commit_push_then_single_no_minecraft_request",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -11367,7 +11367,7 @@
       "classification": "sp003_external_root_planner_transport_tls_eof",
       "infrastructure_classification": "infrastructure_ineligible",
       "intervention_outcome": "intervention_not_exercised_new_blocker",
-      "status": "retained_infrastructure_failure_pending_evidence_commit_push_and_root_provider_recovery_probe",
+      "status": "retained_infrastructure_failure_committed_and_pushed_pending_root_provider_recovery_probe",
       "attributable_to_learned_skill": false,
       "episode_id": "sp003_baseline_20260720_194725_phase146",
       "session_id": "2e77e5b0-07f",
@@ -11459,7 +11459,7 @@
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "single_next_offline_fix": "none_external_provider_recovery_probe_required",
-      "next_gate": "commit_and_push_phase_146_failure_evidence_then_run_one_bounded_no_minecraft_root_provider_recovery_probe"
+      "next_gate": "commit_and_push_phase_147_probe_tooling_then_run_one_bounded_no_minecraft_root_provider_recovery_probe"
     }
   ],
   "eligible_successes": [
@@ -13633,10 +13633,28 @@
     "sp003_phase_146_minecraft_port_listening": false,
     "sp003_phase_146_bridge_port_listening": false,
     "sp003_phase_146_matching_runtime_process_count": 0,
-    "sp003_phase_146_fresh_world_retained": true
+    "sp003_phase_146_fresh_world_retained": true,
+    "sp003_phase_146_evidence_commit": "3242b4b019f490722e86ee2343aa4730008d8dfc",
+    "sp003_phase_146_evidence_commit_pushed": true,
+    "sp003_phase_147_tooling_focused_cases": "4/4",
+    "sp003_phase_147_tooling_provider_request_made": false,
+    "sp003_phase_147_tooling_minecraft_process_started": false,
+    "sp003_phase_147_tooling_authorization_created": false,
+    "sp003_phase_147_tooling_live_authorization": false,
+    "sp003_phase_147_tooling_counts_toward_baseline_success": false,
+    "sp003_phase_147_tooling_counts_toward_skill_gate": false,
+    "sp003_phase_147_tooling_counts_toward_capability": false,
+    "sp003_phase_147_tooling_counts_toward_m4": false,
+    "sp003_phase_147_tooling_all_stone_pickaxe_cases": "436/436",
+    "sp003_phase_147_tooling_full_repository_cases": "1191/1191",
+    "sp003_phase_147_tooling_node_cases": "84/84",
+    "sp003_phase_147_tooling_json_files_valid": "1856/1856",
+    "sp003_phase_147_tooling_python_compilation_passed": true,
+    "sp003_phase_147_tooling_git_diff_check_passed": true,
+    "sp003_phase_147_tooling_credential_matches": 0
   },
   "next_required_gate": {
-    "id": "sp003_phase_146_failure_evidence_commit_push_then_phase_147_bounded_no_minecraft_root_provider_recovery_probe",
+    "id": "sp003_phase_147_probe_tooling_commit_push_then_one_bounded_no_minecraft_root_provider_recovery_probe",
     "authorization": false,
     "prerequisites": [
       "phase_130_offline_repair_a7f8cc14_is_committed_and_pushed",
@@ -13735,14 +13753,18 @@
       "phase_146_phase_144_step_up_intervention_was_not_exercised",
       "phase_146_all_twelve_manifest_payload_hashes_are_verified",
       "phase_146_derived_infrastructure_failure_is_schema_valid",
-      "phase_146_failure_evidence_commit_must_be_pushed_before_phase_147_probe"
+      "phase_146_failure_evidence_commit_3242b4b0_is_pushed_and_main_synchronized",
+      "phase_147_probe_tooling_must_be_committed_and_pushed_before_the_single_provider_call"
     ],
     "arm": "baseline",
     "replicate_id": "baseline",
     "live_episode_limit": 0,
     "normal_runtime_permission": false,
-    "normal_runtime_permission_scope": "no_live_execution_until_phase_146_failure_evidence_is_committed_and_pushed_then_one_bounded_no_minecraft_root_provider_recovery_probe_passes_and_its_evidence_is_committed_and_pushed",
-    "automatic_retry_allowed": false
+    "normal_runtime_permission_scope": "no_live_execution_phase_147_allows_only_one_no_minecraft_root_provider_request_after_probe_tooling_is_committed_and_pushed",
+    "automatic_retry_allowed": false,
+    "provider_probe_call_limit": 1,
+    "provider_probe_retry_limit": 0,
+    "minecraft_process_allowed": false
   },
   "artifact_state": {
     "fixture_manifest_created": true,
@@ -13776,6 +13798,8 @@
     "sp003_phase_146_provider_transport_failure_schema_artifacts_created": 1,
     "sp003_phase_146_provider_transport_failure_artifact_path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/infrastructure_failure.json",
     "sp003_phase_146_provider_transport_failure_artifact_sha256": "8fe9fc1b401cc99a625faf3a44918cf8d1e35c79ce0e2a4be0c2f37a3137d441",
+    "sp003_phase_147_root_provider_recovery_probe_schema_artifacts_created": 1,
+    "sp003_phase_147_root_provider_recovery_probe_tooling_created": true,
     "sp003_harness_policy_artifacts_created": 1,
     "sp003_offline_definition_audit_artifacts_created": 1,
     "sp003_reset_audit_repair_artifacts_created": 1,

@@ -297,8 +297,8 @@ def test_phase141_evidence_keeps_live_gate_closed_for_offline_repair() -> None:
     gate = ledger["next_required_gate"]
 
     assert gate["id"] == (
-        "sp003_phase_146_failure_evidence_commit_push_then_phase_147_"
-        "bounded_no_minecraft_root_provider_recovery_probe"
+        "sp003_phase_147_probe_tooling_commit_push_then_one_bounded_"
+        "no_minecraft_root_provider_recovery_probe"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
