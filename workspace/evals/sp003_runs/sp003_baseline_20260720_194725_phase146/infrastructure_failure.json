@@ -1,0 +1,108 @@
+{
+  "$schema": "workspace/evals/schemas/stone_pickaxe_sp003_phase146_provider_transport_failure.schema.json",
+  "type": "stone_pickaxe_sp003_provider_transport_failure",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-20T11:55:54.8732129Z",
+  "phase": 146,
+  "policy_id": "sp003-phase146-provider-transport-failure-classification-v1",
+  "task_id": "SP-003",
+  "episode_id": "sp003_baseline_20260720_194725_phase146",
+  "session_id": "2e77e5b0-07f",
+  "classification": "infrastructure_ineligible",
+  "intervention_outcome": "intervention_not_exercised_new_blocker",
+  "authorization": {
+    "authorization_id": "73adcf070b6371a743d1a708b8af19996e642ef542af0770489f8c08f19c2b86",
+    "authorization_commit": "d9d27969d0649d48db15d17d98b9f502ddf76397",
+    "authorization_predecessor": "306343553b19a810ee9882fb4f599dad6d38ffa5",
+    "authorization_sha256": "dd27bf83e2141483d7cdd619eafeed99a629d0b4c907fcfeb11e2a22f6918b02",
+    "consumed": true,
+    "reuse_allowed": false
+  },
+  "runtime_identity": {
+    "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+    "runtime_policy_sha256": "c64f16502d45f74060c5f6e0a40b8d9d486811d16d90c93add9e21254a103b2c",
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "arm": "baseline",
+    "replicate_id": "baseline"
+  },
+  "preflight": {
+    "passed": true,
+    "authorization_passed": true,
+    "reset_passed": true,
+    "initial_state_passed": true,
+    "paper_ready": true,
+    "bridge_ready": true,
+    "empty_inventory": true,
+    "observed_log_source_count": 5
+  },
+  "planner_failure": {
+    "earliest_blocker": "root_planner_provider_tls_eof_before_any_response_bytes",
+    "call_id": "llm-3e890a2ab1314645",
+    "call_index": 0,
+    "plan_kind": "root",
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "request_sha256": "3fc9246f01af2034bfc460b5a0fffc36e51f77f39f196151a4ff41745d5b034b",
+    "real_llm_call": false,
+    "schema_valid": false,
+    "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "response_byte_count": 0,
+    "attempt_count": 1,
+    "retry_count": 0,
+    "error_type": "APIConnectionError",
+    "error_chain": ["APIConnectionError", "ConnectError", "ConnectError", "SSLEOFError"],
+    "action_count": 0,
+    "termination_reason": "empty_plan"
+  },
+  "phase_144_intervention": {
+    "policy_id": "sp003-step-up-planner-contract-repair-v1",
+    "exercised": false,
+    "reason": "root_planner_transport_failed_before_the_first_executable_plan_action_and_step_up_target",
+    "step_up_target_observed": false,
+    "step_up_guard_event_count": 0,
+    "action_count": 0
+  },
+  "source_artifact": {
+    "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/manifest.json",
+    "sha256": "f2bb7f566b588a199c0936d58aebada34f1fb755e01d60359f38d34505b931a2",
+    "immutable": true,
+    "rewritten": false
+  },
+  "retained_payloads": [
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/authorization.json", "sha256": "dd27bf83e2141483d7cdd619eafeed99a629d0b4c907fcfeb11e2a22f6918b02", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/authorization_consumption.json", "sha256": "f4c565cb20b9e83bead75a8a92f786315faf4609aa04a2cf44bd99198cd6bd83", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/protocol_status.json", "sha256": "6c9de05faaa88927ed67f2f60f2bd7c2b5c6abedc92a24699890c042f99e1b4a", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/reset.json", "sha256": "2ed801ba27df5fa9877b1f7d896b1d0c6ad5e7507931e55f231defd0fdfba191", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/reset_audit.json", "sha256": "a8c8be85aee67d4e2231146b3de369e7e892637307cbe12d4bf4d28e29e3aade", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/preflight.json", "sha256": "9657e884f1f6e0dd44f39d9941a29d330a4002d23f845891f5e0cb60d50a7d8b", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/session.json", "sha256": "d728c84dbba006acbb7bd678f164a97be74afb1881f3cbaaa38a31dcd09e2933", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/episode.json", "sha256": "d2acdf659baabac40aae5d10dbd4c6997bdbc5671e91a35b960a758e852a7f03", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/verification.json", "sha256": "7d661d529f3660816261bbb2dd1c502120757e7e6ac6e5681a8621737b3d30d7", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/audit.json", "sha256": "cccf0bbcdcd9004af5a2b351213457705f385462a6237d8ff639999f909fd684", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/session_2e77e5b0-07f.jsonl", "sha256": "4e77402fd3ffd7bb9e1706ac2b8aed744fea5ffd0616e5dd8e7cb9fa2f49f8f0", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/session_2e77e5b0-07f_summary.json", "sha256": "eaa83ab2754a0936575bae406fc82663c41bb6a7c84cc058b699b07b56625061", "immutable": true}
+  ],
+  "cleanup": {
+    "minecraft_port_listening": false,
+    "bridge_port_listening": false,
+    "matching_runtime_process_count": 0,
+    "fresh_world_retained": true
+  },
+  "eligibility": {
+    "strict_baseline_passed": false,
+    "behavioral_loop_completed": false,
+    "counts_toward_baseline_success": false,
+    "counts_toward_skill_gate": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "retry_policy": {
+    "automatic_retry_attempted": false,
+    "automatic_retry_allowed": false,
+    "authorization_reuse_allowed": false,
+    "fresh_authorization_required": true
+  },
+  "next_gate": "retain_and_push_then_run_one_bounded_no_minecraft_provider_root_recovery_probe_before_any_new_authorization"
+}

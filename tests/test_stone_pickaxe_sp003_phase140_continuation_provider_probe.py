@@ -186,7 +186,8 @@ def test_phase140_failed_probe_keeps_live_gate_closed() -> None:
     gate = ledger["next_required_gate"]
 
     assert gate["id"] == (
-        "sp003_phase_145_probe_evidence_commit_push_then_phase_146_parent_bound_one_use_baseline_authorization"
+        "sp003_phase_146_failure_evidence_commit_push_then_phase_147_"
+        "bounded_no_minecraft_root_provider_recovery_probe"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0

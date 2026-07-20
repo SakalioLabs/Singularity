@@ -156,7 +156,8 @@ def test_phase145_probe_schema_is_draft_2020_12_and_gate_remains_closed() -> Non
     assert schema["properties"]["authorization_created"] == {"const": False}
     gate = ledger["next_required_gate"]
     assert gate["id"] == (
-        "sp003_phase_145_probe_evidence_commit_push_then_phase_146_parent_bound_one_use_baseline_authorization"
+        "sp003_phase_146_failure_evidence_commit_push_then_phase_147_"
+        "bounded_no_minecraft_root_provider_recovery_probe"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0

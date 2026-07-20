@@ -171,15 +171,16 @@ def test_phase134_probe_opens_only_the_separate_authorization_gate():
     assert phase135["authorization_consumed"] is True
     assert phase135["authorization_reuse_allowed"] is False
     assert gate["id"] == (
-        "sp003_phase_145_probe_evidence_commit_push_then_phase_146_parent_bound_one_use_baseline_authorization"
+        "sp003_phase_146_failure_evidence_commit_push_then_phase_147_"
+        "bounded_no_minecraft_root_provider_recovery_probe"
     )
     assert (
         "phase_134_bounded_no_minecraft_provider_throughput_probe_passes_against_the_fixed_provider"
         in gate["prerequisites"]
     )
     assert gate["prerequisites"][-2:] == [
-        "phase_145_probe_artifact_3e116811_is_schema_and_hash_verified",
-        "phase_145_probe_evidence_commit_must_be_pushed_before_phase_146_authorization",
+        "phase_146_derived_infrastructure_failure_is_schema_valid",
+        "phase_146_failure_evidence_commit_must_be_pushed_before_phase_147_probe",
     ]
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
