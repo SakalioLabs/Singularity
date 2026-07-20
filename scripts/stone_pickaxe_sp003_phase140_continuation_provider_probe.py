@@ -36,6 +36,7 @@ from stone_pickaxe_sp003_provider_throughput_probe import (
 PHASE = 140
 POLICY_ID = "sp003-continuation-provider-recovery-gate-v1"
 PROBE_EPISODE_ID = "sp003-provider-continuation-probe-phase140"
+PURPOSE = "recover_from_phase_139_continuation_provider_tls_eof"
 SOURCE_CALL_ID = "llm-124e7e9947b04a13"
 SOURCE_ROOT_PLAN_ID = "root-a9494909f5f74130"
 SOURCE_PARENT_CALL_ID = "llm-34675e6feebf47e7"
@@ -139,6 +140,31 @@ def exact_probe_messages(planner: Planner, world_state: dict) -> list[dict]:
             ),
         },
     ]
+
+
+def retained_transport_evidence(transport: dict) -> dict:
+    attempts = transport.get("attempts")
+    safe_attempts = []
+    if isinstance(attempts, list):
+        for attempt in attempts:
+            if not isinstance(attempt, dict):
+                continue
+            safe_attempts.append(
+                {
+                    "attempt_index": attempt.get("attempt_index"),
+                    "success": attempt.get("success"),
+                    "timeout_s": attempt.get("timeout_s"),
+                    "sdk_max_retries": attempt.get("sdk_max_retries"),
+                    "error_type": attempt.get("error_type", ""),
+                    "error_chain": attempt.get("error_chain", []),
+                }
+            )
+    return {
+        "policy_id": transport.get("policy_id", ""),
+        "attempt_count": int(transport.get("attempt_count") or 0),
+        "retry_count": int(transport.get("retry_count") or 0),
+        "attempts": safe_attempts,
+    }
 
 
 def run_probe(source: Path) -> dict:
@@ -327,7 +353,7 @@ def run_probe(source: Path) -> dict:
         "phase": PHASE,
         "policy_id": POLICY_ID,
         "task_id": "SP-003",
-        "purpose": "recover_from_phase_139_continuation_provider_tls_eof",
+        "purpose": PURPOSE,
         "predecessor_commit": current_head(),
         "started_at_utc": started_at_utc,
         "ended_at_utc": ended_at_utc,
@@ -375,6 +401,7 @@ def run_probe(source: Path) -> dict:
         },
         "request_count": request_count,
         "retry_count": retry_count,
+        "transport_evidence": retained_transport_evidence(transport),
         "provider": provider_metadata.get("provider", planner_config["provider"]),
         "base_url": provider_metadata.get("base_url", planner_config["base_url"]),
         "model": provider_metadata.get("model", planner_config["model"]),
