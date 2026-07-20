@@ -121,6 +121,10 @@ _STONE_PICKAXE_SP003_TARGET_FIELDS = (
     "target_semantics_policy_id",
     "vertical_delta",
 )
+SP003_REASONING_NORMALIZATION_POLICY_ID = (
+    "sp003-nonexecutive-reasoning-normalization-v1"
+)
+SP003_REASONING_MAX_CHARS = 320
 _STONE_PICKAXE_SP003_STAGE_INSTRUCTIONS = {
     "acquire_wood": "Use only the first grounded target and follow its canopy/navigation or exact-log rule.",
     "await_log_pickup": "Emit exactly one wait action with ms=250; do not repeat a completed dig.",
@@ -512,16 +516,26 @@ class Planner:
             ))
             schema_validation["passed"] = not schema_validation["issues"]
         elif self.strict_stone_pickaxe and not call_error and not parse_error:
+            runtime_mode = str(
+                (world_state if isinstance(world_state, dict) else {}).get(
+                    "stone_pickaxe_runtime_mode", ""
+                )
+            )
+            reasoning_normalization = None
+            if runtime_mode == "sp003":
+                raw_plan, reasoning_normalization = (
+                    self._normalize_sp003_reasoning(raw_plan)
+                )
             schema_validation = self._validate_stone_pickaxe_plan_envelope(
                 raw_plan,
                 expected_goal=goal,
                 expected_kind=plan_kind,
-                runtime_mode=str(
-                    (world_state if isinstance(world_state, dict) else {}).get(
-                        "stone_pickaxe_runtime_mode", ""
-                    )
-                ),
+                runtime_mode=runtime_mode,
             )
+            if reasoning_normalization is not None:
+                schema_validation["reasoning_normalization"] = (
+                    reasoning_normalization
+                )
 
         schema_valid = bool(schema_validation.get("passed"))
         if schema_valid:
@@ -1285,6 +1299,66 @@ Plan the steps to achieve this goal."""
         }
 
     @staticmethod
+    def _normalize_sp003_reasoning(plan: dict) -> tuple[dict, dict]:
+        """Bound the non-executable SP-003 reasoning field before validation."""
+        normalized = dict(plan) if isinstance(plan, dict) else {}
+        reasoning = normalized.get("reasoning")
+        is_text = isinstance(reasoning, str)
+        original = reasoning if is_text else ""
+        applied = bool(
+            is_text
+            and original.strip()
+            and len(original) > SP003_REASONING_MAX_CHARS
+        )
+        if applied:
+            prefix = original[: SP003_REASONING_MAX_CHARS - 3].rstrip()
+            normalized["reasoning"] = f"{prefix}..."
+        normalized_reasoning = (
+            normalized.get("reasoning")
+            if isinstance(normalized.get("reasoning"), str)
+            else ""
+        )
+        executable_envelope = {
+            key: value for key, value in normalized.items() if key != "reasoning"
+        }
+        executable_sha256 = hashlib.sha256(
+            json.dumps(
+                executable_envelope,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                default=str,
+            ).encode("utf-8")
+        ).hexdigest()
+        return normalized, {
+            "type": "planner_reasoning_normalization",
+            "schema_version": 1,
+            "policy_id": SP003_REASONING_NORMALIZATION_POLICY_ID,
+            "runtime_mode": "sp003",
+            "field": "reasoning",
+            "limit_chars": SP003_REASONING_MAX_CHARS,
+            "applied": applied,
+            "original_char_count": len(original) if is_text else None,
+            "normalized_char_count": (
+                len(normalized_reasoning) if is_text else None
+            ),
+            "original_sha256": (
+                hashlib.sha256(original.encode("utf-8")).hexdigest()
+                if is_text
+                else ""
+            ),
+            "normalized_sha256": (
+                hashlib.sha256(normalized_reasoning.encode("utf-8")).hexdigest()
+                if is_text
+                else ""
+            ),
+            "executable_envelope_sha256": executable_sha256,
+            "executable_fields_preserved": True,
+            "provider_response_preserved": True,
+            "action_rewrite": False,
+        }
+
+    @staticmethod
     def _validate_stone_pickaxe_plan_envelope(
         plan: dict,
         expected_goal: str,
@@ -1323,7 +1397,7 @@ Plan the steps to achieve this goal."""
         reasoning = plan.get("reasoning")
         if not isinstance(reasoning, str) or not reasoning.strip():
             issues.append("reasoning_missing")
-        elif len(reasoning) > 320:
+        elif len(reasoning) > SP003_REASONING_MAX_CHARS:
             issues.append("reasoning_too_long")
 
         subtasks = plan.get("subtasks")

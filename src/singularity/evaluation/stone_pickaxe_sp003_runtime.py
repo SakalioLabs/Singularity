@@ -14,6 +14,10 @@ from typing import Any
 from singularity.core.agent import Agent
 from singularity.core.config import Config
 from singularity.core.goal_verifier import GoalVerification
+from singularity.core.planner import (
+    SP003_REASONING_MAX_CHARS,
+    SP003_REASONING_NORMALIZATION_POLICY_ID,
+)
 from singularity.core.task_system import TaskStatus
 from singularity.evaluation.stone_pickaxe_protocol import (
     PROTOCOL,
@@ -151,6 +155,11 @@ SP003_PLANNER_TARGET_LIMIT = 1
 SP003_PLANNER_COMPACT_JSON_MAX_CHARS = 2500
 SP003_PLANNER_USER_PROMPT_MAX_CHARS = 5000
 SP003_PLANNER_MOVE_SCHEMA_POLICY_ID = "sp003-horizontal-move-envelope-v1"
+SP003_PRE_DISPATCH_REPLAN_POLICY_ID = (
+    "sp003-pre-dispatch-semantic-replan-v1"
+)
+SP003_PRE_DISPATCH_REPLANS_PER_FINGERPRINT_MAX = 1
+SP003_PRE_DISPATCH_REPLANS_PER_EPISODE_MAX = 4
 SP003_TABLE_TARGET_SEMANTICS_POLICY_ID = (
     "sp003-explicit-table-target-semantics-v1"
 )
@@ -176,6 +185,16 @@ EXPECTED_SKILLS = {
     "learned:acquire_cobblestone": "1.1.0",
     "learned:craft_stone_pickaxe": "1.0.1",
 }
+SP003_PRE_DISPATCH_RECOVERABLE_ISSUES = frozenset({
+    "sp003_exact_matching_plank_craft_required",
+    "sp003_exact_four_sticks_craft_required",
+    "sp003_exact_one_table_craft_required",
+    "sp003_table_must_be_placed_before_more_crafting",
+    "sp003_exact_one_wooden_pickaxe_craft_required",
+    "sp003_exact_table_placement_required",
+    "sp003_only_wooden_pickaxe_equip_allowed",
+    "sp003_exact_one_stone_pickaxe_craft_required",
+})
 
 
 def _policy() -> dict:
@@ -509,7 +528,64 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         and episode_contract.get("planner_user_prompt_max_chars")
         == SP003_PLANNER_USER_PROMPT_MAX_CHARS
         and episode_contract.get("planner_action_rewrite_allowed") is False
-        and episode_contract.get("planner_reasoning_limit_chars") == 320
+        and episode_contract.get("planner_reasoning_limit_chars")
+        == SP003_REASONING_MAX_CHARS
+    )
+    checks["planner_reasoning_normalization_contract"] = (
+        episode_contract.get("planner_reasoning_normalization_policy_id")
+        == SP003_REASONING_NORMALIZATION_POLICY_ID
+        and episode_contract.get(
+            "planner_reasoning_normalization_runtime_mode"
+        )
+        == "sp003"
+        and episode_contract.get(
+            "planner_reasoning_normalization_non_executable_field_only"
+        )
+        is True
+        and episode_contract.get(
+            "planner_reasoning_normalization_preserves_raw_response_sha256"
+        )
+        is True
+        and episode_contract.get(
+            "planner_reasoning_normalization_action_rewrite_allowed"
+        )
+        is False
+    )
+    checks["pre_dispatch_semantic_replan_contract"] = (
+        episode_contract.get("pre_dispatch_semantic_replan_policy_id")
+        == SP003_PRE_DISPATCH_REPLAN_POLICY_ID
+        and episode_contract.get(
+            "pre_dispatch_semantic_replans_per_fingerprint_max"
+        )
+        == SP003_PRE_DISPATCH_REPLANS_PER_FINGERPRINT_MAX
+        and episode_contract.get(
+            "pre_dispatch_semantic_replans_per_episode_max"
+        )
+        == SP003_PRE_DISPATCH_REPLANS_PER_EPISODE_MAX
+        and episode_contract.get(
+            "pre_dispatch_semantic_replan_requires_fresh_observation"
+        )
+        is True
+        and episode_contract.get(
+            "pre_dispatch_semantic_replan_backend_invocation_allowed"
+        )
+        is False
+        and episode_contract.get(
+            "pre_dispatch_semantic_replan_action_budget_consumed"
+        )
+        is False
+        and episode_contract.get(
+            "pre_dispatch_semantic_replan_same_call_retry_allowed"
+        )
+        is False
+        and episode_contract.get(
+            "pre_dispatch_semantic_replan_action_rewrite_allowed"
+        )
+        is False
+        and episode_contract.get(
+            "pre_dispatch_semantic_replan_bound_exhaustion_fails_closed"
+        )
+        is True
     )
     checks["mode_specific_move_schema_contract"] = (
         episode_contract.get("planner_move_to_schema_policy_id")
@@ -2934,9 +3010,88 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
         self.sp003_arm = normalized_arm
         self.sp003_progress = _empty_progress()
         self.sp003_local_attributions: list[dict] = []
+        self._sp003_pre_dispatch_replan_fingerprints: set[str] = set()
+        self._sp003_pre_dispatch_replan_count = 0
         super().__init__(config, "sp003")
         self.skill_library.persist = False
         self.skill_learning_ledger = None
+
+    def run_goal(self, *args, **kwargs) -> dict:
+        self._sp003_pre_dispatch_replan_fingerprints = set()
+        self._sp003_pre_dispatch_replan_count = 0
+        self._sp003_pending_pre_dispatch_action = None
+        return super().run_goal(*args, **kwargs)
+
+    def _think(self, observation: dict, override_goal: str = None) -> dict:
+        plan = super()._think(observation, override_goal)
+        actions = plan.get("actions") if isinstance(plan, dict) else None
+        self._sp003_pending_pre_dispatch_action = (
+            copy.deepcopy(actions[0])
+            if isinstance(actions, list)
+            and len(actions) == 1
+            and isinstance(actions[0], dict)
+            else None
+        )
+        return plan
+
+    def _handle_runtime_interrupt(
+        self,
+        observation: dict,
+        goal: str,
+        context: dict = None,
+    ) -> tuple[bool, dict]:
+        interrupted, observation = super()._handle_runtime_interrupt(
+            observation,
+            goal,
+            context,
+        )
+        if interrupted:
+            self._sp003_pending_pre_dispatch_action = None
+            return interrupted, observation
+
+        action = getattr(self, "_sp003_pending_pre_dispatch_action", None)
+        self._sp003_pending_pre_dispatch_action = None
+        if not isinstance(action, dict):
+            return False, observation
+        replan = self._pre_dispatch_replan_for_action(
+            action,
+            observation,
+            goal,
+            context,
+        )
+        if not isinstance(replan, dict) or replan.get("requires_replan") is not True:
+            return False, observation
+
+        replan_reason = str(
+            replan.get("reason") or "sp003_pre_dispatch_action_replan"
+        )[:500]
+        summary = (
+            self.session_logger.get_summary()
+            if hasattr(self.session_logger, "get_summary")
+            else {}
+        )
+        payload = {
+            "goal": str(goal or ""),
+            "context": context or {},
+            "action": self._bounded_log_value(action),
+            "action_count_before": int(summary.get("action_count", 0) or 0),
+            "action_budget_consumed": False,
+            "backend_invoked": False,
+            "world_mutation": False,
+            "same_call_retry_count": 0,
+            "resume_policy": "fresh_observation_next_planner_cycle",
+            "reason": replan_reason,
+            "policy_id": str(replan.get("policy_id") or ""),
+            "fingerprint": str(replan.get("fingerprint") or ""),
+        }
+        self.session_logger.log("action_pre_dispatch_replan", payload)
+        self._write_memory_episode(
+            "action_pre_dispatch_replan",
+            payload,
+            source="goal_action",
+        )
+        self._request_m2_replan(replan_reason)
+        return True, observation
 
     def _observe(self) -> dict:
         cached = getattr(self, "_sp003_feedback_observation_override", None)
@@ -3031,6 +3186,108 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
                 "completion_source": "machine_state",
             })
         return completed
+
+    def _pre_dispatch_replan_for_action(
+        self,
+        action: dict,
+        observation: dict,
+        goal: str,
+        context: dict = None,
+    ) -> dict | None:
+        guard = guard_sp003_action(
+            action,
+            observation,
+            self.sp003_progress,
+            arm=self.sp003_arm,
+        )
+        issues = [str(issue) for issue in guard.get("issues", []) if str(issue)]
+        recoverable = bool(issues) and all(
+            issue in SP003_PRE_DISPATCH_RECOVERABLE_ISSUES
+            or issue.startswith("sp003_action_forbidden_for_stage:")
+            for issue in issues
+        )
+        if guard.get("allowed") is True or not recoverable:
+            return None
+
+        fingerprint_basis = {
+            "policy_id": SP003_PRE_DISPATCH_REPLAN_POLICY_ID,
+            "stage": str(guard.get("stage") or ""),
+            "issues": sorted(issues),
+            "action": guard.get("action") or {},
+            "progress": guard.get("progress") or {},
+        }
+        fingerprint = canonical_sha256(fingerprint_basis)
+        fingerprints = getattr(
+            self,
+            "_sp003_pre_dispatch_replan_fingerprints",
+            set(),
+        )
+        if not isinstance(fingerprints, set):
+            fingerprints = set(fingerprints or [])
+        episode_count = int(
+            getattr(self, "_sp003_pre_dispatch_replan_count", 0) or 0
+        )
+        duplicate = fingerprint in fingerprints
+        episode_exhausted = (
+            episode_count >= SP003_PRE_DISPATCH_REPLANS_PER_EPISODE_MAX
+        )
+        granted = not duplicate and not episode_exhausted
+        limit_reason = (
+            ""
+            if granted
+            else "fingerprint_limit_exhausted"
+            if duplicate
+            else "episode_limit_exhausted"
+        )
+        if granted:
+            fingerprints.add(fingerprint)
+            episode_count += 1
+            self._sp003_pre_dispatch_replan_fingerprints = fingerprints
+            self._sp003_pre_dispatch_replan_count = episode_count
+
+        payload = {
+            "type": "stone_pickaxe_sp003_pre_dispatch_replan",
+            "schema_version": 1,
+            "policy_id": SP003_PRE_DISPATCH_REPLAN_POLICY_ID,
+            "goal": str(goal or ""),
+            "context": context or {},
+            "fingerprint": fingerprint,
+            "fingerprint_basis": fingerprint_basis,
+            "fingerprint_attempt_count_before": 1 if duplicate else 0,
+            "fingerprint_attempt_limit": (
+                SP003_PRE_DISPATCH_REPLANS_PER_FINGERPRINT_MAX
+            ),
+            "episode_attempt_count_after": episode_count,
+            "episode_attempt_limit": SP003_PRE_DISPATCH_REPLANS_PER_EPISODE_MAX,
+            "granted": granted,
+            "limit_reason": limit_reason,
+            "action_suppressed_before_dispatch": granted,
+            "action_budget_consumed": False if granted else None,
+            "backend_invoked": False if granted else None,
+            "world_mutation": False if granted else None,
+            "same_call_retry_count": 0,
+            "fresh_observation_required": True,
+            "action_rewrite": False,
+            "guard": guard,
+        }
+        logger = getattr(self, "session_logger", None)
+        if hasattr(logger, "log"):
+            logger.log(
+                "stone_pickaxe_sp003_pre_dispatch_replan",
+                payload,
+                level="INFO" if granted else "ERROR",
+            )
+        if not granted:
+            return None
+        return {
+            "requires_replan": True,
+            "reason": (
+                f"SP-003 stage {guard.get('stage') or 'unknown'} rejected "
+                f"the candidate before dispatch: {'; '.join(issues)}"
+            ),
+            "policy_id": SP003_PRE_DISPATCH_REPLAN_POLICY_ID,
+            "fingerprint": fingerprint,
+        }
 
     def _verify_action_for_execution(
         self,

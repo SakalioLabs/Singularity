@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 
 from singularity.core.planner import Planner
 from singularity.evaluation.stone_pickaxe_protocol import (
@@ -32,6 +33,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
 
 
 REPO = Path(__file__).resolve().parents[1]
+PHASE126_FIX_COMMIT = "8d21c177003aecde3ff9b5159ae4ba780508375d"
 PHASE125_RUN = (
     REPO
     / "workspace/evals/sp003_runs/sp003_baseline_20260720_051930_f39bab4c"
@@ -379,8 +381,13 @@ def test_phase126_audit_binds_implementation_and_protected_evidence():
     assert audit["counts_toward_baseline_success"] is False
     assert audit["counts_toward_capability"] is False
     assert audit["counts_toward_m4"] is False
+    for record in audit["implementation"]:
+        retained = subprocess.check_output(
+            ["git", "show", f"{PHASE126_FIX_COMMIT}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(retained).hexdigest() == record["sha256"]
     for record in [
-        *audit["implementation"],
         *audit["protected_identities"],
         *audit["retained_phase_125_identities"],
     ]:
