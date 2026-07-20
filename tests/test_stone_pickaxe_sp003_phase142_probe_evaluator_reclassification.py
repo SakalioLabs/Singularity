@@ -20,6 +20,12 @@ SCHEMA_PATH = (
     "stone_pickaxe_sp003_probe_evaluator_reclassification.schema.json"
 )
 LEDGER_PATH = ROOT / "workspace/evals/stone_pickaxe_failure_ledger.json"
+AUDIT_PATH = (
+    ROOT
+    / "workspace/evals/"
+    "stone_pickaxe_sp003_phase142_probe_evaluator_reclassification.json"
+)
+AUDIT_SHA256 = "d5f1f7c022ebfc07277c416e09047afc39fd02377039d7faddcb7325493f2d38"
 
 
 def _module():
@@ -132,11 +138,39 @@ def test_phase142_generator_has_no_provider_or_minecraft_execution_path() -> Non
     assert "base.write_evidence(output, audit)" in text
 
 
-def test_phase142_tooling_keeps_phase141_live_gate_closed() -> None:
+def test_phase142_retained_audit_is_exact_and_schema_valid() -> None:
+    module = _module()
+    audit = json.loads(AUDIT_PATH.read_text(encoding="utf-8"))
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+    assert module.base.file_sha256(AUDIT_PATH) == AUDIT_SHA256
+    Draft202012Validator(
+        schema, format_checker=FormatChecker()
+    ).validate(audit)
+    assert audit["predecessor_commit"] == (
+        "ac9454281a25c79c3f794d08eeea014d2bb0720d"
+    )
+    assert audit["source_probe"]["sha256"] == module.SOURCE_PROBE_SHA256
+    assert audit["runtime_guard_replay"]["normalized_action"] == (
+        module.base.EXPECTED_ACTION
+    )
+    assert audit["corrected_evaluation"]["passed"] is True
+    assert all(audit["corrected_evaluation"]["criteria"].values())
+    assert audit["all_negative_controls_rejected"] is True
+    assert audit["evaluator_repair_passed"] is True
+    assert audit["separate_authorization_permitted_after_commit_push"] is True
+    assert audit["provider_request_made"] is False
+    assert audit["minecraft_process_started"] is False
+    assert audit["authorization_created"] is False
+
+
+def test_phase142_evidence_keeps_live_gate_closed_until_push() -> None:
     ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
     gate = ledger["next_required_gate"]
 
-    assert gate["id"] == "sp003_phase_141_probe_evaluator_reconciliation_gate"
+    assert gate["id"] == (
+        "sp003_phase_142_reclassification_commit_push_then_separate_baseline_authorization"
+    )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False

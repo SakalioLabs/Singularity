@@ -1,0 +1,249 @@
+{
+  "type": "stone_pickaxe_sp003_probe_evaluator_reclassification",
+  "schema_version": 1,
+  "phase": 142,
+  "policy_id": "sp003-continuation-probe-runtime-guard-normalization-v1",
+  "task_id": "SP-003",
+  "generated_at_utc": "2026-07-20T09:16:23.278213+00:00",
+  "predecessor_commit": "ac9454281a25c79c3f794d08eeea014d2bb0720d",
+  "source_probe": {
+    "path": "workspace/evals/stone_pickaxe_sp003_phase141_continuation_provider_recovery_probe.json",
+    "sha256": "2c67ac6a3706871a10c42c35d617fad6c0e63879884babf3f2308c5b7a6dbb40",
+    "evidence_commit": "00e08cd828d6b6e2d6f4059c247d4c3e2bff59bf",
+    "immutable": true,
+    "rewritten": false,
+    "checks": {
+      "artifact_sha256": true,
+      "phase": true,
+      "tooling_commit": true,
+      "reported_false": true,
+      "only_raw_action_criterion_failed": true,
+      "single_request": true,
+      "zero_retries": true,
+      "real_llm_call": true,
+      "schema_valid": true,
+      "response_sha256": true,
+      "no_minecraft_or_authorization": true,
+      "no_retry_or_credit": true
+    }
+  },
+  "source_machine_state": {
+    "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_150508_7a645e08/session_0420e30c-1b8.jsonl",
+    "sha256": "caeea8567f124b8fae638037059b049edf5a8ad115fde50ebd97f7c1eba230bf",
+    "observation_line_number": 77,
+    "observation_canonical_sha256": "9d6f6bff05e668586f41f6d10a84d64dc3f087b8a9cd31a45a88b2d48b060caa",
+    "checks": {
+      "session_sha256": true,
+      "observation_line": true,
+      "observation_sha256": true,
+      "failed_call_index": true,
+      "failed_call_kind": true,
+      "failed_call_id": true
+    }
+  },
+  "original_result": {
+    "reported_passed": false,
+    "failed_criteria": [
+      "exact_expected_action"
+    ],
+    "exact_expected_action_value": false,
+    "raw_action": {
+      "type": "dig",
+      "parameters": {
+        "block": "dark_oak_log",
+        "x": 118,
+        "y": 141,
+        "z": -38
+      }
+    },
+    "response_sha256": "ca946548743600b286599ba1f554fc6388cea927f426292d49de84a1fb84613e",
+    "request_count": 1,
+    "retry_count": 0,
+    "real_llm_call": true,
+    "schema_valid": true
+  },
+  "runtime_guard_replay": {
+    "allowed": true,
+    "issues": [],
+    "policy_id": "stone-pickaxe-sp003-action-guard-v2",
+    "raw_action": {
+      "type": "dig",
+      "parameters": {
+        "block": "dark_oak_log",
+        "x": 118,
+        "y": 141,
+        "z": -38
+      }
+    },
+    "normalized_action": {
+      "type": "dig",
+      "parameters": {
+        "block": "dark_oak_log",
+        "x": 118,
+        "y": 141,
+        "z": -38,
+        "source_id": "dark_oak_log:118:141:-38"
+      }
+    },
+    "selected_source": {
+      "source_id": "dark_oak_log:118:141:-38",
+      "name": "dark_oak_log",
+      "position": {
+        "x": 118.0,
+        "y": 141.0,
+        "z": -38.0
+      },
+      "distance": 1.414214
+    },
+    "normalized_action_exact_expected": true,
+    "passed": true
+  },
+  "corrected_evaluation": {
+    "criteria": {
+      "phase_140_failure_is_exact": true,
+      "source_artifact_is_exact": true,
+      "source_state_matches": true,
+      "source_predecessor_is_exact_tls_eof": true,
+      "precomputed_request_shape_matches": true,
+      "request_payload_matches_provider_sha256": true,
+      "representative_request_size": true,
+      "representative_prompt_tokens": true,
+      "fixed_provider_controls": true,
+      "single_request": true,
+      "zero_retries": true,
+      "within_latency_gate": true,
+      "real_llm_call": true,
+      "schema_valid": true,
+      "continuation_plan": true,
+      "no_probe_exception": true,
+      "single_provider_action": true,
+      "runtime_guard_normalized_expected_action": true
+    },
+    "passed": true,
+    "decision": "provider_recovered_evaluator_reclassified_pass"
+  },
+  "negative_controls": {
+    "unobserved_coordinate": {
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "dark_oak_log",
+          "x": 117,
+          "y": 141,
+          "z": -38
+        }
+      },
+      "guard_allowed": false,
+      "guard_issues": [
+        "sp003_log_target_must_be_reachable_and_observed"
+      ],
+      "normalized_action": {
+        "type": "dig",
+        "parameters": {
+          "block": "dark_oak_log",
+          "x": 117,
+          "y": 141,
+          "z": -38
+        }
+      },
+      "normalized_action_exact_expected": false,
+      "evaluator_passed": false,
+      "rejected": true
+    },
+    "wrong_log_family": {
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "oak_log",
+          "x": 119,
+          "y": 141,
+          "z": -33
+        }
+      },
+      "guard_allowed": false,
+      "guard_issues": [
+        "sp003_log_target_must_be_reachable_and_observed",
+        "sp003_mixed_log_family_forbidden"
+      ],
+      "normalized_action": {
+        "type": "dig",
+        "parameters": {
+          "block": "oak_log",
+          "x": 119,
+          "y": 141,
+          "z": -33
+        }
+      },
+      "normalized_action_exact_expected": false,
+      "evaluator_passed": false,
+      "rejected": true
+    },
+    "non_nearest_same_family": {
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "dark_oak_log",
+          "x": 118,
+          "y": 142,
+          "z": -38
+        }
+      },
+      "guard_allowed": false,
+      "guard_issues": [
+        "sp003_log_target_must_be_nearest_observed"
+      ],
+      "normalized_action": {
+        "type": "dig",
+        "parameters": {
+          "block": "dark_oak_log",
+          "x": 118,
+          "y": 142,
+          "z": -38
+        }
+      },
+      "normalized_action_exact_expected": false,
+      "evaluator_passed": false,
+      "rejected": true
+    },
+    "extra_forged_parameter": {
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "dark_oak_log",
+          "x": 118,
+          "y": 141,
+          "z": -38,
+          "forged": "value"
+        }
+      },
+      "guard_allowed": true,
+      "guard_issues": [],
+      "normalized_action": {
+        "type": "dig",
+        "parameters": {
+          "block": "dark_oak_log",
+          "x": 118,
+          "y": 141,
+          "z": -38,
+          "forged": "value",
+          "source_id": "dark_oak_log:118:141:-38"
+        }
+      },
+      "normalized_action_exact_expected": false,
+      "evaluator_passed": false,
+      "rejected": true
+    }
+  },
+  "all_negative_controls_rejected": true,
+  "evaluator_repair_passed": true,
+  "classification": "probe_evaluator_false_negative",
+  "minecraft_process_started": false,
+  "provider_request_made": false,
+  "authorization_created": false,
+  "automatic_retry_attempted": false,
+  "live_authorization": false,
+  "separate_authorization_permitted_after_commit_push": true,
+  "counts_toward_baseline_success": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

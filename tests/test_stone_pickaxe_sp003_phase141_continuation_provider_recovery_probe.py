@@ -294,7 +294,9 @@ def test_phase141_evidence_keeps_live_gate_closed_for_offline_repair() -> None:
     ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
     gate = ledger["next_required_gate"]
 
-    assert gate["id"] == "sp003_phase_141_probe_evaluator_reconciliation_gate"
+    assert gate["id"] == (
+        "sp003_phase_142_reclassification_commit_push_then_separate_baseline_authorization"
+    )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False
