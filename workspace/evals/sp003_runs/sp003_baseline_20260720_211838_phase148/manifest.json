@@ -1,0 +1,74 @@
+{
+  "type": "stone_pickaxe_sp003_live_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-20T13:25:57.724722+00:00",
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+  "runtime_policy_sha256": "c64f16502d45f74060c5f6e0a40b8d9d486811d16d90c93add9e21254a103b2c",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-003",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "sequence_position": 0,
+  "episode_id": "sp003_baseline_20260720_211838_phase148",
+  "session_id": "b4e8b2a0-9af",
+  "level_name": "sp003_baseline_20260720_211838_phase148_world",
+  "authorization_id": "147d80ece75b25d3f885ae13243a10c499ac98938c60c6ddc74ced6273be208f",
+  "passed": true,
+  "evidence_eligible": true,
+  "single_episode": true,
+  "automatic_retry_allowed": false,
+  "bm012_terminal_started": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "files": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/authorization.json",
+      "sha256": "17fd37eb0107dad7394b690f07f81b9dc711d52f73dac2f55d8d3725e0e4db61"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/authorization_consumption.json",
+      "sha256": "c0fa1044cd0937d5fe40ae64c3095042996754854ede4e7d28e6b4a46c666725"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/protocol_status.json",
+      "sha256": "013172fafb6c04560e6c314c82764d702275cc05486ad733cf9769515a8da8e9"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/reset.json",
+      "sha256": "f4de5471798cd57c42ab13b64e42c8f853790dbd333aeed8fd7809746577781b"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/reset_audit.json",
+      "sha256": "a8c8be85aee67d4e2231146b3de369e7e892637307cbe12d4bf4d28e29e3aade"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/preflight.json",
+      "sha256": "17e7235dc1a6799aa1f05eed26f6a88dc8c339ebdab50830df91b53a3b30a4bb"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/session.json",
+      "sha256": "c1693af42444587cf163547322db5f7911c99fcbbeaa5d3dbfa0fbdd2eaf7e52"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/episode.json",
+      "sha256": "d272a2030d069fef014fe57af4f86ba62042276e2379083b22e393ae02ca32bf"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/verification.json",
+      "sha256": "cfc5962d25cc1c0daf271553596ec008995fb1a6a0667f49ce75b1af8d06e671"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/audit.json",
+      "sha256": "c1c99a22fbfe9adef3d6c0b399977c3d36a5d0d299af60f8e12acbca35c6793d"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/session_b4e8b2a0-9af.jsonl",
+      "sha256": "53358b68b264316297c6afca0642fc4df9a3cbf47ec9239df9001516b54a569d"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_211838_phase148/session_b4e8b2a0-9af_summary.json",
+      "sha256": "f23ebde0a336d53c1b1993fbd41d7016380b21585f41169582038ecf76c137ae"
+    }
+  ]
+}

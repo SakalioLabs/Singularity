@@ -138,8 +138,8 @@ def test_phase147_schema_and_current_gate_fail_closed_before_probe() -> None:
     assert schema["properties"]["authorization_created"] == {"const": False}
     gate = ledger["next_required_gate"]
     assert gate["id"] == (
-        "sp003_phase_147_probe_evidence_commit_push_then_phase_148_"
-        "parent_bound_one_use_baseline_authorization"
+        "sp003_phase_148_baseline_evidence_commit_push_then_phase_149_"
+        "candidate_r1_parent_bound_one_use_authorization"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0

@@ -349,7 +349,7 @@ def test_v5_generated_reports_are_byte_preserved_without_changing_prior_attribut
         "acquire_cobblestone_paired_evaluation_v5.json binary",
         "stone_pickaxe_paired_evaluation_policy_v5.json binary",
     ]
-    assert file_sha256(REPOSITORY_ROOT / ".gitattributes") == "5e4c42a64e29cb3cb88021d96397283f84241a1b2b336e2461a82879b462f343"
+    assert file_sha256(REPOSITORY_ROOT / ".gitattributes") == "ea2698bb3574f563677f2cb2b53d5e3606ba9f6dd9202250c1324142e1b94319"
     assert file_sha256(REPOSITORY_ROOT / "workspace/evals/.gitattributes") == (
         "e12faffa3b5452c743e7df344478e0d85897899bbca79c25b7667ddb64dcdfab"
     )

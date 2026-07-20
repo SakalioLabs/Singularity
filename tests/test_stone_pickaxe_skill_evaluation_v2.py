@@ -168,7 +168,7 @@ def test_v2_generated_reports_are_byte_preserved_without_changing_v1_attributes(
         "acquire_cobblestone_baseline_index_v2.json binary",
         "acquire_cobblestone_paired_evaluation_v2.json binary",
     ]
-    assert file_sha256(REPOSITORY_ROOT / ".gitattributes") == "5e4c42a64e29cb3cb88021d96397283f84241a1b2b336e2461a82879b462f343"
+    assert file_sha256(REPOSITORY_ROOT / ".gitattributes") == "ea2698bb3574f563677f2cb2b53d5e3606ba9f6dd9202250c1324142e1b94319"
 
 
 def _authorization(replicate: str, episode: str) -> dict:

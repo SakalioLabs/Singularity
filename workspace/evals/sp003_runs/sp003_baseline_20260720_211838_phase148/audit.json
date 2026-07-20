@@ -1,0 +1,32 @@
+{
+  "type": "stone_pickaxe_sp003_run_audit",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-20T13:25:57.723149+00:00",
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+  "episode_id": "sp003_baseline_20260720_211838_phase148",
+  "session_id": "b4e8b2a0-9af",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "sequence_position": 0,
+  "passed": true,
+  "evidence_eligible": true,
+  "earliest_blocker": "",
+  "issues": [],
+  "component_verifiers": {
+    "sp001": {
+      "criteria_passed": true,
+      "evidence_eligible": true,
+      "issues": []
+    },
+    "sp002": {
+      "criteria_passed": true,
+      "evidence_eligible": true,
+      "issues": []
+    }
+  },
+  "task_graph_complete": true,
+  "automatic_retry_allowed": false,
+  "next_authorization_allowed": true,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

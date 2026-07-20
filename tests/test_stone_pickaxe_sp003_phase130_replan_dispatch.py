@@ -509,6 +509,10 @@ def test_phase130_audit_binds_implementation_and_retained_failure():
         "tests/test_stone_pickaxe_sp003_phase128_pre_dispatch_reasoning.py",
         "tests/test_stone_pickaxe_sp003_phase130_replan_dispatch.py",
         "tests/test_stone_pickaxe_sp003_phase124_first_table_tool_craft_readiness.py",
+        "tests/test_stone_pickaxe_skill_evaluation_v2.py",
+        "tests/test_stone_pickaxe_skill_evaluation_v3.py",
+        "tests/test_stone_pickaxe_skill_evaluation_v4.py",
+        "tests/test_stone_pickaxe_skill_evaluation_v5.py",
         "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
     }
     for record in [
