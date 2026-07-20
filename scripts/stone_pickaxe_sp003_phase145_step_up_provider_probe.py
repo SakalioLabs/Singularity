@@ -32,7 +32,6 @@ from stone_pickaxe_sp003_provider_throughput_probe import (
     repo_relative,
     request_payload_metadata,
     utc_now,
-    write_evidence,
 )
 
 
@@ -154,6 +153,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source", default=DEFAULT_SOURCE.as_posix())
     parser.add_argument("--output", default=DEFAULT_OUTPUT.as_posix())
     return parser.parse_args()
+
+
+def write_evidence(path: Path, payload: dict) -> None:
+    if path.exists():
+        raise RuntimeError(f"refusing to overwrite evidence: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(
+            json.dumps(payload, indent=2, ensure_ascii=True, default=str) + "\n"
+        )
 
 
 def retained_step_up_source(source: Path) -> tuple[dict, dict, dict]:

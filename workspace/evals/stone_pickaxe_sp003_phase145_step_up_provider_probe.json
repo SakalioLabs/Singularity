@@ -1,0 +1,400 @@
+{
+  "type": "stone_pickaxe_sp003_step_up_provider_probe",
+  "schema_version": 1,
+  "phase": 145,
+  "policy_id": "sp003-step-up-provider-probe-v1",
+  "task_id": "SP-003",
+  "purpose": "verify_phase_144_step_up_planner_contract_before_live_authorization",
+  "predecessor_commit": "154380e70ac4a30d4bc215d75069bec1c57c5a02",
+  "started_at_utc": "2026-07-20T11:26:51.962262+00:00",
+  "ended_at_utc": "2026-07-20T11:26:54.831691+00:00",
+  "passed": true,
+  "decision": "permit_one_parent_bound_baseline_authorization",
+  "thresholds": {
+    "request_timeout_s": 12.0,
+    "max_acceptable_duration_ms": 7500,
+    "min_representative_prompt_tokens": 2500,
+    "min_representative_request_bytes": 10000,
+    "max_provider_chat_call_count": 1,
+    "max_transport_request_count": 1,
+    "max_retry_count": 0
+  },
+  "criteria": {
+    "source_artifact_is_exact": true,
+    "source_chain_is_exact": true,
+    "source_state_matches": true,
+    "source_wrong_action_is_exact": true,
+    "precomputed_request_shape_matches": true,
+    "request_payload_matches_provider_sha256": true,
+    "representative_request_size": true,
+    "representative_prompt_tokens": true,
+    "fixed_provider_controls": true,
+    "single_provider_chat_call": true,
+    "single_transport_request": true,
+    "zero_retries": true,
+    "within_latency_gate": true,
+    "real_llm_call": true,
+    "schema_valid": true,
+    "continuation_plan": true,
+    "single_provider_action": true,
+    "raw_action_exact_expected": true,
+    "effective_guard_normalized_expected_action": true,
+    "no_probe_exception": true
+  },
+  "source": {
+    "episode_id": "sp003_baseline_20260720_173513_afba21cd",
+    "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_173513_afba21cd/session_dc3e3ade-e4f.jsonl",
+    "sha256": "3ee5f34cc307bedca43f49ed13dda004145ca893882d5a7e4f0fa568edb7fcde",
+    "immutable": true,
+    "rewritten": false,
+    "observation_line_number": 270,
+    "observation_canonical_sha256": "ebedf2b2fa0ffbb14021349a681e60aecab1f412f026a6fe1cc41babc7cfe7de",
+    "call_line_number": 273,
+    "call_canonical_sha256": "20745da7cd00f09ee13605167e17cc17e5e478d784c38291c1304aef35636947",
+    "call_id": "llm-47b868e32e5d4372",
+    "call_index": 13,
+    "plan_kind": "continuation",
+    "parent_call_id": "llm-5748d8f926c14955",
+    "root_plan_id": "root-962181a6dc644323",
+    "request_sha256": "d6ef16b6b02aa0fd6a044d90449acd62b85de0cc36c63cba19126c35bdd82495",
+    "response_sha256": "2de820729335b6824dbe5fa2f26873f6eaba61199350fdb17e422c44310f4e96",
+    "plan_line_number": 274,
+    "plan_canonical_sha256": "5ed7a486c3b1d80bcf7605e7a4c035cd983f89ef4911498c9b79e1bd8ca5528d",
+    "wrong_action": {
+      "type": "place",
+      "parameters": {
+        "item": "crafting_table",
+        "x": 120.5,
+        "y": 141,
+        "z": -36.5
+      }
+    },
+    "state": {
+      "runtime_mode": "sp003",
+      "arm": "baseline",
+      "stage": "place_crafting_table",
+      "inventory": {
+        "crafting_table": 1,
+        "dark_oak_planks": 6,
+        "dirt": 2,
+        "stick": 4
+      },
+      "progress": {
+        "log_source_removal_count": 3,
+        "log_item": "dark_oak_log",
+        "pending_log_pickup_count": 0,
+        "delayed_log_pickup_reconciliation_count": 1,
+        "plank_craft_count": 1,
+        "stick_craft_count": 1,
+        "crafting_table_craft_count": 1,
+        "crafting_table_place_count": 0,
+        "crafting_table_position": {},
+        "wooden_pickaxe_craft_count": 0,
+        "wooden_pickaxe_equip_count": 0,
+        "surface_clearance_removal_count": 2,
+        "stone_source_removal_count": 0,
+        "stone_pickaxe_craft_count": 0,
+        "iron_mining_action_count": 0,
+        "successful_mutation_count": 7
+      },
+      "target_count": 1,
+      "target": {
+        "source_id": "sp003_clearance_shaft_step_up_egress:120:141:-37",
+        "name": "sp003_clearance_shaft_step_up_egress",
+        "position": {
+          "x": 120.5,
+          "y": 141,
+          "z": -36.5
+        },
+        "stand_position": {
+          "x": 120.5,
+          "y": 141,
+          "z": -36.5
+        },
+        "navigation_only": true,
+        "stone_clearance_shaft_step_up_egress": true
+      }
+    },
+    "checks": {
+      "observation_line": true,
+      "observation_hash": true,
+      "step_up_target": true,
+      "call_line": true,
+      "call_hash": true,
+      "call_chain": true,
+      "source_provider_result": true,
+      "plan_line": true,
+      "plan_hash": true,
+      "wrong_source_action": true
+    }
+  },
+  "expected_plan_kind": "continuation",
+  "expected_raw_action": {
+    "type": "move_to",
+    "parameters": {
+      "x": 120.5,
+      "y": 141,
+      "z": -36.5
+    }
+  },
+  "expected_normalized_action": {
+    "type": "move_to",
+    "parameters": {
+      "x": 120.5,
+      "y": 141,
+      "z": -36.5,
+      "tolerance": 1.0,
+      "preserve_inventory": true
+    }
+  },
+  "request": {
+    "request_sha256": "8b66dcafe3eb4b5b89f88998b3b7949ebec1cf5758169c24fc03edb4b18c0d1f",
+    "request_payload_byte_count": 12924,
+    "system_message_byte_count": 9099,
+    "user_message_byte_count": 3380,
+    "request_message_count": 2,
+    "precomputed_request_sha256": "8b66dcafe3eb4b5b89f88998b3b7949ebec1cf5758169c24fc03edb4b18c0d1f",
+    "provider_request_sha256": "8b66dcafe3eb4b5b89f88998b3b7949ebec1cf5758169c24fc03edb4b18c0d1f"
+  },
+  "provider_chat_call_count": 1,
+  "request_count": 1,
+  "retry_count": 0,
+  "transport_evidence": {
+    "policy_id": "single-attempt",
+    "attempt_count": 1,
+    "retry_count": 0,
+    "attempts": [
+      {
+        "attempt_index": 0,
+        "success": true,
+        "timeout_s": 12.0,
+        "sdk_max_retries": 0,
+        "error_type": "",
+        "error_chain": []
+      }
+    ]
+  },
+  "provider": "openai",
+  "base_url": "https://opencode.ai/zen/go/v1",
+  "model": "deepseek-v4-flash",
+  "temperature": 0.0,
+  "max_tokens": 4096,
+  "response_format": {
+    "type": "json_object"
+  },
+  "extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "timeout_s": 12.0,
+  "sdk_max_retries": 0,
+  "response_sha256": "daf6b6eae442c705ed6cc81bbd724d4a83b9c071296bd23d024db7052e062846",
+  "response_byte_count": 588,
+  "response_id": "227fda15-7904-4f62-ab34-185b24c5d2d5",
+  "finish_reason": "stop",
+  "reasoning_content_byte_count": 0,
+  "duration_ms": 2858,
+  "wall_duration_ms": 2858,
+  "prompt_tokens": 3066,
+  "completion_tokens": 168,
+  "total_tokens": 3234,
+  "real_llm_call": true,
+  "schema_valid": true,
+  "schema_validation": {
+    "type": "stone_pickaxe_plan_envelope_validation",
+    "schema_version": 1,
+    "passed": true,
+    "expected_goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+    "expected_kind": "continuation",
+    "status": "planning",
+    "subtask_count": 0,
+    "action_count": 1,
+    "compact_plan_chars": 493,
+    "completion_requires_machine_verifier": true,
+    "issues": [],
+    "reasoning_normalization": {
+      "type": "planner_reasoning_normalization",
+      "schema_version": 1,
+      "policy_id": "sp003-nonexecutive-reasoning-normalization-v1",
+      "runtime_mode": "sp003",
+      "field": "reasoning",
+      "limit_chars": 320,
+      "applied": false,
+      "original_char_count": 145,
+      "normalized_char_count": 145,
+      "original_sha256": "c36003c6f6500a267b1c1b28e92ea2e3e7d2b12d5a03bc0fd38f9df2482c8464",
+      "normalized_sha256": "c36003c6f6500a267b1c1b28e92ea2e3e7d2b12d5a03bc0fd38f9df2482c8464",
+      "executable_envelope_sha256": "3615043625e6ff753015d345a621f9bfa79b6e00b9e0668df7d7f861b2faa991",
+      "executable_fields_preserved": true,
+      "provider_response_preserved": true,
+      "action_rewrite": false
+    }
+  },
+  "returned_plan": {
+    "plan_kind": "continuation",
+    "status": "planning",
+    "subtask_count": 0,
+    "actions": [
+      {
+        "type": "move_to",
+        "parameters": {
+          "x": 120.5,
+          "y": 141,
+          "z": -36.5
+        }
+      }
+    ]
+  },
+  "effective_guard_action_evidence": {
+    "allowed": true,
+    "issues": [],
+    "policy_id": "sp003-partial-clearance-shaft-step-up-egress-v1",
+    "raw_action": {
+      "type": "move_to",
+      "parameters": {
+        "x": 120.5,
+        "y": 141,
+        "z": -36.5
+      }
+    },
+    "normalized_action": {
+      "type": "move_to",
+      "parameters": {
+        "x": 120.5,
+        "y": 141,
+        "z": -36.5,
+        "tolerance": 1.0,
+        "preserve_inventory": true
+      }
+    },
+    "selected_source": {
+      "source_id": "sp003_clearance_shaft_step_up_egress:120:141:-37",
+      "name": "sp003_clearance_shaft_step_up_egress",
+      "position": {
+        "x": 120.5,
+        "y": 141,
+        "z": -36.5
+      },
+      "stand_position": {
+        "x": 120.5,
+        "y": 141,
+        "z": -36.5
+      },
+      "distance": 1.489256,
+      "navigation_only": true,
+      "stone_clearance_shaft_step_up_egress": true,
+      "locked_support_source_id": "stone:121:138:-37",
+      "shaft_step_up_egress_proof": {
+        "type": "sp003_partial_clearance_shaft_step_up_egress_proof",
+        "schema_version": 1,
+        "policy_id": "sp003-partial-clearance-shaft-step-up-egress-v1",
+        "parent_policy_id": "sp003-partial-clearance-shaft-continuation-v1",
+        "scan_complete": true,
+        "targeted_air_visibility_complete": false,
+        "scan_fingerprint": "d40eeedaaa781ba8cb62b91639c0af94448cd430636264d9f754682119171834",
+        "scan_radius": 1,
+        "scan_origin_cell": {
+          "x": 121,
+          "y": 140,
+          "z": -37
+        },
+        "origin_stable": true,
+        "post_scan_player_cell": {
+          "x": 121,
+          "y": 140,
+          "z": -37
+        },
+        "vertical_min_offset": -3,
+        "vertical_max_offset": 3,
+        "scanned_cell_count": 63,
+        "backend_path": "src/bot/bot_server.js",
+        "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+        "response_limit": 50,
+        "response_count": 40,
+        "completeness_basis": "result_count_below_frozen_backend_limit",
+        "priority_unique_name_prefix_count": 0,
+        "visibility_distance_strict_upper_bound": null,
+        "selection_trace_fingerprint": "",
+        "priority_selection_trace": [],
+        "locked_support_source_id": "stone:121:138:-37",
+        "locked_support_position": {
+          "x": 121,
+          "y": 138,
+          "z": -37
+        },
+        "locked_clearance_count": 2,
+        "locked_clearance_source_ids": [
+          "grass_block:121:141:-37",
+          "dirt:121:140:-37"
+        ],
+        "locked_clearance_proof_fingerprints": [
+          "8ad7c8a7bfdadf800c2f9c969c6366fe392096c5a6571499754f6cf08af22273",
+          "8f4281635852de7b13fbe5da71509066a115808f9a0ed7be4b830ad84c36c6da"
+        ],
+        "player_in_locked_support_column": true,
+        "remaining_obstruction_source_ids_top_down": [
+          "dirt:121:139:-37"
+        ],
+        "remaining_obstruction_count": 1,
+        "clearance_episode_maximum_unchanged": 6,
+        "clearance_shaft_maximum_unchanged": 3,
+        "current_feet_position": {
+          "x": 121,
+          "y": 140,
+          "z": -37
+        },
+        "current_feet_cell_state": "air",
+        "current_head_position": {
+          "x": 121,
+          "y": 141,
+          "z": -37
+        },
+        "current_head_cell_state": "air",
+        "egress_stand_position": {
+          "x": 120.5,
+          "y": 141,
+          "z": -36.5
+        },
+        "egress_ground_position": {
+          "x": 120,
+          "y": 140,
+          "z": -37
+        },
+        "egress_ground_block": "grass_block",
+        "egress_ground_source_id": "grass_block:120:140:-37",
+        "egress_feet_position": {
+          "x": 120,
+          "y": 141,
+          "z": -37
+        },
+        "egress_feet_cell_state": "air",
+        "egress_head_position": {
+          "x": 120,
+          "y": 142,
+          "z": -37
+        },
+        "egress_head_cell_state": "air",
+        "egress_cardinal_step_count": 1,
+        "egress_horizontal_manhattan_distance": 1,
+        "egress_vertical_delta": 1,
+        "inventory_preservation_required": true,
+        "attempt_limit": 1,
+        "world_mutation": false
+      },
+      "shaft_step_up_egress_proof_fingerprint": "62212da6650d4f8b422e220c9e979d6de38ff43314dda410b89cb6626ddae2d5"
+    },
+    "raw_action_exact_expected": true,
+    "normalized_action_exact_expected": true
+  },
+  "probe_exception_type": "",
+  "credential_value_retained": false,
+  "minecraft_process_started": false,
+  "authorization_created": false,
+  "automatic_retry_attempted": false,
+  "live_authorization": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

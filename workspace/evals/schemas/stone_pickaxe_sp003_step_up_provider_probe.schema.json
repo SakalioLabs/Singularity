@@ -68,7 +68,7 @@
     "policy_id": {"const": "sp003-step-up-provider-probe-v1"},
     "task_id": {"const": "SP-003"},
     "purpose": {"const": "verify_phase_144_step_up_planner_contract_before_live_authorization"},
-    "predecessor_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "predecessor_commit": {"const": "154380e70ac4a30d4bc215d75069bec1c57c5a02"},
     "started_at_utc": {"type": "string", "format": "date-time"},
     "ended_at_utc": {"type": "string", "format": "date-time"},
     "passed": {"type": "boolean"},

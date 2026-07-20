@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +20,13 @@ SCHEMA_PATH = (
     "stone_pickaxe_sp003_step_up_provider_probe.schema.json"
 )
 LEDGER_PATH = ROOT / "workspace/evals/stone_pickaxe_failure_ledger.json"
+EVIDENCE_PATH = (
+    ROOT
+    / "workspace/evals/stone_pickaxe_sp003_phase145_step_up_provider_probe.json"
+)
+EVIDENCE_SHA256 = (
+    "3e1168119679c91e219d270c241960e340200279914a66f5a3c3c396f75619ac"
+)
 
 
 def _module():
@@ -133,6 +141,7 @@ def test_phase145_tooling_is_one_request_zero_retry_and_no_minecraft() -> None:
     assert '"minecraft_process_started": False' in text
     assert '"authorization_created": False' in text
     assert '"automatic_retry_attempted": False' in text
+    assert 'newline="\\n"' in text
     assert "write_evidence(output, evidence)" in text
     assert "Start-Process" not in text
 
@@ -147,10 +156,52 @@ def test_phase145_probe_schema_is_draft_2020_12_and_gate_remains_closed() -> Non
     assert schema["properties"]["authorization_created"] == {"const": False}
     gate = ledger["next_required_gate"]
     assert gate["id"] == (
-        "sp003_phase_144_offline_repair_commit_push_then_phase_145_bounded_no_minecraft_step_up_provider_probe"
+        "sp003_phase_145_probe_evidence_commit_push_then_phase_146_parent_bound_one_use_baseline_authorization"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False
     assert gate["automatic_retry_allowed"] is False
     assert ledger["live_authorization"] is False
+
+
+def test_phase145_retained_probe_passes_schema_and_all_bounded_gates() -> None:
+    module = _module()
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    evidence = json.loads(EVIDENCE_PATH.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(EVIDENCE_PATH.read_bytes()).hexdigest() == (
+        EVIDENCE_SHA256
+    )
+    Draft202012Validator(
+        schema, format_checker=FormatChecker()
+    ).validate(evidence)
+    assert evidence["predecessor_commit"] == (
+        "154380e70ac4a30d4bc215d75069bec1c57c5a02"
+    )
+    assert evidence["passed"] is True
+    assert all(evidence["criteria"].values())
+    assert evidence["provider_chat_call_count"] == 1
+    assert evidence["request_count"] == 1
+    assert evidence["retry_count"] == 0
+    assert evidence["duration_ms"] == evidence["wall_duration_ms"] == 2858
+    assert evidence["request"]["request_sha256"] == (
+        module.EXPECTED_REQUEST_SHA256
+    )
+    assert evidence["real_llm_call"] is True
+    assert evidence["schema_valid"] is True
+    assert evidence["returned_plan"]["actions"] == [
+        module.EXPECTED_RAW_ACTION
+    ]
+    guard = evidence["effective_guard_action_evidence"]
+    assert guard["allowed"] is True
+    assert guard["issues"] == []
+    assert guard["normalized_action"] == module.EXPECTED_NORMALIZED_ACTION
+    assert evidence["minecraft_process_started"] is False
+    assert evidence["authorization_created"] is False
+    assert evidence["automatic_retry_attempted"] is False
+    assert evidence["live_authorization"] is False
+    assert evidence["counts_toward_baseline_success"] is False
+    assert evidence["counts_toward_skill_gate"] is False
+    assert evidence["counts_toward_capability"] is False
+    assert evidence["counts_toward_m4"] is False
