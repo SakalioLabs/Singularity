@@ -1,0 +1,44 @@
+{
+  "type": "stone_pickaxe_sp003_run_audit",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-20T02:05:33.877207+00:00",
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+  "episode_id": "sp003_baseline_20260720_095823_dad3c456",
+  "session_id": "5a470132-880",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "sequence_position": 0,
+  "passed": false,
+  "evidence_eligible": false,
+  "earliest_blocker": "exact_three_stone_actions",
+  "issues": [
+    "exact_three_stone_actions",
+    "sp001_machine_verifier",
+    "zero_unreconciled_action_failures"
+  ],
+  "component_verifiers": {
+    "sp001": {
+      "criteria_passed": false,
+      "evidence_eligible": false,
+      "issues": [
+        "transition_2:action_verified",
+        "transition_2:approved_tool",
+        "transition_2:inventory_delta",
+        "transition_2:nearest_observed_source",
+        "transition_2:pickup_provenance",
+        "transition_2:source_removed",
+        "zero_action_failures"
+      ]
+    },
+    "sp002": {
+      "criteria_passed": true,
+      "evidence_eligible": true,
+      "issues": []
+    }
+  },
+  "task_graph_complete": true,
+  "automatic_retry_allowed": false,
+  "next_authorization_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
