@@ -168,6 +168,9 @@ SP003_ACTIONLESS_PLANNING_REPLAN_POLICY_ID = (
 )
 SP003_ACTIONLESS_PLANNING_REPLANS_PER_FINGERPRINT_MAX = 1
 SP003_ACTIONLESS_PLANNING_REPLANS_PER_EPISODE_MAX = 2
+SP003_GROUNDED_APPROACH_PRE_DISPATCH_REPLAN_POLICY_ID = (
+    "sp003-grounded-approach-pre-dispatch-replan-v1"
+)
 SP003_TABLE_TARGET_SEMANTICS_POLICY_ID = (
     "sp003-explicit-table-target-semantics-v1"
 )
@@ -637,6 +640,40 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         )
         is True
         and episode_contract.get("non_sp003_actionless_plan_behavior_unchanged")
+        is True
+    )
+    checks["grounded_approach_pre_dispatch_replan_contract"] = (
+        episode_contract.get(
+            "grounded_approach_pre_dispatch_replan_policy_id"
+        )
+        == SP003_GROUNDED_APPROACH_PRE_DISPATCH_REPLAN_POLICY_ID
+        and episode_contract.get(
+            "grounded_approach_pre_dispatch_replan_exact_issue"
+        )
+        == "sp003_stone_grounded_approach_required_before_dig"
+        and episode_contract.get(
+            "grounded_approach_pre_dispatch_replan_requires_navigation_only"
+        )
+        is True
+        and episode_contract.get(
+            "grounded_approach_pre_dispatch_replan_requires_fresh_observation"
+        )
+        is True
+        and episode_contract.get(
+            "grounded_approach_pre_dispatch_replan_backend_invocation_allowed"
+        )
+        is False
+        and episode_contract.get(
+            "grounded_approach_pre_dispatch_replan_action_budget_consumed"
+        )
+        is False
+        and episode_contract.get(
+            "grounded_approach_pre_dispatch_replan_action_rewrite_allowed"
+        )
+        is False
+        and episode_contract.get(
+            "grounded_approach_pre_dispatch_replan_inherits_existing_bounds"
+        )
         is True
     )
     checks["mode_specific_move_schema_contract"] = (
@@ -3252,16 +3289,28 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
     ) -> dict | None:
         guard = self._effective_sp003_action_guard(action, observation)
         issues = [str(issue) for issue in guard.get("issues", []) if str(issue)]
-        recoverable = bool(issues) and all(
-            issue in SP003_PRE_DISPATCH_RECOVERABLE_ISSUES
-            or issue.startswith("sp003_action_forbidden_for_stage:")
-            for issue in issues
+        grounded_approach_recoverable = issues == [
+            "sp003_stone_grounded_approach_required_before_dig"
+        ]
+        recoverable = grounded_approach_recoverable or (
+            bool(issues)
+            and all(
+                issue in SP003_PRE_DISPATCH_RECOVERABLE_ISSUES
+                or issue.startswith("sp003_action_forbidden_for_stage:")
+                for issue in issues
+            )
         )
         if guard.get("allowed") is True or not recoverable:
             return None
 
+        recovery_policy_id = (
+            SP003_GROUNDED_APPROACH_PRE_DISPATCH_REPLAN_POLICY_ID
+            if grounded_approach_recoverable
+            else SP003_PRE_DISPATCH_REPLAN_POLICY_ID
+        )
+
         fingerprint_basis = {
-            "policy_id": SP003_PRE_DISPATCH_REPLAN_POLICY_ID,
+            "policy_id": recovery_policy_id,
             "stage": str(guard.get("stage") or ""),
             "issues": sorted(issues),
             "action": guard.get("action") or {},
@@ -3299,7 +3348,8 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
         payload = {
             "type": "stone_pickaxe_sp003_pre_dispatch_replan",
             "schema_version": 1,
-            "policy_id": SP003_PRE_DISPATCH_REPLAN_POLICY_ID,
+            "policy_id": recovery_policy_id,
+            "parent_policy_id": SP003_PRE_DISPATCH_REPLAN_POLICY_ID,
             "goal": str(goal or ""),
             "context": context or {},
             "fingerprint": fingerprint,
@@ -3336,7 +3386,7 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
                 f"SP-003 stage {guard.get('stage') or 'unknown'} rejected "
                 f"the candidate before dispatch: {'; '.join(issues)}"
             ),
-            "policy_id": SP003_PRE_DISPATCH_REPLAN_POLICY_ID,
+            "policy_id": recovery_policy_id,
             "fingerprint": fingerprint,
         }
 

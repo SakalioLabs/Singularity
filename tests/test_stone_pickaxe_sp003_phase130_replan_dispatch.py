@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -502,11 +503,25 @@ def test_phase130_audit_binds_implementation_and_retained_failure():
     assert audit["counts_toward_skill_gate"] is False
     assert audit["counts_toward_capability"] is False
     assert audit["counts_toward_m4"] is False
+    evolved_paths = {
+        "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+        "tests/test_stone_pickaxe_sp003_phase130_replan_dispatch.py",
+        "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    }
     for record in [
         *audit["implementation"],
         *audit["protected_identities"],
         *audit["retained_phase_129_identities"],
     ]:
-        assert hashlib.sha256((REPO / record["path"]).read_bytes()).hexdigest() == (
-            record["sha256"]
-        )
+        if record["path"] in evolved_paths:
+            retained = subprocess.check_output(
+                [
+                    "git",
+                    "show",
+                    f"a7f8cc140a2bc7b037595a980f6ef8512370c9f1:{record['path']}",
+                ],
+                cwd=REPO,
+            )
+        else:
+            retained = (REPO / record["path"]).read_bytes()
+        assert hashlib.sha256(retained).hexdigest() == record["sha256"]
