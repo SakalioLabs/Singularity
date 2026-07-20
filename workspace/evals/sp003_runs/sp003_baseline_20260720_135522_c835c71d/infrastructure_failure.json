@@ -1,0 +1,106 @@
+{
+  "$schema": "workspace/evals/schemas/stone_pickaxe_sp003_provider_transport_failure.schema.json",
+  "type": "stone_pickaxe_sp003_provider_transport_failure",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-20T06:12:00+00:00",
+  "phase": 137,
+  "policy_id": "sp003-provider-transport-failure-classification-v1",
+  "task_id": "SP-003",
+  "episode_id": "sp003_baseline_20260720_135522_c835c71d",
+  "session_id": "555d98a9-47e",
+  "classification": "infrastructure_ineligible",
+  "intervention_outcome": "intervention_not_exercised_new_blocker",
+  "authorization": {
+    "authorization_id": "cf992fa025fda54c7deaa52281630d0aedb2b4827aaf917d190e306407eb05a2",
+    "authorization_commit": "5aa70afa52d850a3569d090f2ea7db4952dd6700",
+    "authorization_predecessor": "9af7db449604d1103c00bc224139a85d9e039196",
+    "authorization_sha256": "897049d53ebd1a3cef46ca0d37ce1264dd99d6f6e1fa8d950e6f062df26e9e7f",
+    "consumed": true,
+    "reuse_allowed": false
+  },
+  "runtime_identity": {
+    "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+    "runtime_policy_sha256": "48dbb75af5a736e29726d29845dd130ef622bcccb2719d8b0a1a321cc0d6c643",
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "arm": "baseline",
+    "replicate_id": "baseline"
+  },
+  "preflight": {
+    "passed": true,
+    "authorization_passed": true,
+    "reset_passed": true,
+    "initial_state_passed": true,
+    "paper_ready": true,
+    "bridge_ready": true,
+    "empty_inventory": true,
+    "observed_log_source_count": 5
+  },
+  "planner_failure": {
+    "earliest_blocker": "root_planner_provider_tls_eof_before_any_response_bytes",
+    "call_id": "llm-c79cff6614784603",
+    "call_index": 0,
+    "plan_kind": "root",
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "real_llm_call": false,
+    "schema_valid": false,
+    "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "response_byte_count": 0,
+    "attempt_count": 1,
+    "retry_count": 0,
+    "error_type": "APIConnectionError",
+    "error_chain": ["APIConnectionError", "ConnectError", "ConnectError", "SSLEOFError"],
+    "action_count": 0,
+    "termination_reason": "empty_plan"
+  },
+  "phase_136_intervention": {
+    "policy_id": "sp003-observation-delayed-log-pickup-reconciliation-v1",
+    "exercised": false,
+    "reason": "planner_transport_failed_before_the_first_executable_plan_and_before_any_action",
+    "observation_reconciliation_event_count": 0,
+    "pending_log_pickup_count": 0
+  },
+  "source_artifact": {
+    "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/manifest.json",
+    "sha256": "553e8731cad15e7a6bfef73d8b90bafb703f1d5998cddb05df7878b419054702",
+    "immutable": true,
+    "rewritten": false
+  },
+  "retained_payloads": [
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/authorization.json", "sha256": "897049d53ebd1a3cef46ca0d37ce1264dd99d6f6e1fa8d950e6f062df26e9e7f", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/authorization_consumption.json", "sha256": "31eb34ae958677cd79801e807841d7edd3df476e0e4c90183b182450358eed37", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/protocol_status.json", "sha256": "d7c1511bfac0dd5667bd0e48ac0aa3ba77fa116d8282d208c87df67ea5405f79", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/reset.json", "sha256": "4a368d7d641990d9f00791af82f305f79e1516c09758cd7bf869b3258dcc8544", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/reset_audit.json", "sha256": "a8c8be85aee67d4e2231146b3de369e7e892637307cbe12d4bf4d28e29e3aade", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/preflight.json", "sha256": "fbed8e1948738fa5e411daa59e5c3281340b56f3143eccd4dcfdfe37be8c380a", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/session.json", "sha256": "58dae0de4759fcc21f98856f3f91b9d2f516640c743c6a2e02f9f10a365321ea", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/episode.json", "sha256": "d770e1c1afd4a310db130a1e17085de04e7f337cef8ffb74d4164bd01917eb23", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/verification.json", "sha256": "13fd199c32da881abcc084e47d409b52397df599b605b90f408124e105c9cb2e", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/audit.json", "sha256": "7ce7d4b92310164b1701db6803a9860e62815ce0aeeba3e366435ee96225aa7d", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/session_555d98a9-47e.jsonl", "sha256": "f6cb7ec7e821c938bf00facff676d730a6f1273dd1ba4825cd30f4c36415cc7f", "immutable": true},
+    {"path": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/session_555d98a9-47e_summary.json", "sha256": "0d7a8617ffcf4d0005bc83ae292fc477a83c351d27df88e7710b56d1086466fc", "immutable": true}
+  ],
+  "cleanup": {
+    "minecraft_port_listening": false,
+    "bridge_port_listening": false,
+    "matching_runtime_process_count": 0,
+    "fresh_world_retained": true
+  },
+  "eligibility": {
+    "strict_baseline_passed": false,
+    "behavioral_loop_completed": false,
+    "counts_toward_baseline_success": false,
+    "counts_toward_skill_gate": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "retry_policy": {
+    "automatic_retry_attempted": false,
+    "automatic_retry_allowed": false,
+    "authorization_reuse_allowed": false,
+    "fresh_authorization_required": true
+  },
+  "next_gate": "retain_and_push_then_run_one_bounded_no_minecraft_provider_root_probe_before_any_new_authorization"
+}

@@ -1,0 +1,315 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stone_pickaxe_sp003_provider_transport_failure.schema.json",
+  "title": "SP-003 Provider Transport Failure Classification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "type",
+    "schema_version",
+    "generated_at_utc",
+    "phase",
+    "policy_id",
+    "task_id",
+    "episode_id",
+    "session_id",
+    "classification",
+    "intervention_outcome",
+    "authorization",
+    "runtime_identity",
+    "preflight",
+    "planner_failure",
+    "phase_136_intervention",
+    "source_artifact",
+    "retained_payloads",
+    "cleanup",
+    "eligibility",
+    "retry_policy",
+    "next_gate"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "workspace/evals/schemas/stone_pickaxe_sp003_provider_transport_failure.schema.json"
+    },
+    "type": {
+      "const": "stone_pickaxe_sp003_provider_transport_failure"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "phase": {
+      "const": 137
+    },
+    "policy_id": {
+      "const": "sp003-provider-transport-failure-classification-v1"
+    },
+    "task_id": {
+      "const": "SP-003"
+    },
+    "episode_id": {
+      "const": "sp003_baseline_20260720_135522_c835c71d"
+    },
+    "session_id": {
+      "const": "555d98a9-47e"
+    },
+    "classification": {
+      "const": "infrastructure_ineligible"
+    },
+    "intervention_outcome": {
+      "const": "intervention_not_exercised_new_blocker"
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorization_id",
+        "authorization_commit",
+        "authorization_predecessor",
+        "authorization_sha256",
+        "consumed",
+        "reuse_allowed"
+      ],
+      "properties": {
+        "authorization_id": {
+          "const": "cf992fa025fda54c7deaa52281630d0aedb2b4827aaf917d190e306407eb05a2"
+        },
+        "authorization_commit": {
+          "const": "5aa70afa52d850a3569d090f2ea7db4952dd6700"
+        },
+        "authorization_predecessor": {
+          "const": "9af7db449604d1103c00bc224139a85d9e039196"
+        },
+        "authorization_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "consumed": {
+          "const": true
+        },
+        "reuse_allowed": {
+          "const": false
+        }
+      }
+    },
+    "runtime_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_policy_id",
+        "runtime_policy_sha256",
+        "protocol_id",
+        "protocol_sha256",
+        "arm",
+        "replicate_id"
+      ],
+      "properties": {
+        "runtime_policy_id": {
+          "const": "stone-pickaxe-sp003-empty-hand-runtime-v2"
+        },
+        "runtime_policy_sha256": {
+          "const": "48dbb75af5a736e29726d29845dd130ef622bcccb2719d8b0a1a321cc0d6c643"
+        },
+        "protocol_id": {
+          "const": "stone-pickaxe-skill-fixed-v1"
+        },
+        "protocol_sha256": {
+          "const": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+        },
+        "arm": {
+          "const": "baseline"
+        },
+        "replicate_id": {
+          "const": "baseline"
+        }
+      }
+    },
+    "preflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "authorization_passed",
+        "reset_passed",
+        "initial_state_passed",
+        "paper_ready",
+        "bridge_ready",
+        "empty_inventory",
+        "observed_log_source_count"
+      ],
+      "properties": {
+        "passed": {"const": true},
+        "authorization_passed": {"const": true},
+        "reset_passed": {"const": true},
+        "initial_state_passed": {"const": true},
+        "paper_ready": {"const": true},
+        "bridge_ready": {"const": true},
+        "empty_inventory": {"const": true},
+        "observed_log_source_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "planner_failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "earliest_blocker",
+        "call_id",
+        "call_index",
+        "plan_kind",
+        "provider",
+        "base_url",
+        "model",
+        "real_llm_call",
+        "schema_valid",
+        "response_sha256",
+        "response_byte_count",
+        "attempt_count",
+        "retry_count",
+        "error_type",
+        "error_chain",
+        "action_count",
+        "termination_reason"
+      ],
+      "properties": {
+        "earliest_blocker": {
+          "const": "root_planner_provider_tls_eof_before_any_response_bytes"
+        },
+        "call_id": {"type": "string", "minLength": 1},
+        "call_index": {"const": 0},
+        "plan_kind": {"const": "root"},
+        "provider": {"const": "openai"},
+        "base_url": {"const": "https://opencode.ai/zen/go/v1"},
+        "model": {"const": "deepseek-v4-flash"},
+        "real_llm_call": {"const": false},
+        "schema_valid": {"const": false},
+        "response_sha256": {
+          "const": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "response_byte_count": {"const": 0},
+        "attempt_count": {"const": 1},
+        "retry_count": {"const": 0},
+        "error_type": {"const": "APIConnectionError"},
+        "error_chain": {
+          "const": ["APIConnectionError", "ConnectError", "ConnectError", "SSLEOFError"]
+        },
+        "action_count": {"const": 0},
+        "termination_reason": {"const": "empty_plan"}
+      }
+    },
+    "phase_136_intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "exercised",
+        "reason",
+        "observation_reconciliation_event_count",
+        "pending_log_pickup_count"
+      ],
+      "properties": {
+        "policy_id": {
+          "const": "sp003-observation-delayed-log-pickup-reconciliation-v1"
+        },
+        "exercised": {"const": false},
+        "reason": {
+          "const": "planner_transport_failed_before_the_first_executable_plan_and_before_any_action"
+        },
+        "observation_reconciliation_event_count": {"const": 0},
+        "pending_log_pickup_count": {"const": 0}
+      }
+    },
+    "source_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "immutable", "rewritten"],
+      "properties": {
+        "path": {
+          "const": "workspace/evals/sp003_runs/sp003_baseline_20260720_135522_c835c71d/manifest.json"
+        },
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "immutable": {"const": true},
+        "rewritten": {"const": false}
+      }
+    },
+    "retained_payloads": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "immutable"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "immutable": {"const": true}
+        }
+      }
+    },
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minecraft_port_listening",
+        "bridge_port_listening",
+        "matching_runtime_process_count",
+        "fresh_world_retained"
+      ],
+      "properties": {
+        "minecraft_port_listening": {"const": false},
+        "bridge_port_listening": {"const": false},
+        "matching_runtime_process_count": {"const": 0},
+        "fresh_world_retained": {"const": true}
+      }
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strict_baseline_passed",
+        "behavioral_loop_completed",
+        "counts_toward_baseline_success",
+        "counts_toward_skill_gate",
+        "counts_toward_capability",
+        "counts_toward_m4"
+      ],
+      "properties": {
+        "strict_baseline_passed": {"const": false},
+        "behavioral_loop_completed": {"const": false},
+        "counts_toward_baseline_success": {"const": false},
+        "counts_toward_skill_gate": {"const": false},
+        "counts_toward_capability": {"const": false},
+        "counts_toward_m4": {"const": false}
+      }
+    },
+    "retry_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "automatic_retry_attempted",
+        "automatic_retry_allowed",
+        "authorization_reuse_allowed",
+        "fresh_authorization_required"
+      ],
+      "properties": {
+        "automatic_retry_attempted": {"const": false},
+        "automatic_retry_allowed": {"const": false},
+        "authorization_reuse_allowed": {"const": false},
+        "fresh_authorization_required": {"const": true}
+      }
+    },
+    "next_gate": {
+      "const": "retain_and_push_then_run_one_bounded_no_minecraft_provider_root_probe_before_any_new_authorization"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
