@@ -17,7 +17,10 @@ from singularity.core.config import LLMConfig
 from singularity.core.planner import Planner
 from singularity.core.task_system import TaskSystem
 from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL
-from singularity.evaluation.stone_pickaxe_sp003_runtime import SP003_GOAL
+from singularity.evaluation.stone_pickaxe_sp003_runtime import (
+    SP003_GOAL,
+    guard_sp003_action,
+)
 from singularity.llm.provider import LLMProvider
 from stone_pickaxe_sp003_provider_throughput_probe import (
     canonical_sha256,
@@ -167,6 +170,41 @@ def retained_transport_evidence(transport: dict) -> dict:
     }
 
 
+def runtime_guard_action_evidence(action: dict, world_state: dict) -> dict:
+    progress = world_state.get("sp003_progress")
+    if not isinstance(progress, dict):
+        return {
+            "allowed": False,
+            "issues": ["sp003_progress_missing"],
+            "policy_id": "",
+            "raw_action": action,
+            "normalized_action": {},
+            "selected_source": {},
+            "normalized_action_exact_expected": False,
+        }
+    guarded = guard_sp003_action(
+        action,
+        world_state,
+        progress,
+        arm=str(world_state.get("sp003_arm") or "baseline"),
+    )
+    normalized = guarded.get("action")
+    normalized = normalized if isinstance(normalized, dict) else {}
+    selected_source = guarded.get("selected_source")
+    selected_source = selected_source if isinstance(selected_source, dict) else {}
+    issues = guarded.get("issues")
+    issues = issues if isinstance(issues, list) else ["invalid_guard_issues"]
+    return {
+        "allowed": guarded.get("allowed") is True,
+        "issues": issues,
+        "policy_id": guarded.get("policy_id", ""),
+        "raw_action": action,
+        "normalized_action": normalized,
+        "selected_source": selected_source,
+        "normalized_action_exact_expected": normalized == EXPECTED_ACTION,
+    }
+
+
 def run_probe(source: Path) -> dict:
     api_key = configured_api_key()
     if not api_key:
@@ -277,6 +315,10 @@ def run_probe(source: Path) -> dict:
             provider_metadata.get("max_retries") == 0,
         )
     )
+    guarded_action = runtime_guard_action_evidence(
+        actions[0] if len(actions) == 1 else {},
+        world_state,
+    )
     criteria = {
         "source_artifact_is_exact": (
             source_sha256 == EXPECTED_SOURCE_SHA256
@@ -342,7 +384,12 @@ def run_probe(source: Path) -> dict:
             plan.get("plan_kind") == "continuation"
             and plan.get("status") == "planning"
         ),
-        "exact_expected_action": actions == [EXPECTED_ACTION],
+        "single_provider_action": len(actions) == 1,
+        "runtime_guard_normalized_expected_action": (
+            guarded_action["allowed"]
+            and not guarded_action["issues"]
+            and guarded_action["normalized_action_exact_expected"]
+        ),
         "no_probe_exception": not probe_exception,
     }
     passed = all(criteria.values())
@@ -436,6 +483,7 @@ def run_probe(source: Path) -> dict:
             "subtask_count": len(subtasks),
             "actions": actions,
         },
+        "runtime_guard_action_evidence": guarded_action,
         "probe_exception_type": probe_exception,
         "credential_value_retained": False,
         "minecraft_process_started": False,

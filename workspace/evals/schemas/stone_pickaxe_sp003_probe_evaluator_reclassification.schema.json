@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://singularity.local/schemas/stone_pickaxe_sp003_probe_evaluator_reclassification.schema.json",
+  "title": "SP-003 probe evaluator reclassification",
+  "type": "object",
+  "required": [
+    "type",
+    "schema_version",
+    "phase",
+    "policy_id",
+    "task_id",
+    "generated_at_utc",
+    "predecessor_commit",
+    "source_probe",
+    "source_machine_state",
+    "original_result",
+    "runtime_guard_replay",
+    "corrected_evaluation",
+    "negative_controls",
+    "all_negative_controls_rejected",
+    "evaluator_repair_passed",
+    "classification",
+    "minecraft_process_started",
+    "provider_request_made",
+    "authorization_created",
+    "automatic_retry_attempted",
+    "live_authorization",
+    "separate_authorization_permitted_after_commit_push",
+    "counts_toward_baseline_success",
+    "counts_toward_capability",
+    "counts_toward_m4"
+  ],
+  "properties": {
+    "type": {"const": "stone_pickaxe_sp003_probe_evaluator_reclassification"},
+    "schema_version": {"const": 1},
+    "phase": {"const": 142},
+    "policy_id": {"const": "sp003-continuation-probe-runtime-guard-normalization-v1"},
+    "task_id": {"const": "SP-003"},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "predecessor_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "source_probe": {
+      "type": "object",
+      "required": ["path", "sha256", "evidence_commit", "immutable", "rewritten", "checks"],
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"const": "2c67ac6a3706871a10c42c35d617fad6c0e63879884babf3f2308c5b7a6dbb40"},
+        "evidence_commit": {"const": "00e08cd828d6b6e2d6f4059c247d4c3e2bff59bf"},
+        "immutable": {"const": true},
+        "rewritten": {"const": false},
+        "checks": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "source_machine_state": {"type": "object"},
+    "original_result": {
+      "type": "object",
+      "required": ["reported_passed", "failed_criteria", "exact_expected_action_value", "raw_action", "response_sha256", "request_count", "retry_count", "real_llm_call", "schema_valid"],
+      "properties": {
+        "reported_passed": {"const": false},
+        "failed_criteria": {"const": ["exact_expected_action"]},
+        "exact_expected_action_value": {"const": false},
+        "raw_action": {"type": "object"},
+        "response_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "request_count": {"const": 1},
+        "retry_count": {"const": 0},
+        "real_llm_call": {"const": true},
+        "schema_valid": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "runtime_guard_replay": {
+      "type": "object",
+      "required": ["allowed", "issues", "policy_id", "raw_action", "normalized_action", "selected_source", "normalized_action_exact_expected", "passed"],
+      "properties": {
+        "allowed": {"const": true},
+        "issues": {"const": []},
+        "policy_id": {"const": "stone-pickaxe-sp003-action-guard-v2"},
+        "raw_action": {"type": "object"},
+        "normalized_action": {"type": "object"},
+        "selected_source": {"type": "object"},
+        "normalized_action_exact_expected": {"const": true},
+        "passed": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "corrected_evaluation": {
+      "type": "object",
+      "required": ["criteria", "passed", "decision"],
+      "properties": {
+        "criteria": {"type": "object"},
+        "passed": {"const": true},
+        "decision": {"const": "provider_recovered_evaluator_reclassified_pass"}
+      },
+      "additionalProperties": false
+    },
+    "negative_controls": {"type": "object", "minProperties": 4},
+    "all_negative_controls_rejected": {"const": true},
+    "evaluator_repair_passed": {"const": true},
+    "classification": {"const": "probe_evaluator_false_negative"},
+    "minecraft_process_started": {"const": false},
+    "provider_request_made": {"const": false},
+    "authorization_created": {"const": false},
+    "automatic_retry_attempted": {"const": false},
+    "live_authorization": {"const": false},
+    "separate_authorization_permitted_after_commit_push": {"const": true},
+    "counts_toward_baseline_success": {"const": false},
+    "counts_toward_capability": {"const": false},
+    "counts_toward_m4": {"const": false}
+  },
+  "additionalProperties": false
+}
