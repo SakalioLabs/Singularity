@@ -148,6 +148,8 @@ SP003_PLANNER_TARGET_FIELDS = [
     "support_source_id",
     "remaining_clearance_count",
     "stone_clearance_probe",
+    "stone_clearance_shaft_egress",
+    "stone_clearance_shaft_step_up_egress",
     "stone_pickup_approach",
     "stone_pickup_access",
     "machine_proven_placement",
@@ -208,6 +210,12 @@ SP003_PRE_DISPATCH_RECOVERABLE_ISSUES = frozenset({
     "sp003_exact_table_placement_required",
     "sp003_only_wooden_pickaxe_equip_allowed",
     "sp003_exact_one_stone_pickaxe_craft_required",
+    "sp003_partial_shaft_egress_navigation_required",
+    "sp003_partial_shaft_egress_parameters_unexpected",
+    "sp003_partial_shaft_egress_target_mismatch",
+    "sp003_partial_shaft_step_up_navigation_required",
+    "sp003_partial_shaft_step_up_parameters_unexpected",
+    "sp003_partial_shaft_step_up_target_mismatch",
 })
 
 
@@ -576,6 +584,16 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         and episode_contract.get("planner_user_prompt_max_chars")
         == SP003_PLANNER_USER_PROMPT_MAX_CHARS
         and episode_contract.get("planner_action_rewrite_allowed") is False
+        and episode_contract.get("planner_navigation_only_requires_move_to")
+        is True
+        and episode_contract.get(
+            "planner_navigation_only_exact_stand_position_when_present"
+        )
+        is True
+        and episode_contract.get("planner_navigation_only_position_xz_fallback")
+        is True
+        and episode_contract.get("planner_navigation_only_mutation_allowed")
+        is False
         and episode_contract.get("planner_reasoning_limit_chars")
         == SP003_REASONING_MAX_CHARS
     )
@@ -634,6 +652,14 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
             "pre_dispatch_semantic_replan_bound_exhaustion_fails_closed"
         )
         is True
+        and episode_contract.get(
+            "pre_dispatch_semantic_replan_shaft_egress_issues"
+        )
+        == sorted(
+            issue
+            for issue in SP003_PRE_DISPATCH_RECOVERABLE_ISSUES
+            if issue.startswith("sp003_partial_shaft_")
+        )
     )
     checks["effective_runtime_guard_dispatch_contract"] = (
         episode_contract.get("effective_runtime_guard_dispatch_policy_id")

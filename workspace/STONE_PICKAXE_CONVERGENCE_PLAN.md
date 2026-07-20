@@ -15,11 +15,13 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 143 retained a step-up target compaction failure; Phase 144 offline planner-contract repair is required |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 144 step-up Planner-contract repair is offline verified; commit push and one bounded provider probe remain |
 
-Current phase: **Phase 142 evidence commit `6bd489f2` and Phase 143 authorization commit `5b82e7bb` are pushed. Episode `sp003_baseline_20260720_173513_afba21cd` retains a new Planner-contract gap: the raw step-up target is machine grounded, but its specific marker is omitted from compact state and the provider repeatedly emits `place` instead of `move_to`. SP-003 remains 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 143 evidence commit `1ebbb35a` is pushed and synchronized. Phase 144 offline repair preserves the step-up marker, makes navigation-only table staging explicit, and passes exact retained-state counterfactual and schema checks. It is pending commit push followed by one bounded no-Minecraft provider probe. SP-003 remains 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all thirty-three SP-003 baseline authorizations through `sp003_baseline_20260720_173513_afba21cd` cannot be reused. Phases 139-143 each ran exactly once and cannot be retried. Phase 143 evidence must be committed and pushed, then Phase 144 must repair and offline-verify the compact Planner contract before any separate parent-bound one-use authorization may be considered. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all thirty-three SP-003 baseline authorizations through `sp003_baseline_20260720_173513_afba21cd` cannot be reused. Phases 139-143 each ran exactly once and cannot be retried. Phase 144 must be committed and pushed before one zero-retry no-Minecraft provider probe may test the exact retained step-up state. A fresh live authorization cannot be created unless that probe passes and its evidence is separately pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+
+Phase 144 replays the exact retained target `sp003_clearance_shaft_step_up_egress:120:141:-37`. The compact state now carries `stone_clearance_shaft_step_up_egress=true`, the prompt requires one `move_to` for any navigation-only table-staging target, and targets with a stand position use exact x/y/z while earlier targets retain the position x/z fallback. The Phase 143 wrong `place` receives one pre-dispatch replan and no backend invocation, action-budget consumption, same-call retry, or world mutation; a duplicate fails closed. The exact move is normalized by the Phase 122 guard with inventory preservation, and forged skill context remains non-recoverable. Audit `77f94ee9...` and its Draft 2020-12 schema pass 7/7 focused checks without a provider or Minecraft process. Phase 134-144 evidence checks pass 45/45, all stone-pickaxe checks pass 424/424, the full repository passes 1177/1177, and all 1839 prospective deliverable JSON files parse; compilation, diff, and credential gates pass.
 
 ## Fixed Protocol
 
@@ -209,7 +211,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 136 repair is pushed at `9af7db44`; thirty-two authorizations consumed; baseline 0/1 and candidates 0/3; Phase 139 is infrastructure-ineligible after continuation-call TLS EOF and awaits evidence push plus a bounded continuation probe |
+| 8. SP-003 composite acceptance | Phase 144 offline repair is verified after thirty-three consumed authorizations; baseline 0/1 and candidates 0/3; repair commit push and one bounded no-Minecraft step-up provider probe are next |
 
 ## Frozen Baseline
 
@@ -221,4 +223,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms or Phases 140-143; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 143 evidence and the Phase 144 offline repair are each pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms or Phases 140-143; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 144 repair and its bounded provider-probe evidence are each pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

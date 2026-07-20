@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -152,10 +153,26 @@ def test_phase136_audit_binds_repair_and_retained_phase135_evidence():
     assert audit["counts_toward_skill_gate"] is False
     assert audit["counts_toward_capability"] is False
     assert audit["counts_toward_m4"] is False
+    evolved_paths = {
+        "src/singularity/core/planner.py",
+        "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+        "tests/test_stone_pickaxe_sp003_phase136_observation_pickup_reconciliation.py",
+        "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    }
     for record in [
         *audit["implementation"],
         *audit["protected_identities"],
         *audit["retained_phase_135_identities"],
     ]:
-        path = REPO / record["path"]
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        if record["path"] in evolved_paths:
+            retained = subprocess.check_output(
+                [
+                    "git",
+                    "show",
+                    f"9af7db449604d1103c00bc224139a85d9e039196:{record['path']}",
+                ],
+                cwd=REPO,
+            )
+        else:
+            retained = (REPO / record["path"]).read_bytes()
+        assert hashlib.sha256(retained).hexdigest() == record["sha256"]

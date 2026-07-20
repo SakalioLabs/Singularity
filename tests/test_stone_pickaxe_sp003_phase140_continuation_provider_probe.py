@@ -17,6 +17,12 @@ PROBE_PATH = (
     / "workspace/evals/stone_pickaxe_sp003_phase140_continuation_provider_probe.json"
 )
 PROBE_SHA256 = "966c214f0a8117406137c4b59aceee59c2922949c3dd3e96eeda4413c601ebca"
+PHASE144_REQUEST = {
+    "request_sha256": "a3c79e2deef02cef79396d8b2daa2ac335529c616338ba608dc8131b5867d25a",
+    "request_payload_byte_count": 12305,
+    "system_message_byte_count": 9099,
+    "user_message_byte_count": 2779,
+}
 
 
 def _module():
@@ -102,12 +108,8 @@ def test_phase140_probe_reconstructs_exact_representative_request_offline() -> N
     assert module.compact_source_state(planner, world_state) == (
         module.EXPECTED_SOURCE_STATE
     )
-    assert request == {
-        "request_sha256": module.EXPECTED_REQUEST_SHA256,
-        "request_payload_byte_count": module.EXPECTED_REQUEST_PAYLOAD_BYTE_COUNT,
-        "system_message_byte_count": module.EXPECTED_SYSTEM_MESSAGE_BYTE_COUNT,
-        "user_message_byte_count": module.EXPECTED_USER_MESSAGE_BYTE_COUNT,
-    }
+    assert request == PHASE144_REQUEST
+    assert request["request_sha256"] != module.EXPECTED_REQUEST_SHA256
     assert request["request_sha256"] != module.EXPECTED_PREDECESSOR_REQUEST_SHA256
 
 
@@ -184,7 +186,7 @@ def test_phase140_failed_probe_keeps_live_gate_closed() -> None:
     gate = ledger["next_required_gate"]
 
     assert gate["id"] == (
-        "sp003_phase_143_evidence_commit_push_then_phase_144_offline_planner_contract_repair"
+        "sp003_phase_144_offline_repair_commit_push_then_phase_145_bounded_no_minecraft_step_up_provider_probe"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0

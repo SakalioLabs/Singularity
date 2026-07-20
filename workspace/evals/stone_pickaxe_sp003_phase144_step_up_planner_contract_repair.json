@@ -1,0 +1,148 @@
+{
+  "type": "stone_pickaxe_sp003_step_up_planner_contract_repair",
+  "schema_version": 1,
+  "phase": 144,
+  "policy_id": "sp003-step-up-planner-contract-repair-v1",
+  "task_id": "SP-003",
+  "generated_at_utc": "2026-07-20T11:03:38.162581+00:00",
+  "predecessor_commit": "1ebbb35a97e187aa76922a6efc0beb1193f2d13a",
+  "source_evidence": {
+    "episode_id": "sp003_baseline_20260720_173513_afba21cd",
+    "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_173513_afba21cd/session.json",
+    "sha256": "3c978d47dbfc0ab6d12fef535577c7399b773ec358dba2fd968bdda01ff1e681",
+    "immutable": true,
+    "rewritten": false,
+    "observation_canonical_sha256": "54098503b80234cb15e3c49f69066392f89180afb6bbeb496d45ee2f7e95f41e",
+    "target": {
+      "source_id": "sp003_clearance_shaft_step_up_egress:120:141:-37",
+      "navigation_only": true,
+      "stone_clearance_shaft_step_up_egress": true,
+      "stand_position": {
+        "x": 120.5,
+        "y": 141,
+        "z": -36.5
+      }
+    }
+  },
+  "checks": {
+    "source": {
+      "session_sha256": true,
+      "exact_step_up_observation_selected": true,
+      "navigation_only": true,
+      "exact_stand_position": true
+    },
+    "compact_state": {
+      "authoritative_stage": true,
+      "single_target": true,
+      "navigation_only_preserved": true,
+      "step_up_marker_preserved": true,
+      "stand_position_preserved": true,
+      "proof_omitted": true
+    },
+    "prompt": {
+      "marker_present": true,
+      "exact_stand_position_present": true,
+      "navigation_rule_present": true,
+      "exact_move_rule_present": true,
+      "mutation_forbidden": true,
+      "system_contract_present": true,
+      "user_prompt_bounded": true
+    },
+    "replan": {
+      "wrong_place_rejected": true,
+      "exact_guard_issues": true,
+      "first_replan_granted": true,
+      "duplicate_fails_closed": true,
+      "single_granted_report": true,
+      "no_action_budget_consumed": true,
+      "no_backend_invocation": true,
+      "no_world_mutation": true,
+      "no_same_call_retry": true
+    },
+    "exact_move": {
+      "guard_allowed": true,
+      "guard_issues_empty": true,
+      "normalized_exact_stand": true,
+      "inventory_preserved": true,
+      "no_replan": true
+    },
+    "negative_control": {
+      "skill_context_rejected": true,
+      "skill_context_issue_exact": true,
+      "unsafe_replan_not_granted": true
+    },
+    "policy": {
+      "identity_passed": true,
+      "shaft_issue_scope_exact": true
+    }
+  },
+  "counterfactual": {
+    "wrong_action": {
+      "type": "place",
+      "parameters": {
+        "item": "crafting_table",
+        "x": 120.5,
+        "y": 141,
+        "z": -36.5
+      }
+    },
+    "wrong_guard_issues": [
+      "sp003_partial_shaft_step_up_navigation_required",
+      "sp003_partial_shaft_step_up_parameters_unexpected"
+    ],
+    "first_replan": {
+      "requires_replan": true,
+      "reason": "SP-003 stage prepare_wooden_pickaxe rejected the candidate before dispatch: sp003_partial_shaft_step_up_navigation_required; sp003_partial_shaft_step_up_parameters_unexpected",
+      "policy_id": "sp003-pre-dispatch-semantic-replan-v1",
+      "fingerprint": "498534c5ae85cdfe5c758ac0219c50d6c24880214a70cf82fb69b9b3a97f43e7"
+    },
+    "duplicate_replan": null,
+    "exact_move": {
+      "type": "move_to",
+      "parameters": {
+        "x": 120.5,
+        "y": 141,
+        "z": -36.5
+      }
+    },
+    "normalized_exact_move": {
+      "type": "move_to",
+      "parameters": {
+        "x": 120.5,
+        "y": 141,
+        "z": -36.5,
+        "tolerance": 1.0,
+        "preserve_inventory": true
+      }
+    },
+    "unsafe_skill_context_issues": [
+      "sp003_partial_shaft_step_up_skill_context_forbidden"
+    ]
+  },
+  "implementation": [
+    {
+      "path": "src/singularity/core/planner.py",
+      "sha256": "6674a2a4fc28916fbe76a8f90c2b64ba77062be15fe1bfbdc2b656f490e86226"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "65d0f2d55da32ad2884731289b6b4bcb20116961f4cb2ef8a5a33df16d233daf"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "c64f16502d45f74060c5f6e0a40b8d9d486811d16d90c93add9e21254a103b2c"
+    }
+  ],
+  "repair_passed": true,
+  "status": "offline_verified",
+  "next_gate": "commit_and_push_phase_144_then_run_one_bounded_no_minecraft_provider_probe",
+  "minecraft_process_started": false,
+  "provider_request_made": false,
+  "authorization_created": false,
+  "automatic_retry_attempted": false,
+  "live_authorization": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

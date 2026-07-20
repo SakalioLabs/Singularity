@@ -532,6 +532,7 @@ def test_phase128_audit_binds_implementation_and_protected_identities():
     assert audit["counts_toward_m4"] is False
     evolved_paths = {
         "src/singularity/core/agent.py",
+        "src/singularity/core/planner.py",
         "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
         "src/singularity/evaluation/stone_pickaxe_sp003_phase122_runtime.py",
         "tests/test_stone_pickaxe_sp003_phase126_target_source_grounding.py",

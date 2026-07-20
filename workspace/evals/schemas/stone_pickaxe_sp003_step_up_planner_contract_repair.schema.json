@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://singularity.local/schemas/stone_pickaxe_sp003_step_up_planner_contract_repair.schema.json",
+  "title": "SP-003 Phase 144 step-up Planner contract repair",
+  "type": "object",
+  "required": [
+    "type",
+    "schema_version",
+    "phase",
+    "policy_id",
+    "task_id",
+    "generated_at_utc",
+    "predecessor_commit",
+    "source_evidence",
+    "checks",
+    "counterfactual",
+    "implementation",
+    "repair_passed",
+    "status",
+    "next_gate",
+    "minecraft_process_started",
+    "provider_request_made",
+    "authorization_created",
+    "automatic_retry_attempted",
+    "live_authorization",
+    "counts_toward_baseline_success",
+    "counts_toward_skill_gate",
+    "counts_toward_capability",
+    "counts_toward_m4"
+  ],
+  "properties": {
+    "type": {"const": "stone_pickaxe_sp003_step_up_planner_contract_repair"},
+    "schema_version": {"const": 1},
+    "phase": {"const": 144},
+    "policy_id": {"const": "sp003-step-up-planner-contract-repair-v1"},
+    "task_id": {"const": "SP-003"},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "predecessor_commit": {"const": "1ebbb35a97e187aa76922a6efc0beb1193f2d13a"},
+    "source_evidence": {
+      "type": "object",
+      "required": [
+        "episode_id",
+        "path",
+        "sha256",
+        "immutable",
+        "rewritten",
+        "observation_canonical_sha256",
+        "target"
+      ],
+      "properties": {
+        "episode_id": {"const": "sp003_baseline_20260720_173513_afba21cd"},
+        "path": {"type": "string"},
+        "sha256": {"const": "3c978d47dbfc0ab6d12fef535577c7399b773ec358dba2fd968bdda01ff1e681"},
+        "immutable": {"const": true},
+        "rewritten": {"const": false},
+        "observation_canonical_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "target": {
+          "type": "object",
+          "required": [
+            "source_id",
+            "navigation_only",
+            "stone_clearance_shaft_step_up_egress",
+            "stand_position"
+          ],
+          "properties": {
+            "source_id": {"const": "sp003_clearance_shaft_step_up_egress:120:141:-37"},
+            "navigation_only": {"const": true},
+            "stone_clearance_shaft_step_up_egress": {"const": true},
+            "stand_position": {
+              "const": {"x": 120.5, "y": 141, "z": -36.5}
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "checks": {"type": "object", "minProperties": 7},
+    "counterfactual": {
+      "type": "object",
+      "required": [
+        "wrong_action",
+        "wrong_guard_issues",
+        "first_replan",
+        "duplicate_replan",
+        "exact_move",
+        "normalized_exact_move",
+        "unsafe_skill_context_issues"
+      ]
+    },
+    "implementation": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {"type": "string"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "repair_passed": {"const": true},
+    "status": {"const": "offline_verified"},
+    "next_gate": {"const": "commit_and_push_phase_144_then_run_one_bounded_no_minecraft_provider_probe"},
+    "minecraft_process_started": {"const": false},
+    "provider_request_made": {"const": false},
+    "authorization_created": {"const": false},
+    "automatic_retry_attempted": {"const": false},
+    "live_authorization": {"const": false},
+    "counts_toward_baseline_success": {"const": false},
+    "counts_toward_skill_gate": {"const": false},
+    "counts_toward_capability": {"const": false},
+    "counts_toward_m4": {"const": false}
+  },
+  "additionalProperties": false
+}

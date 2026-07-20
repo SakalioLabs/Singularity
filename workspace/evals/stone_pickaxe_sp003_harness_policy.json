@@ -225,6 +225,7 @@
       "stand_position", "navigation_only", "canopy_egress",
       "stone_surface_clearance", "support_source_id",
       "remaining_clearance_count", "stone_clearance_probe",
+      "stone_clearance_shaft_egress", "stone_clearance_shaft_step_up_egress",
       "stone_pickup_approach", "stone_pickup_access",
       "machine_proven_placement", "target_semantics_policy_id",
       "vertical_delta"
@@ -239,6 +240,10 @@
     "planner_state_compact_json_max_chars": 2500,
     "planner_user_prompt_max_chars": 5000,
     "planner_action_rewrite_allowed": false,
+    "planner_navigation_only_requires_move_to": true,
+    "planner_navigation_only_exact_stand_position_when_present": true,
+    "planner_navigation_only_position_xz_fallback": true,
+    "planner_navigation_only_mutation_allowed": false,
     "planner_reasoning_limit_chars": 320,
     "planner_reasoning_normalization_policy_id": "sp003-nonexecutive-reasoning-normalization-v1",
     "planner_reasoning_normalization_runtime_mode": "sp003",
@@ -254,6 +259,14 @@
     "pre_dispatch_semantic_replan_same_call_retry_allowed": false,
     "pre_dispatch_semantic_replan_action_rewrite_allowed": false,
     "pre_dispatch_semantic_replan_bound_exhaustion_fails_closed": true,
+    "pre_dispatch_semantic_replan_shaft_egress_issues": [
+      "sp003_partial_shaft_egress_navigation_required",
+      "sp003_partial_shaft_egress_parameters_unexpected",
+      "sp003_partial_shaft_egress_target_mismatch",
+      "sp003_partial_shaft_step_up_navigation_required",
+      "sp003_partial_shaft_step_up_parameters_unexpected",
+      "sp003_partial_shaft_step_up_target_mismatch"
+    ],
     "effective_runtime_guard_dispatch_policy_id": "sp003-effective-runtime-guard-dispatch-v1",
     "pre_dispatch_semantic_replan_uses_effective_runtime_guard": true,
     "effective_runtime_guard_action_rewrite_allowed": false,
