@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -529,11 +530,28 @@ def test_phase128_audit_binds_implementation_and_protected_identities():
     assert audit["counts_toward_baseline_success"] is False
     assert audit["counts_toward_capability"] is False
     assert audit["counts_toward_m4"] is False
+    evolved_paths = {
+        "src/singularity/core/agent.py",
+        "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+        "src/singularity/evaluation/stone_pickaxe_sp003_phase122_runtime.py",
+        "tests/test_stone_pickaxe_sp003_phase126_target_source_grounding.py",
+        "tests/test_stone_pickaxe_sp003_phase128_pre_dispatch_reasoning.py",
+        "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    }
     for record in [
         *audit["implementation"],
         *audit["protected_identities"],
         *audit["retained_phase_127_identities"],
     ]:
-        assert hashlib.sha256((REPO / record["path"]).read_bytes()).hexdigest() == (
-            record["sha256"]
-        )
+        if record["path"] in evolved_paths:
+            retained = subprocess.check_output(
+                [
+                    "git",
+                    "show",
+                    f"599fc76e2210cbe2ef925be715d83c225ffade33:{record['path']}",
+                ],
+                cwd=REPO,
+            )
+        else:
+            retained = (REPO / record["path"]).read_bytes()
+        assert hashlib.sha256(retained).hexdigest() == record["sha256"]

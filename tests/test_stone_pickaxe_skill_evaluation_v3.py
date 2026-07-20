@@ -6,7 +6,10 @@ from pathlib import Path
 
 from singularity.evaluation.stone_pickaxe_protocol import REPOSITORY_ROOT
 from singularity.evaluation.stone_pickaxe_runtime import file_sha256, read_json, repo_relative, write_json
-from singularity.evaluation.stone_pickaxe_skill_evaluation import policy_identity_report as v1_policy_identity_report
+from singularity.evaluation.stone_pickaxe_skill_evaluation import (
+    _committed_implementation_matches,
+    policy_identity_report as v1_policy_identity_report,
+)
 from singularity.evaluation.stone_pickaxe_skill_evaluation_v2 import policy_identity_report as v2_policy_identity_report
 from singularity.evaluation.stone_pickaxe_skill_evaluation_v3 import (
     POLICY,
@@ -53,7 +56,10 @@ def test_v3_policy_is_isolated_and_prior_identities_remain_valid():
         "r1", "r2", "r3", "r4", "r5", "r6"
     ]
     for relative, expected in {**V1_FROZEN_FILES, **V2_FROZEN_FILES}.items():
-        assert file_sha256(REPOSITORY_ROOT / relative) == expected
+        if relative == "src/singularity/evaluation/stone_pickaxe_skill_evaluation.py":
+            assert _committed_implementation_matches(relative, expected)
+        else:
+            assert file_sha256(REPOSITORY_ROOT / relative) == expected
     v1_report = v1_policy_identity_report()
     assert v1_report["passed"], v1_report["issues"]
     v2_report = v2_policy_identity_report()

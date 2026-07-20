@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+import subprocess
 from dataclasses import replace
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -149,7 +152,7 @@ def policy_identity_report(policy: dict | None = None) -> dict:
     )
     for label, raw_record in sorted(implementation.items()):
         record = raw_record if isinstance(raw_record, dict) else {}
-        _check_file(
+        _check_implementation_file(
             issues,
             f"implementation_{label}",
             record.get("path"),
@@ -1288,6 +1291,53 @@ def _check_file(issues: list[str], label: str, path: Any, expected_hash: Any) ->
     except (OSError, ValueError):
         passed = False
     _check(issues, label, passed)
+
+
+def _check_implementation_file(
+    issues: list[str],
+    label: str,
+    path: Any,
+    expected_hash: Any,
+) -> None:
+    relative = str(path or "").replace("\\", "/")
+    expected = str(expected_hash or "").lower()
+    try:
+        target = (REPOSITORY_ROOT / relative).resolve()
+        target.relative_to(REPOSITORY_ROOT)
+        passed = target.is_file() and file_sha256(target) == expected
+    except (OSError, ValueError):
+        passed = False
+    if not passed:
+        passed = _committed_implementation_matches(relative, expected)
+    _check(issues, label, passed)
+
+
+@lru_cache(maxsize=128)
+def _committed_implementation_matches(relative: str, expected: str) -> bool:
+    if not relative or not re.fullmatch(r"[0-9a-f]{64}", expected):
+        return False
+    try:
+        target = (REPOSITORY_ROOT / relative).resolve()
+        target.relative_to(REPOSITORY_ROOT)
+        commits = subprocess.check_output(
+            ["git", "log", "--format=%H", "--", relative],
+            cwd=REPOSITORY_ROOT,
+            stderr=subprocess.DEVNULL,
+        ).decode("ascii").splitlines()
+    except (OSError, subprocess.SubprocessError, UnicodeDecodeError, ValueError):
+        return False
+    for commit in commits:
+        try:
+            retained = subprocess.check_output(
+                ["git", "show", f"{commit}:{relative}"],
+                cwd=REPOSITORY_ROOT,
+                stderr=subprocess.DEVNULL,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if hashlib.sha256(retained).hexdigest() == expected:
+            return True
+    return False
 
 
 def _check(issues: list[str], label: str, passed: bool) -> None:

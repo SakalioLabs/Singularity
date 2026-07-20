@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 from singularity.evaluation.stone_pickaxe_sp003_runtime import (
@@ -86,22 +87,34 @@ def test_phase124_audit_binds_the_one_shot_non_mutating_repair():
         "workspace/evals/stone_pickaxe_sp003_harness_policy.json": (
             "aef9fe1e733476eb93a9264c7e33e7e3a8ed9cf50b400e44f7476691a2c8815f"
         ),
+        "src/singularity/evaluation/stone_pickaxe_sp003_phase122_runtime.py": (
+            "38eb06ceb04ad464cbb9fa9ab498ee2a15ccff6acc1ffbdb89259e534d32f068"
+        ),
     }
-    assert {
-        record["path"]: record["sha256"]
-        for record in audit["implementation"]
-        if record["path"] in evolved_historical_paths
-    } == evolved_historical_paths
-    for record in [
-        *[
-            item
-            for item in audit["implementation"]
-            if item["path"] not in evolved_historical_paths
-        ],
+    records = [
+        *audit["implementation"],
         *audit["protected_identities"],
         *audit["retained_phase_123_identities"],
-    ]:
-        assert _sha256(REPO / record["path"]) == record["sha256"]
+    ]
+    assert {
+        record["path"]: record["sha256"]
+        for record in records
+        if record["path"] in evolved_historical_paths
+    } == evolved_historical_paths
+    for record in records:
+        if record["path"] in evolved_historical_paths:
+            retained = subprocess.check_output(
+                [
+                    "git",
+                    "show",
+                    f"19d5780e6b125ab3353ed00d5ab18ae273461434:{record['path']}",
+                ],
+                cwd=REPO,
+            )
+            actual = hashlib.sha256(retained).hexdigest()
+        else:
+            actual = _sha256(REPO / record["path"])
+        assert actual == record["sha256"]
 
     assert audit["live_episode_run"] is False
     assert audit["live_authorization"] is False

@@ -1806,6 +1806,13 @@ class Agent:
                 if not isinstance(actions, list):
                     actions = []
                 if not actions:
+                    if self._recover_actionless_plan(
+                        plan,
+                        observation,
+                        goal,
+                        {"cycle": cycle, "mode": "goal"},
+                    ):
+                        continue
                     reasoning = plan.get("reasoning", "")
                     logger.info(f"Goal produced no executable actions: {reasoning}")
                     payload = {
@@ -2442,6 +2449,13 @@ class Agent:
                     if not isinstance(actions, list):
                         actions = []
                     if not actions:
+                        if self._recover_actionless_plan(
+                            plan,
+                            observation,
+                            goal,
+                            {"cycle": total_cycles, "mode": "autonomous"},
+                        ):
+                            continue
                         logger.info(f"[Autonomous] Goal produced no executable actions: {plan.get('reasoning', '')}")
                         payload = {
                             "goal": goal,
@@ -9254,6 +9268,16 @@ class Agent:
                 context=causal_context,
             )
         return observation
+
+    def _recover_actionless_plan(
+        self,
+        plan: dict,
+        observation: dict,
+        goal: str,
+        context: dict = None,
+    ) -> bool:
+        """Allow an explicitly scoped runtime to request a fresh planning cycle."""
+        return False
 
     def _handle_runtime_interrupt(self, observation: dict, goal: str, context: dict = None) -> tuple[bool, dict]:
         """Let the actor loop yield when fast runtime safety checks fire."""

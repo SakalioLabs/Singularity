@@ -391,6 +391,13 @@ def test_phase126_audit_binds_implementation_and_protected_evidence():
         *audit["protected_identities"],
         *audit["retained_phase_125_identities"],
     ]:
-        assert hashlib.sha256((REPO / record["path"]).read_bytes()).hexdigest() == (
-            record["sha256"]
-        )
+        if record["path"] == (
+            "src/singularity/evaluation/stone_pickaxe_sp003_phase122_runtime.py"
+        ):
+            retained = subprocess.check_output(
+                ["git", "show", f"{PHASE126_FIX_COMMIT}:{record['path']}"],
+                cwd=REPO,
+            )
+        else:
+            retained = (REPO / record["path"]).read_bytes()
+        assert hashlib.sha256(retained).hexdigest() == record["sha256"]

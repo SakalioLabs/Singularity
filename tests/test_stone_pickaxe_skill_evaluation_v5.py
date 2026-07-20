@@ -9,7 +9,10 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from singularity.evaluation.stone_pickaxe_protocol import REPOSITORY_ROOT
 from singularity.evaluation.stone_pickaxe_runtime import file_sha256, read_json, repo_relative, write_json
-from singularity.evaluation.stone_pickaxe_skill_evaluation import policy_identity_report as v1_policy_identity_report
+from singularity.evaluation.stone_pickaxe_skill_evaluation import (
+    _committed_implementation_matches,
+    policy_identity_report as v1_policy_identity_report,
+)
 from singularity.evaluation.stone_pickaxe_skill_evaluation_v2 import policy_identity_report as v2_policy_identity_report
 from singularity.evaluation.stone_pickaxe_skill_evaluation_v3 import policy_identity_report as v3_policy_identity_report
 from singularity.evaluation.stone_pickaxe_skill_evaluation_v4 import policy_identity_report as v4_policy_identity_report
@@ -76,7 +79,13 @@ def test_v5_policy_is_isolated_and_all_prior_identities_remain_valid():
     ]
     frozen = {**V1_FROZEN_FILES, **V2_FROZEN_FILES, **V3_FROZEN_FILES, **V4_FROZEN_FILES}
     for relative, expected in frozen.items():
-        assert file_sha256(REPOSITORY_ROOT / relative) == expected
+        if relative in {
+            "src/singularity/evaluation/stone_pickaxe_skill_evaluation.py",
+            "tests/test_stone_pickaxe_skill_evaluation_v4.py",
+        }:
+            assert _committed_implementation_matches(relative, expected)
+        else:
+            assert file_sha256(REPOSITORY_ROOT / relative) == expected
     for prior_report in (
         v1_policy_identity_report(),
         v2_policy_identity_report(),

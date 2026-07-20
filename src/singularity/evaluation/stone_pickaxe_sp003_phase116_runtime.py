@@ -246,6 +246,18 @@ class StonePickaxeSP003Phase116RuntimeAgent(base.StonePickaxeSP003RuntimeAgent):
                 observation["sp003_targets"] = []
         return observation
 
+    def _effective_sp003_action_guard(
+        self,
+        action: dict,
+        observation: dict,
+    ) -> dict:
+        return guard_sp003_phase116_action(
+            action,
+            observation,
+            self.sp003_progress,
+            arm=self.sp003_arm,
+        )
+
     def _verify_action_for_execution(
         self,
         action: dict,
@@ -253,12 +265,7 @@ class StonePickaxeSP003Phase116RuntimeAgent(base.StonePickaxeSP003RuntimeAgent):
         goal: str,
         context: dict = None,
     ):
-        guard = guard_sp003_phase116_action(
-            action,
-            observation,
-            self.sp003_progress,
-            arm=self.sp003_arm,
-        )
+        guard = self._effective_sp003_action_guard(action, observation)
         self.session_logger.log(
             "stone_pickaxe_sp003_action_guard",
             {"goal": goal, "context": context or {}, **guard},

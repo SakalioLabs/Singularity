@@ -378,14 +378,12 @@ class StonePickaxeSP003Phase122RuntimeAgent(
             observation["sp003_targets"] = [copy.deepcopy(staging["target"])]
         return observation
 
-    def _verify_action_for_execution(
+    def _effective_sp003_action_guard(
         self,
         action: dict,
         observation: dict,
-        goal: str,
-        context: dict = None,
-    ):
-        guard = guard_sp003_phase122_action(
+    ) -> dict:
+        return guard_sp003_phase122_action(
             action,
             observation,
             self.sp003_progress,
@@ -394,6 +392,15 @@ class StonePickaxeSP003Phase122RuntimeAgent(
                 self._sp003_phase120_egress_attempted_fingerprints
             ),
         )
+
+    def _verify_action_for_execution(
+        self,
+        action: dict,
+        observation: dict,
+        goal: str,
+        context: dict = None,
+    ):
+        guard = self._effective_sp003_action_guard(action, observation)
         self.session_logger.log(
             "stone_pickaxe_sp003_action_guard",
             {"goal": goal, "context": context or {}, **guard},
