@@ -144,6 +144,12 @@ def test_phase134_probe_opens_only_the_separate_authorization_gate():
         if item["id"] == "sp003-baseline-029-planner-latency-deadline-exhaustion"
     )
     recovery = failure["provider_throughput_recovery"]
+    phase135 = next(
+        item
+        for item in ledger["failures"]
+        if item["id"]
+        == "sp003-baseline-030-observation-delayed-log-pickup-overshoot"
+    )
     gate = ledger["next_required_gate"]
 
     assert recovery["artifact_sha256"] == PROBE_SHA256
@@ -156,8 +162,16 @@ def test_phase134_probe_opens_only_the_separate_authorization_gate():
     assert failure["single_next_offline_fix"] == (
         "none_phase_134_provider_throughput_probe_passed"
     )
+    assert phase135["phase_134_probe_commit"] == (
+        "d21ca537171c0c0085758ed17a927068c18ab6b2"
+    )
+    assert phase135["authorization_commit"] == (
+        "cf32589df5d02e1ac4643d90463e0cb99300b35a"
+    )
+    assert phase135["authorization_consumed"] is True
+    assert phase135["authorization_reuse_allowed"] is False
     assert gate["id"] == (
-        "sp003_phase_134_probe_commit_push_then_separate_parent_bound_baseline_authorization"
+        "sp003_phase_135_evidence_commit_push_then_observation_delayed_pickup_reconciliation_offline_fix"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
