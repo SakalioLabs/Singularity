@@ -12,6 +12,11 @@ SCRIPT_PATH = (
     ROOT / "scripts/stone_pickaxe_sp003_phase140_continuation_provider_probe.py"
 )
 LEDGER_PATH = ROOT / "workspace/evals/stone_pickaxe_failure_ledger.json"
+PROBE_PATH = (
+    ROOT
+    / "workspace/evals/stone_pickaxe_sp003_phase140_continuation_provider_probe.json"
+)
+PROBE_SHA256 = "966c214f0a8117406137c4b59aceee59c2922949c3dd3e96eeda4413c601ebca"
 
 
 def _module():
@@ -131,11 +136,56 @@ def test_phase140_probe_is_single_request_zero_retry_and_no_minecraft() -> None:
     assert "Start-Process" not in text
 
 
-def test_phase140_tooling_does_not_open_phase139_live_gate() -> None:
+def test_phase140_failed_probe_is_exact_single_request_evidence() -> None:
+    module = _module()
+    probe = json.loads(PROBE_PATH.read_text(encoding="utf-8"))
+
+    assert module.file_sha256(PROBE_PATH) == PROBE_SHA256
+    assert probe["type"] == "stone_pickaxe_sp003_continuation_provider_probe"
+    assert probe["phase"] == 140
+    assert probe["predecessor_commit"] == (
+        "859114b808c39ec7b00f50618924cf53092a5541"
+    )
+    assert probe["passed"] is False
+    assert probe["decision"] == (
+        "hold_new_authorization_provider_continuation_ineligible"
+    )
+    assert probe["request_count"] == 1
+    assert probe["retry_count"] == 0
+    assert probe["wall_duration_ms"] == 4952
+    assert probe["request"]["request_sha256"] == module.EXPECTED_REQUEST_SHA256
+    assert probe["request"]["provider_request_sha256"] == (
+        module.EXPECTED_REQUEST_SHA256
+    )
+    assert probe["response_byte_count"] == 0
+    assert probe["real_llm_call"] is False
+    assert probe["schema_valid"] is False
+    assert probe["schema_validation"] == {
+        "type": "planner_schema_validation",
+        "passed": False,
+        "issues": ["Connection error."],
+    }
+    assert probe["returned_plan"] == {
+        "plan_kind": "continuation",
+        "status": "error",
+        "subtask_count": 0,
+        "actions": [],
+    }
+    assert probe["minecraft_process_started"] is False
+    assert probe["authorization_created"] is False
+    assert probe["automatic_retry_attempted"] is False
+    assert probe["counts_toward_baseline_success"] is False
+    assert probe["counts_toward_capability"] is False
+    assert probe["counts_toward_m4"] is False
+
+
+def test_phase140_failed_probe_keeps_live_gate_closed() -> None:
     ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
     gate = ledger["next_required_gate"]
 
-    assert gate["id"] == "sp003_phase_139_continuation_provider_recovery_gate"
+    assert gate["id"] == (
+        "sp003_phase_140_continuation_provider_transport_recovery_gate"
+    )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False

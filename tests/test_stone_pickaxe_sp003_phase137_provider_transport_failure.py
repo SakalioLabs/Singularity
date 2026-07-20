@@ -175,7 +175,9 @@ def test_phase137_ledger_classifies_provider_failure_and_holds_live_gate() -> No
     assert recovery["request_count"] == 1
     assert recovery["retry_count"] == 0
     assert recovery["passed"] is True
-    assert gate["id"] == "sp003_phase_139_continuation_provider_recovery_gate"
+    assert gate["id"] == (
+        "sp003_phase_140_continuation_provider_transport_recovery_gate"
+    )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False

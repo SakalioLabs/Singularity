@@ -166,7 +166,9 @@ def test_phase139_ledger_classifies_failure_and_holds_live_gate() -> None:
     assert entry["counts_toward_baseline_success"] is False
     assert entry["counts_toward_capability"] is False
     assert entry["counts_toward_m4"] is False
-    assert gate["id"] == "sp003_phase_139_continuation_provider_recovery_gate"
+    assert gate["id"] == (
+        "sp003_phase_140_continuation_provider_transport_recovery_gate"
+    )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False
