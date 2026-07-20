@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 142 runtime-guard-normalized evaluator repair passes; evidence push and separate authorization remain required |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 143 retained a step-up target compaction failure; Phase 144 offline planner-contract repair is required |
 
-Current phase: **Phase 141 evidence commit `00e08cd8` and Phase 142 tooling commit `ac945428` are pushed. Audit `d5f1f7c0...` replays the exact response through the production SP-003 guard, obtains the exact expected normalized action, and rejects four negative controls. The provider-recovery false negative is corrected offline; SP-003 remains 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 142 evidence commit `6bd489f2` and Phase 143 authorization commit `5b82e7bb` are pushed. Episode `sp003_baseline_20260720_173513_afba21cd` retains a new Planner-contract gap: the raw step-up target is machine grounded, but its specific marker is omitted from compact state and the provider repeatedly emits `place` instead of `move_to`. SP-003 remains 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all thirty-two SP-003 baseline authorizations through `sp003_baseline_20260720_150508_7a645e08` cannot be reused. Phases 139-141 each ran exactly once and cannot be retried. Phase 142 evidence must be committed and pushed before another parent-bound one-use baseline authorization may be created in a separate commit. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all thirty-three SP-003 baseline authorizations through `sp003_baseline_20260720_173513_afba21cd` cannot be reused. Phases 139-143 each ran exactly once and cannot be retried. Phase 143 evidence must be committed and pushed, then Phase 144 must repair and offline-verify the compact Planner contract before any separate parent-bound one-use authorization may be considered. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -221,4 +221,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms or Phases 140-141; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 142 evidence and a separate parent-bound authorization are each pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms or Phases 140-143; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 143 evidence and the Phase 144 offline repair are each pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

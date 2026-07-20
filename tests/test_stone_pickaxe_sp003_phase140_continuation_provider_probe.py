@@ -184,7 +184,7 @@ def test_phase140_failed_probe_keeps_live_gate_closed() -> None:
     gate = ledger["next_required_gate"]
 
     assert gate["id"] == (
-        "sp003_phase_142_reclassification_commit_push_then_separate_baseline_authorization"
+        "sp003_phase_143_evidence_commit_push_then_phase_144_offline_planner_contract_repair"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0

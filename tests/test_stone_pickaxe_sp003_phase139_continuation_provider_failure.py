@@ -167,7 +167,7 @@ def test_phase139_ledger_classifies_failure_and_holds_live_gate() -> None:
     assert entry["counts_toward_capability"] is False
     assert entry["counts_toward_m4"] is False
     assert gate["id"] == (
-        "sp003_phase_142_reclassification_commit_push_then_separate_baseline_authorization"
+        "sp003_phase_143_evidence_commit_push_then_phase_144_offline_planner_contract_repair"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
