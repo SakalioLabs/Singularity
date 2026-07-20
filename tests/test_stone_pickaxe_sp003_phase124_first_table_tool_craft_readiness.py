@@ -81,9 +81,12 @@ def test_phase124_audit_binds_the_one_shot_non_mutating_repair():
         "tests/test_stone_pickaxe_sp003_phase116_table_staging.py": (
             "77ae257eb8f609cf28f740ebb6322a47840fb938996243a48e3b7a952338ec5e"
         ),
-        "tests/test_stone_pickaxe_sp003_phase124_first_table_tool_craft_readiness.py": (
-            "93a1d78ba6015409d1bf0a7a8d39915d57758605799848ab82add721aa2dfa63"
-        ),
+            "tests/test_stone_pickaxe_sp003_phase124_first_table_tool_craft_readiness.py": (
+                "93a1d78ba6015409d1bf0a7a8d39915d57758605799848ab82add721aa2dfa63"
+            ),
+            "tests/test_stone_pickaxe_sp003_runtime.py": (
+                "28c16d9d13c994faa9eceed3edb0cf23c1a61e7f777b1c561382580c13deccd2"
+            ),
         "workspace/evals/stone_pickaxe_sp003_harness_policy.json": (
             "aef9fe1e733476eb93a9264c7e33e7e3a8ed9cf50b400e44f7476691a2c8815f"
         ),

@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 
 from singularity.evaluation.stone_pickaxe_sp003_phase122_runtime import (
     SP003_PARTIAL_SHAFT_STEP_UP_POLICY_ID,
@@ -262,11 +263,41 @@ def test_phase132_audit_binds_implementation_and_retained_failure():
     assert audit["counts_toward_skill_gate"] is False
     assert audit["counts_toward_capability"] is False
     assert audit["counts_toward_m4"] is False
-    for record in [
+    evolved_historical_paths = {
+        "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py": (
+            "c6aa6b2836215e58ee3465e4185e5eb30cf975aebf5896cb18f491789c6b7312"
+        ),
+        "tests/test_stone_pickaxe_sp003_phase130_replan_dispatch.py": (
+            "3c368b04fbeef200e0b85687721691d573285b421bbf51d18031c0ee3a98ae3d"
+        ),
+        "tests/test_stone_pickaxe_sp003_phase132_grounded_approach_replan.py": (
+            "681c5282a89c91fbed4aa5b10771f411f7f4c412a8d9ed0355db6620ceb8a98c"
+        ),
+        "workspace/evals/stone_pickaxe_sp003_harness_policy.json": (
+            "227523095386318a67614b4205e44360e78f77d596d6e166080e8c383bb87dcf"
+        ),
+    }
+    records = [
         *audit["implementation"],
         *audit["protected_identities"],
         *audit["retained_phase_131_identities"],
-    ]:
-        assert hashlib.sha256((REPO / record["path"]).read_bytes()).hexdigest() == (
-            record["sha256"]
-        )
+    ]
+    assert {
+        record["path"]: record["sha256"]
+        for record in records
+        if record["path"] in evolved_historical_paths
+    } == evolved_historical_paths
+    for record in records:
+        if record["path"] in evolved_historical_paths:
+            retained = subprocess.check_output(
+                [
+                    "git",
+                    "show",
+                    f"0393ba45fd3cf1ea1cafb3536d3000eb857868de:{record['path']}",
+                ],
+                cwd=REPO,
+            )
+            actual = hashlib.sha256(retained).hexdigest()
+        else:
+            actual = hashlib.sha256((REPO / record["path"]).read_bytes()).hexdigest()
+        assert actual == record["sha256"]

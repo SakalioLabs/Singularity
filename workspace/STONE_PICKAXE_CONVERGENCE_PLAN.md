@@ -209,7 +209,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 126 target semantics are live-exercised; Phase 127 failure evidence is pending push; twenty-six authorizations consumed; baseline 0/1 and candidates 0/3; Phase 128 offline repair required before any new authorization |
+| 8. SP-003 composite acceptance | Phase 135 evidence is pushed at `0e66e22d`; thirty authorizations consumed; baseline 0/1 and candidates 0/3; Phase 136 observation-state delayed-pickup reconciliation is offline verified and awaits commit/push before any separate authorization |
 
 ## Frozen Baseline
 
@@ -221,4 +221,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 133 evidence is committed and pushed, fixed-provider throughput is reestablished by one bounded no-Minecraft probe, and a separate parent-bound authorization is committed and pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 136 offline repair is committed and pushed and a separate parent-bound authorization is committed and pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

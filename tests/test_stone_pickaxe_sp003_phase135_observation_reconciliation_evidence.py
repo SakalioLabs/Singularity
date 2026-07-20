@@ -202,8 +202,21 @@ def test_phase135_failure_ledger_binds_gap_without_granting_credit():
     assert failure["counts_toward_capability"] is False
     assert failure["counts_toward_m4"] is False
     assert failure["single_next_offline_fix"] == (
-        "bounded_observation_state_delayed_log_pickup_reconciliation_before_stage_selection"
+        "none_phase_136_bounded_observation_reconciliation_offline_verified"
     )
+    repair = failure["offline_repair"]
+    assert repair["phase"] == 136
+    assert repair["policy_id"] == (
+        "sp003-observation-delayed-log-pickup-reconciliation-v1"
+    )
+    assert repair["retained_phase_135_counterfactual_passed"] is True
+    assert repair["verified_log_source_count_after"] == 3
+    assert repair["pending_log_source_count_after"] == 0
+    assert repair["fourth_log_target_removed"] is True
+    assert repair["exact_twelve_plank_craft_allowed"] is True
+    assert repair["live_episode_run"] is False
+    assert repair["counts_toward_capability"] is False
+    assert repair["counts_toward_m4"] is False
     assert len(failure["evidence"]) == 13
     for record in failure["evidence"]:
         path = REPO / record["path"]

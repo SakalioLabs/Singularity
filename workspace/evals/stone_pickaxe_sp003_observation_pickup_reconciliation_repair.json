@@ -1,0 +1,176 @@
+{
+  "type": "stone_pickaxe_sp003_observation_pickup_reconciliation_repair",
+  "schema_version": 1,
+  "phase": 136,
+  "generated_at": "2026-07-20T13:10:00+08:00",
+  "base_commit": "0e66e22ddefb0b64ca3efc02220df631074fdcd7",
+  "task_id": "SP-003",
+  "policy_id": "sp003-observation-delayed-log-pickup-reconciliation-v1",
+  "status": "offline_verified",
+  "retained_phase_135_failure": {
+    "classification": "sp003_observation_delayed_log_pickup_reconciliation_gap",
+    "episode_id": "sp003_baseline_20260720_121934_e86b807f",
+    "session_id": "5bfd9200-c73",
+    "evidence_commit": "0e66e22ddefb0b64ca3efc02220df631074fdcd7",
+    "authorization_commit": "cf32589df5d02e1ac4643d90463e0cb99300b35a",
+    "manifest_sha256": "9ed16b45f2ca9bbb6ef9e38b5d0ae9d9cbf072dd056108027f27405bb5c5cf48",
+    "failed_log_action_index": 3,
+    "failed_log_source_id": "oak_log:119:141:-33",
+    "pending_proof_fingerprint": "a0b4b268467be0b8959a21e997b542eef2f9fb957cfab2d7bb7d02ff21db5f23",
+    "first_reconcilable_observation_event_index": 96,
+    "first_reconcilable_inventory": {"oak_log": 3},
+    "verified_log_source_count_before": 2,
+    "pending_log_source_count_before": 1,
+    "overshoot_action_source_id": "oak_log:119:143:-33",
+    "overshoot_observation_event_index": 109,
+    "overshoot_inventory": {"oak_log": 4},
+    "behavioral_empty_hand_to_stone_pickaxe_loop_completed": false,
+    "strict_baseline_passed": false,
+    "automatic_retry_attempted": false
+  },
+  "repair_contract": {
+    "source": "fresh_machine_observation",
+    "fresh_observation_boundary_count_max": 1,
+    "exact_inventory_required": true,
+    "same_log_family_required": true,
+    "observed_log_count_max": 3,
+    "verified_plus_pending_surplus_exact": true,
+    "pending_machine_proof_fingerprint_required": true,
+    "pending_source_position_binding_required": true,
+    "oldest_pending_source_first": true,
+    "pending_source_limit": 3,
+    "idempotent": true,
+    "raw_action_failure_preserved": true,
+    "action_invocation_allowed": false,
+    "backend_invocation_allowed": false,
+    "planner_action_budget_consumed": false,
+    "same_call_retry_allowed": false,
+    "world_mutation_allowed": false,
+    "overshoot_inventory_reconciliation_allowed": false,
+    "stale_inventory_reconciliation_allowed": false,
+    "wrong_family_reconciliation_allowed": false,
+    "mixed_family_reconciliation_allowed": false,
+    "forged_pending_proof_allowed": false,
+    "shared_bridge_modified": false,
+    "vendored_dependency_modified": false,
+    "base_protocol_modified": false,
+    "verifier_threshold_modified": false
+  },
+  "counterfactual_tests": {
+    "focused_cases": "20/20",
+    "retained_phase_135_replay_passed": true,
+    "reconciliation_observation_latency": 1,
+    "verified_log_source_count_after": 3,
+    "pending_log_source_count_after": 0,
+    "successful_mutation_count_unchanged": true,
+    "fourth_log_target_removed": true,
+    "exact_twelve_plank_craft_allowed": true,
+    "second_reconciliation_noop": true,
+    "overshoot_inventory_rejected": true,
+    "stale_inventory_rejected": true,
+    "wrong_family_inventory_rejected": true,
+    "mixed_family_inventory_rejected": true,
+    "forged_pending_proof_rejected": true,
+    "synthetic_episode_raw_failure_count": 1,
+    "synthetic_episode_reconciled_failure_count": 1,
+    "synthetic_episode_unreconciled_failure_count": 0,
+    "synthetic_episode_machine_verifier_passed": true,
+    "observation_evidence_tamper_cases_rejected": 4
+  },
+  "validation": {
+    "runtime_and_evidence_cases": "106/106",
+    "all_stone_pickaxe_cases": "380/380",
+    "full_repository_cases": "1135/1135",
+    "task_goal_capability_cases": "134/134",
+    "deliverable_json_files_parsed": 1792,
+    "json_parse_errors": 0,
+    "python_compilation_passed": true,
+    "git_diff_check_passed": true,
+    "credential_matches": 0
+  },
+  "implementation": [
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "43ffc91d92099b391dded59119a909d3e5fce4c7d30036222d54eefd2c136db9"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_runtime.py",
+      "sha256": "19a12a27547d4c6f9baaabda0a8b2f4fdfef261cc8ccf61c6ed7c7c9e83c0c5d"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase136_observation_pickup_reconciliation.py",
+      "sha256": "a3ddec314437a573193c0c9e8e89578dfab3b6dd3805c36bbf81d476b63b3f17"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "48dbb75af5a736e29726d29845dd130ef622bcccb2719d8b0a1a321cc0d6c643"
+    }
+  ],
+  "protected_identities": [
+    {
+      "path": "src/singularity/core/agent.py",
+      "sha256": "3fbca09b5325b28c151d2564167ab87e69342cdcf64a07a07fa886de2bbcbc4c"
+    },
+    {
+      "path": "src/singularity/core/planner.py",
+      "sha256": "e8dc57a077b3d1328e151d9fa42db450ecd7c5816bffa8798246b8fc28b6c2af"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase122_runtime.py",
+      "sha256": "388f1bb08972a76de1a84a66bc0dcd18f502599bdcaab29baec72341815469f2"
+    },
+    {
+      "path": "src/bot/bot_server.js",
+      "sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
+    },
+    {
+      "path": "src/bot/sp003_inventory_preserving_navigation.js",
+      "sha256": "981331f2aa8c1c27b61985d0407a0dc950efed75d68b93f0c20e5970013136a1"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_protocol.json",
+      "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_phase122_episode_runner.py",
+      "sha256": "35bca1ae12b7b173887dbec4b42afc6c47fd4c6d6ce314f59c084802dbe6405c"
+    },
+    {
+      "path": "scripts/stone-pickaxe-sp003-runtime.ps1",
+      "sha256": "1f107d6a152c2a2bb19dadbc841f7dc111dbd9b83b4c5faf27886a64adbf8551"
+    }
+  ],
+  "retained_phase_135_identities": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_121934_e86b807f/manifest.json",
+      "sha256": "9ed16b45f2ca9bbb6ef9e38b5d0ae9d9cbf072dd056108027f27405bb5c5cf48"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_121934_e86b807f/session.json",
+      "sha256": "e3f5239fe74fb8c312425401e5e6f44c5e88c9e2cdb6d3d1d6cfd847262e8522"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_121934_e86b807f/episode.json",
+      "sha256": "a8b2b94316811a6fdb43dd58644ca368731be00b274c5b76373c97bbfd69f892"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_121934_e86b807f/verification.json",
+      "sha256": "eba1eacb97327ddd3d551b322e30918b031e301834a76e8168e2ac71756255be"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_121934_e86b807f/authorization_consumption.json",
+      "sha256": "60703329a2405bd4eff3947bba1e06ec382d4fb01240f4f267cbe7f9b9c1a283"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_121934_e86b807f/session_5bfd9200-c73.jsonl",
+      "sha256": "ce6e2e5c2004fb64c92f38c795e10bf78c88cd5b58018f9c5376e1797ec3098e"
+    }
+  ],
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

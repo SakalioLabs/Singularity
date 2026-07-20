@@ -506,6 +506,7 @@ def test_phase130_audit_binds_implementation_and_retained_failure():
     evolved_paths = {
         "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
         "tests/test_stone_pickaxe_sp003_phase130_replan_dispatch.py",
+        "tests/test_stone_pickaxe_sp003_phase124_first_table_tool_craft_readiness.py",
         "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
     }
     for record in [

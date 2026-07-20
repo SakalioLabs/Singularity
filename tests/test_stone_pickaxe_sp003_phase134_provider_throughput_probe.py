@@ -171,8 +171,13 @@ def test_phase134_probe_opens_only_the_separate_authorization_gate():
     assert phase135["authorization_consumed"] is True
     assert phase135["authorization_reuse_allowed"] is False
     assert gate["id"] == (
-        "sp003_phase_135_evidence_commit_push_then_observation_delayed_pickup_reconciliation_offline_fix"
+        "sp003_phase_136_offline_repair_commit_push_then_separate_baseline_authorization"
     )
+    assert gate["prerequisites"][-3:] == [
+        "phase_136_bounded_observation_state_delayed_log_pickup_reconciliation_fix_is_implemented_and_offline_verified",
+        "phase_136_repair_audit_and_retained_phase_135_counterfactual_are_hash_verified",
+        "phase_136_offline_repair_commit_is_pushed_and_main_synchronized",
+    ]
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False

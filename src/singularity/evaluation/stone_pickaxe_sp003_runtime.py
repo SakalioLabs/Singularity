@@ -92,6 +92,9 @@ SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID = (
 )
 SP003_CRAFT_SETTLEMENT_DELAY_MS = 1000
 SP003_DELAYED_LOG_PICKUP_POLICY_ID = "sp003-delayed-log-pickup-reconciliation-v1"
+SP003_OBSERVATION_LOG_PICKUP_POLICY_ID = (
+    "sp003-observation-delayed-log-pickup-reconciliation-v1"
+)
 SP003_PENDING_LOG_PICKUP_MAX = 3
 SP003_TABLE_REFERENCE_REPAIR_POLICY_ID = (
     "sp003-table-reference-clear-target-repair-v1"
@@ -377,6 +380,40 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         and episode_contract.get("delayed_pickup_current_source_reserved_count") == 1
         and episode_contract.get("delayed_pickup_same_log_family_required") is True
         and episode_contract.get("delayed_pickup_raw_failure_preserved") is True
+    )
+    checks["observation_log_pickup_reconciliation_contract"] = (
+        episode_contract.get(
+            "observation_delayed_log_pickup_reconciliation_policy_id"
+        )
+        == SP003_OBSERVATION_LOG_PICKUP_POLICY_ID
+        and episode_contract.get(
+            "observation_delayed_pickup_fresh_observation_required"
+        )
+        is True
+        and episode_contract.get(
+            "observation_delayed_pickup_exact_inventory_required"
+        )
+        is True
+        and episode_contract.get(
+            "observation_delayed_pickup_same_log_family_required"
+        )
+        is True
+        and episode_contract.get(
+            "observation_delayed_pickup_reconciliation_tick_max"
+        )
+        == 1
+        and episode_contract.get(
+            "observation_delayed_pickup_action_invocation_allowed"
+        )
+        is False
+        and episode_contract.get(
+            "observation_delayed_pickup_world_mutation_allowed"
+        )
+        is False
+        and episode_contract.get(
+            "observation_delayed_pickup_raw_failure_preserved"
+        )
+        is True
     )
     checks["bounded_table_reference_repair_contract"] = (
         episode_contract.get("table_reference_repair_policy_id")
@@ -2812,6 +2849,48 @@ def _pending_log_pickup_proof(
     return proof
 
 
+def _valid_pending_log_pickup_proof(proof: Any) -> bool:
+    item = proof if isinstance(proof, dict) else {}
+    block = str(item.get("source_block") or "")
+    position = _integer_cell(item.get("source_position"))
+    fingerprint = str(item.get("proof_fingerprint") or "")
+    entity_id = item.get("drop_entity_id")
+    return bool(
+        item.get("type") == "sp003_pending_removed_log_pickup"
+        and item.get("schema_version") == 1
+        and item.get("policy_id") == SP003_DELAYED_LOG_PICKUP_POLICY_ID
+        and fingerprint
+        and fingerprint
+        == canonical_sha256({
+            key: value
+            for key, value in item.items()
+            if key != "proof_fingerprint"
+        })
+        and block in LOG_ITEMS
+        and position is not None
+        and item.get("source_id") == source_id(block, item.get("source_position"))
+        and item.get("action_verified") is True
+        and item.get("raw_action_success") is False
+        and item.get("block_removed") is True
+        and item.get("target_block_before") == block
+        and item.get("target_block_after") in {"", "air", "cave_air", "void_air"}
+        and item.get("expected_drops") == [block]
+        and item.get("pickup_observed") is False
+        and item.get("pickup_inventory_delta") == {}
+        and isinstance(entity_id, int)
+        and not isinstance(entity_id, bool)
+        and entity_id > 0
+        and item.get("drop_item_name") == block
+        and len(_compact_position(item.get("drop_position"))) == 3
+        and item.get("pickup_collection_detected") is True
+        and item.get("pickup_collection_attempted") is True
+        and item.get("pickup_collection_success") is False
+        and item.get("pickup_completion_grounded") is False
+        and item.get("dig_postcondition_passed") is False
+        and item.get("error") == "expected block drop was not acquired"
+    )
+
+
 def _record_pending_log_pickup(
     progress: dict,
     params: dict,
@@ -2856,13 +2935,10 @@ def _reconcile_delayed_log_pickups(
         item
         for item in pending
         if isinstance(item, dict)
+        and _valid_pending_log_pickup_proof(item)
         and item.get("source_block") == block
         and item.get("source_id") != current_source_id
         and item.get("source_id") not in set(progress.get("log_source_ids", set()))
-        and item.get("proof_fingerprint")
-        == canonical_sha256(
-            {key: value for key, value in item.items() if key != "proof_fingerprint"}
-        )
     ]
     remaining_capacity = max(
         0,
@@ -2909,6 +2985,107 @@ def _reconcile_delayed_log_pickups(
     progress.setdefault("delayed_log_pickup_reconciliations", []).append(proof)
     backend["sp003_delayed_log_pickup_reconciliation"] = copy.deepcopy(proof)
     return reconciled_ids
+
+
+def reconcile_sp003_observation_log_pickups(
+    progress: Any,
+    observation: Any,
+) -> dict:
+    state = progress if isinstance(progress, dict) else {}
+    pending = state.get("pending_log_pickups")
+    if not isinstance(pending, list) or not pending:
+        return {}
+
+    block = str(state.get("log_item") or "")
+    verified_ids = set(str(item) for item in state.get("log_source_ids", set()))
+    inventory = _safe_inventory(observation)
+    observed_count = _count(inventory.get(block))
+    before_count = len(verified_ids)
+    if not (
+        block in LOG_ITEMS
+        and before_count < 3
+        and inventory == {block: observed_count}
+        and before_count < observed_count <= 3
+        and all(
+            _count(state.get(field)) == 0
+            for field in (
+                "plank_craft_count",
+                "stick_craft_count",
+                "crafting_table_craft_count",
+                "crafting_table_place_count",
+                "wooden_pickaxe_craft_count",
+                "wooden_pickaxe_equip_count",
+                "stone_pickaxe_craft_count",
+                "iron_mining_action_count",
+            )
+        )
+        and not set(state.get("stone_source_ids", set()))
+    ):
+        return {}
+
+    normalized_pending = [item for item in pending if isinstance(item, dict)]
+    pending_ids = [str(item.get("source_id") or "") for item in normalized_pending]
+    pending_fingerprints = [
+        str(item.get("proof_fingerprint") or "") for item in normalized_pending
+    ]
+    if not (
+        len(normalized_pending) == len(pending)
+        and len(pending) <= SP003_PENDING_LOG_PICKUP_MAX
+        and len(set(pending_ids)) == len(pending_ids)
+        and len(set(pending_fingerprints)) == len(pending_fingerprints)
+        and all(
+            _valid_pending_log_pickup_proof(item)
+            and item.get("source_block") == block
+            and item.get("source_id") not in verified_ids
+            for item in normalized_pending
+        )
+    ):
+        return {}
+
+    surplus = observed_count - before_count
+    remaining_capacity = 3 - before_count
+    if surplus > len(normalized_pending) or surplus > remaining_capacity:
+        return {}
+    selected = normalized_pending[:surplus]
+    if not selected:
+        return {}
+
+    reconciled_ids = [str(item["source_id"]) for item in selected]
+    selected_fingerprints = [str(item["proof_fingerprint"]) for item in selected]
+    remaining = normalized_pending[surplus:]
+    after_ids = verified_ids | set(reconciled_ids)
+    proof = {
+        "type": "sp003_observation_delayed_log_pickup_reconciliation",
+        "schema_version": 1,
+        "policy_id": SP003_OBSERVATION_LOG_PICKUP_POLICY_ID,
+        "reconciliation_source": "fresh_machine_observation",
+        "source_block": block,
+        "observed_inventory": dict(inventory),
+        "observed_source_block_count": observed_count,
+        "inventory_surplus_count": surplus,
+        "fresh_observation_boundary_count": 1,
+        "pending_source_ids_before": pending_ids,
+        "reconciled_pending_source_ids": reconciled_ids,
+        "pending_proof_fingerprints": selected_fingerprints,
+        "remaining_pending_source_ids": [
+            str(item.get("source_id") or "") for item in remaining
+        ],
+        "log_source_ids_before": sorted(verified_ids),
+        "log_source_ids_after": sorted(after_ids),
+        "log_source_count_before": before_count,
+        "log_source_count_after": len(after_ids),
+        "action_invoked": False,
+        "backend_invoked": False,
+        "world_mutation": False,
+        "planner_action_budget_consumed": False,
+        "same_call_retry_count": 0,
+        "raw_action_failure_preserved": True,
+    }
+    proof["proof_fingerprint"] = canonical_sha256(proof)
+    state["log_source_ids"] = after_ids
+    state["pending_log_pickups"] = remaining
+    state.setdefault("delayed_log_pickup_reconciliations", []).append(proof)
+    return copy.deepcopy(proof)
 
 
 def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
@@ -3192,6 +3369,28 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
             self._sp003_feedback_observation_override = None
             return copy.deepcopy(cached)
         observation = dict(super()._observe())
+        progress_before_reconciliation = _progress_snapshot(self.sp003_progress)
+        observation_reconciliation = reconcile_sp003_observation_log_pickups(
+            self.sp003_progress,
+            observation,
+        )
+        if observation_reconciliation:
+            progress_after_reconciliation = _progress_snapshot(self.sp003_progress)
+            observation["sp003_observation_log_pickup_reconciliation"] = (
+                copy.deepcopy(observation_reconciliation)
+            )
+            if hasattr(getattr(self, "session_logger", None), "log"):
+                self.session_logger.log(
+                    "stone_pickaxe_sp003_observation_log_pickup_reconciliation",
+                    {
+                        "schema_version": 1,
+                        "policy_id": SP003_OBSERVATION_LOG_PICKUP_POLICY_ID,
+                        "observation_inventory": _safe_inventory(observation),
+                        "before": progress_before_reconciliation,
+                        "after": progress_after_reconciliation,
+                        "proof": copy.deepcopy(observation_reconciliation),
+                    },
+                )
         local_scan = self.bot.get_nearby_blocks(radius=SP003_CLEARANCE_SCAN_RADIUS)
         post_scan_player_state = self.bot.get_player_state()
         scan_report = _bounded_complete_local_scan(
@@ -4410,6 +4609,7 @@ def build_sp003_episode(
     raw_action_failures = []
     pending_log_pickup_proofs = []
     delayed_log_pickup_reconciliation_proofs = []
+    observation_log_pickup_reconciliation_proofs = []
     post_deadline = []
     forbidden = []
     counts: dict[str, int] = {}
@@ -4424,6 +4624,68 @@ def build_sp003_episode(
     iron_actions = []
     unexpected_actions = []
     skill_action_map = []
+    for event_index, event in enumerate(events, start=1):
+        if not (
+            isinstance(event, dict)
+            and event.get("type")
+            == "stone_pickaxe_sp003_observation_log_pickup_reconciliation"
+            and isinstance(event.get("data"), dict)
+        ):
+            continue
+        data = event["data"]
+        proof = data.get("proof") if isinstance(data.get("proof"), dict) else {}
+        fingerprint = str(proof.get("proof_fingerprint") or "")
+        observation_event_index = 0
+        observation_data = {}
+        for candidate_index, candidate in enumerate(
+            events[event_index:],
+            start=event_index + 1,
+        ):
+            if not (
+                isinstance(candidate, dict)
+                and candidate.get("type") == "observation"
+                and isinstance(candidate.get("data"), dict)
+            ):
+                continue
+            candidate_data = candidate["data"]
+            candidate_proof = (
+                candidate_data.get(
+                    "sp003_observation_log_pickup_reconciliation"
+                )
+                if isinstance(
+                    candidate_data.get(
+                        "sp003_observation_log_pickup_reconciliation"
+                    ),
+                    dict,
+                )
+                else {}
+            )
+            if str(candidate_proof.get("proof_fingerprint") or "") == fingerprint:
+                observation_event_index = candidate_index
+                observation_data = candidate_data
+                break
+        observation_log_pickup_reconciliation_proofs.append({
+            "event_index": event_index,
+            "observation_event_index": observation_event_index,
+            "action_count_before": sum(
+                1
+                for prior in events[: event_index - 1]
+                if isinstance(prior, dict) and prior.get("type") == "action"
+            ),
+            "observation_inventory": _safe_inventory(observation_data),
+            "observation_progress": copy.deepcopy(
+                observation_data.get("sp003_progress")
+                if isinstance(observation_data.get("sp003_progress"), dict)
+                else {}
+            ),
+            "before": copy.deepcopy(
+                data.get("before") if isinstance(data.get("before"), dict) else {}
+            ),
+            "after": copy.deepcopy(
+                data.get("after") if isinstance(data.get("after"), dict) else {}
+            ),
+            "proof": copy.deepcopy(proof),
+        })
     for index, event in enumerate(action_events, start=1):
         data = event["data"]
         action = data.get("action") if isinstance(data.get("action"), dict) else {}
@@ -4658,8 +4920,15 @@ def build_sp003_episode(
         and isinstance(item.get("proof"), dict)
         and str(item["proof"].get("proof_fingerprint") or "")
     }
-    reconciliation_links: dict[str, tuple[dict, int]] = {}
-    for reconciliation in delayed_log_pickup_reconciliation_proofs:
+    reconciliation_links: dict[str, tuple[dict, int, str]] = {}
+    reconciliation_records = [
+        (item, "action_result")
+        for item in delayed_log_pickup_reconciliation_proofs
+    ] + [
+        (item, "fresh_machine_observation")
+        for item in observation_log_pickup_reconciliation_proofs
+    ]
+    for reconciliation, reconciliation_source in reconciliation_records:
         proof = (
             reconciliation.get("proof")
             if isinstance(reconciliation.get("proof"), dict)
@@ -4673,14 +4942,18 @@ def build_sp003_episode(
         for offset, fingerprint in enumerate(fingerprints):
             normalized = str(fingerprint or "")
             if normalized in pending_by_fingerprint and normalized not in reconciliation_links:
-                reconciliation_links[normalized] = (reconciliation, offset)
+                reconciliation_links[normalized] = (
+                    reconciliation,
+                    offset,
+                    reconciliation_source,
+                )
 
     reconciled_action_failure_indexes = []
     for fingerprint, pending_record in pending_by_fingerprint.items():
         link = reconciliation_links.get(fingerprint)
         if link is None:
             continue
-        reconciliation_record, offset = link
+        reconciliation_record, offset, reconciliation_source = link
         pending_proof = pending_record["proof"]
         reconciliation_proof = reconciliation_record["proof"]
         reconciled_ids = (
@@ -4696,10 +4969,9 @@ def build_sp003_episode(
         if str(reconciled_ids[offset] or "") != identifier:
             continue
         pending_index = int(pending_record.get("index") or 0)
-        reconciliation_index = int(reconciliation_record.get("index") or 0)
         reconciled_action_failure_indexes.append(pending_index)
         log_sources.add(identifier)
-        log_transition_proofs.append({
+        transition = {
             "index": pending_index,
             "source_id": identifier,
             "source_block": str(pending_proof.get("source_block") or ""),
@@ -4719,11 +4991,23 @@ def build_sp003_episode(
             "pickup_count": 0,
             "delayed_pickup_reconciled": True,
             "pending_proof_fingerprint": fingerprint,
-            "reconciliation_action_index": reconciliation_index,
+            "reconciliation_source": reconciliation_source,
             "reconciliation_proof_fingerprint": str(
                 reconciliation_proof.get("proof_fingerprint") or ""
             ),
-        })
+        }
+        if reconciliation_source == "action_result":
+            transition["reconciliation_action_index"] = int(
+                reconciliation_record.get("index") or 0
+            )
+        else:
+            transition["reconciliation_event_index"] = int(
+                reconciliation_record.get("event_index") or 0
+            )
+            transition["reconciliation_observation_event_index"] = int(
+                reconciliation_record.get("observation_event_index") or 0
+            )
+        log_transition_proofs.append(transition)
     reconciled_action_failure_indexes = sorted(
         set(reconciled_action_failure_indexes)
     )
@@ -4811,6 +5095,9 @@ def build_sp003_episode(
         "pending_log_pickup_proofs": pending_log_pickup_proofs,
         "delayed_log_pickup_reconciliation_proofs": (
             delayed_log_pickup_reconciliation_proofs
+        ),
+        "observation_log_pickup_reconciliation_proofs": (
+            observation_log_pickup_reconciliation_proofs
         ),
         "surface_clearance_transition_proofs": surface_clearance_transition_proofs,
         "stone_pickup_access_transition_proofs": (
@@ -4905,6 +5192,13 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
     delayed_log_pickup_reconciliation_proofs = (
         value.get("delayed_log_pickup_reconciliation_proofs")
         if isinstance(value.get("delayed_log_pickup_reconciliation_proofs"), list)
+        else []
+    )
+    observation_log_pickup_reconciliation_proofs = (
+        value.get("observation_log_pickup_reconciliation_proofs")
+        if isinstance(
+            value.get("observation_log_pickup_reconciliation_proofs"), list
+        )
         else []
     )
     surface_clearance_proofs = (
@@ -5441,26 +5735,180 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
         for item in delayed_log_pickup_reconciliation_proofs
         if valid_delayed_log_reconciliation(item)
     ]
+
+    def valid_observation_log_reconciliation(record: Any) -> bool:
+        wrapper = record if isinstance(record, dict) else {}
+        proof = wrapper.get("proof") if isinstance(wrapper.get("proof"), dict) else {}
+        before = (
+            wrapper.get("before") if isinstance(wrapper.get("before"), dict) else {}
+        )
+        after = (
+            wrapper.get("after") if isinstance(wrapper.get("after"), dict) else {}
+        )
+        observed_progress = (
+            wrapper.get("observation_progress")
+            if isinstance(wrapper.get("observation_progress"), dict)
+            else {}
+        )
+        block_name = str(proof.get("source_block") or "")
+        reconciled_ids = (
+            proof.get("reconciled_pending_source_ids")
+            if isinstance(proof.get("reconciled_pending_source_ids"), list)
+            else []
+        )
+        pending_fingerprints = (
+            proof.get("pending_proof_fingerprints")
+            if isinstance(proof.get("pending_proof_fingerprints"), list)
+            else []
+        )
+        pending_before = (
+            proof.get("pending_source_ids_before")
+            if isinstance(proof.get("pending_source_ids_before"), list)
+            else []
+        )
+        remaining = (
+            proof.get("remaining_pending_source_ids")
+            if isinstance(proof.get("remaining_pending_source_ids"), list)
+            else []
+        )
+        source_ids_before = (
+            proof.get("log_source_ids_before")
+            if isinstance(proof.get("log_source_ids_before"), list)
+            else []
+        )
+        source_ids_after = (
+            proof.get("log_source_ids_after")
+            if isinstance(proof.get("log_source_ids_after"), list)
+            else []
+        )
+        surplus = proof.get("inventory_surplus_count")
+        before_count = proof.get("log_source_count_before")
+        after_count = proof.get("log_source_count_after")
+        event_index = wrapper.get("event_index")
+        observation_event_index = wrapper.get("observation_event_index")
+        action_count_before = wrapper.get("action_count_before")
+        paired_pending = [
+            valid_pending_by_fingerprint.get(str(fingerprint or ""))
+            for fingerprint in pending_fingerprints
+        ]
+        observed_reconciliations = (
+            observed_progress.get("delayed_log_pickup_reconciliations")
+            if isinstance(
+                observed_progress.get("delayed_log_pickup_reconciliations"), list
+            )
+            else []
+        )
+        return bool(
+            isinstance(event_index, int)
+            and not isinstance(event_index, bool)
+            and event_index > 0
+            and isinstance(observation_event_index, int)
+            and not isinstance(observation_event_index, bool)
+            and observation_event_index > event_index
+            and isinstance(action_count_before, int)
+            and not isinstance(action_count_before, bool)
+            and action_count_before > 0
+            and proof.get("type")
+            == "sp003_observation_delayed_log_pickup_reconciliation"
+            and proof.get("schema_version") == 1
+            and proof.get("policy_id") == SP003_OBSERVATION_LOG_PICKUP_POLICY_ID
+            and proof.get("reconciliation_source") == "fresh_machine_observation"
+            and fingerprint_valid(proof)
+            and block_name in LOG_ITEMS
+            and proof.get("observed_inventory") == {block_name: after_count}
+            and wrapper.get("observation_inventory") == proof.get("observed_inventory")
+            and proof.get("observed_source_block_count") == after_count
+            and proof.get("fresh_observation_boundary_count") == 1
+            and isinstance(surplus, int)
+            and not isinstance(surplus, bool)
+            and 1 <= surplus <= SP003_PENDING_LOG_PICKUP_MAX
+            and isinstance(before_count, int)
+            and not isinstance(before_count, bool)
+            and 0 <= before_count < 3
+            and after_count == before_count + surplus
+            and after_count <= 3
+            and len(source_ids_before) == before_count
+            and len(set(str(item) for item in source_ids_before)) == before_count
+            and source_ids_before == sorted(source_ids_before)
+            and len(reconciled_ids) == surplus
+            and len(set(str(item) for item in reconciled_ids)) == surplus
+            and not set(source_ids_before) & set(reconciled_ids)
+            and source_ids_after == sorted(set(source_ids_before) | set(reconciled_ids))
+            and len(source_ids_after) == after_count
+            and len(pending_fingerprints) == surplus
+            and len(set(str(item) for item in pending_fingerprints)) == surplus
+            and all(item is not None for item in paired_pending)
+            and all(
+                item["proof"].get("source_block") == block_name
+                and item["proof"].get("source_id") == reconciled_ids[offset]
+                and int(item.get("index") or 0) <= action_count_before
+                for offset, item in enumerate(paired_pending)
+            )
+            and pending_before[:surplus] == reconciled_ids
+            and remaining == pending_before[surplus:]
+            and before.get("log_source_ids") == source_ids_before
+            and before.get("log_source_removal_count") == before_count
+            and [
+                str(item.get("source_id") or "")
+                for item in before.get("pending_log_pickups", [])
+                if isinstance(item, dict)
+            ]
+            == pending_before
+            and after.get("log_source_ids") == source_ids_after
+            and after.get("log_source_removal_count") == after_count
+            and [
+                str(item.get("source_id") or "")
+                for item in after.get("pending_log_pickups", [])
+                if isinstance(item, dict)
+            ]
+            == remaining
+            and observed_progress.get("log_source_ids") == source_ids_after
+            and observed_progress.get("log_source_removal_count") == after_count
+            and observed_progress.get("pending_log_pickup_count") == len(remaining)
+            and any(
+                isinstance(item, dict)
+                and item.get("proof_fingerprint") == proof.get("proof_fingerprint")
+                for item in observed_reconciliations
+            )
+            and proof.get("action_invoked") is False
+            and proof.get("backend_invoked") is False
+            and proof.get("world_mutation") is False
+            and proof.get("planner_action_budget_consumed") is False
+            and proof.get("same_call_retry_count") == 0
+            and proof.get("raw_action_failure_preserved") is True
+        )
+
+    valid_observation_reconciliation_records = [
+        item
+        for item in observation_log_pickup_reconciliation_proofs
+        if valid_observation_log_reconciliation(item)
+    ]
+    all_valid_reconciliation_records = [
+        *valid_reconciliation_records,
+        *valid_observation_reconciliation_records,
+    ]
     valid_reconciliation_by_fingerprint = {
         str(item["proof"]["proof_fingerprint"]): item
-        for item in valid_reconciliation_records
+        for item in all_valid_reconciliation_records
     }
     referenced_pending_fingerprints = [
         str(fingerprint or "")
-        for item in valid_reconciliation_records
+        for item in all_valid_reconciliation_records
         for fingerprint in item["proof"].get("pending_proof_fingerprints", [])
     ]
     delayed_reconciliation_machine_proof = bool(
         len(valid_pending_records) == len(pending_log_pickup_proofs)
         and len(valid_reconciliation_records)
         == len(delayed_log_pickup_reconciliation_proofs)
+        and len(valid_observation_reconciliation_records)
+        == len(observation_log_pickup_reconciliation_proofs)
         and len(referenced_pending_fingerprints)
         == len(set(referenced_pending_fingerprints))
         and set(referenced_pending_fingerprints)
         == set(valid_pending_by_fingerprint)
         and len(valid_pending_by_fingerprint) == len(valid_pending_records)
         and len(valid_reconciliation_by_fingerprint)
-        == len(valid_reconciliation_records)
+        == len(all_valid_reconciliation_records)
     )
     expected_reconciled_failure_indexes = sorted(
         int(valid_pending_by_fingerprint[fingerprint].get("index") or 0)
@@ -5510,7 +5958,7 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             reconciliation_fingerprint,
             {},
         )
-        return bool(
+        common_reconciliation = bool(
             item.get("raw_action_success") is False
             and item.get("pickup_observed") is False
             and _count(item.get("pickup_count")) == 0
@@ -5518,13 +5966,32 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             and reconciliation_record
             and item.get("index") == pending_record.get("index")
             and item.get("source_id") == pending_record["proof"].get("source_id")
-            and item.get("reconciliation_action_index")
-            == reconciliation_record.get("index")
             and pending_fingerprint
             in reconciliation_record["proof"].get(
                 "pending_proof_fingerprints",
                 [],
             )
+        )
+        if not common_reconciliation:
+            return False
+        reconciliation_source = str(
+            item.get("reconciliation_source") or "action_result"
+        )
+        if reconciliation_source == "action_result":
+            return bool(
+                reconciliation_record
+                in valid_reconciliation_records
+                and item.get("reconciliation_action_index")
+                == reconciliation_record.get("index")
+            )
+        return bool(
+            reconciliation_source == "fresh_machine_observation"
+            and reconciliation_record
+            in valid_observation_reconciliation_records
+            and item.get("reconciliation_event_index")
+            == reconciliation_record.get("event_index")
+            and item.get("reconciliation_observation_event_index")
+            == reconciliation_record.get("observation_event_index")
         )
 
     criteria = {
@@ -5706,6 +6173,12 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             ),
             "delayed_log_pickup_reconciliation_count": len(
                 delayed_log_pickup_reconciliation_proofs
+            ) + len(observation_log_pickup_reconciliation_proofs),
+            "action_result_log_pickup_reconciliation_count": len(
+                delayed_log_pickup_reconciliation_proofs
+            ),
+            "observation_log_pickup_reconciliation_count": len(
+                observation_log_pickup_reconciliation_proofs
             ),
             "selected_skill_count": len(selected),
             "local_attribution_count": len(attributions),

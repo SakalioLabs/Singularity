@@ -30,6 +30,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
     SP003_GOALBLOCK_NUDGE_MAX_PULSES,
     SP003_GOALBLOCK_NUDGE_PULSE_MS,
+    SP003_OBSERVATION_LOG_PICKUP_POLICY_ID,
     SP003_PATHFINDER_STOP_DRAIN_POLICY_ID,
     SP003_POLICY_PATH,
     SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID,
@@ -51,6 +52,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     build_sp003_episode,
     build_sp003_runtime_config,
     guard_sp003_action,
+    reconcile_sp003_observation_log_pickups,
     record_sp003_success,
     source_id,
     sp003_runtime_controls,
@@ -170,6 +172,18 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
     )
     assert policy["episode_contract"]["pending_removed_log_sources_max"] == 3
     assert policy["episode_contract"]["delayed_pickup_raw_failure_preserved"] is True
+    assert policy["episode_contract"][
+        "observation_delayed_log_pickup_reconciliation_policy_id"
+    ] == SP003_OBSERVATION_LOG_PICKUP_POLICY_ID
+    assert policy["episode_contract"][
+        "observation_delayed_pickup_exact_inventory_required"
+    ] is True
+    assert policy["episode_contract"][
+        "observation_delayed_pickup_reconciliation_tick_max"
+    ] == 1
+    assert policy["episode_contract"][
+        "observation_delayed_pickup_action_invocation_allowed"
+    ] is False
     assert policy["episode_contract"]["table_reference_repair_attempts_max"] == 1
     assert policy["episode_contract"]["move_target_cell_centered"] is True
     assert policy["episode_contract"]["move_continuous_tolerance"] == 1.6
@@ -3371,6 +3385,141 @@ def test_one_pickup_surplus_reconciles_only_oldest_of_two_pending_sources():
     assert after["pending_log_pickups"][0]["source_id"] == "oak_log:118:142:-33"
 
 
+def retained_phase135_observation_reconciliation_case():
+    session_path = (
+        REPO
+        / "workspace/evals/sp003_runs/"
+        "sp003_baseline_20260720_121934_e86b807f/session.json"
+    )
+    events = json.loads(session_path.read_text(encoding="utf-8"))
+    log_actions = [
+        copy.deepcopy(event["data"])
+        for event in events
+        if event.get("type") == "action"
+        and event.get("data", {}).get("action", {}).get("parameters", {}).get(
+            "block"
+        )
+        == "oak_log"
+    ]
+    return log_actions[:3], copy.deepcopy(events[96]["data"])
+
+
+def phase135_progress_before_delayed_observation():
+    log_actions, machine_observation = retained_phase135_observation_reconciliation_case()
+    progress = _empty_progress()
+    for data in log_actions:
+        record_sp003_success(progress, data["action"], data["result"])
+    return progress, machine_observation
+
+
+def test_phase136_reconciles_phase135_pickup_on_the_first_fresh_observation():
+    progress, machine_observation = phase135_progress_before_delayed_observation()
+    before = _progress_snapshot(progress)
+
+    proof = reconcile_sp003_observation_log_pickups(progress, machine_observation)
+    after = _progress_snapshot(progress)
+
+    assert before["log_source_removal_count"] == 2
+    assert before["pending_log_pickup_count"] == 1
+    assert machine_observation["inventory"] == {"oak_log": 3}
+    assert proof["policy_id"] == SP003_OBSERVATION_LOG_PICKUP_POLICY_ID
+    assert proof["reconciliation_source"] == "fresh_machine_observation"
+    assert proof["fresh_observation_boundary_count"] == 1
+    assert proof["reconciled_pending_source_ids"] == ["oak_log:119:141:-33"]
+    assert proof["pending_proof_fingerprints"] == [
+        "a0b4b268467be0b8959a21e997b542eef2f9fb957cfab2d7bb7d02ff21db5f23"
+    ]
+    assert proof["action_invoked"] is False
+    assert proof["backend_invoked"] is False
+    assert proof["world_mutation"] is False
+    assert proof["planner_action_budget_consumed"] is False
+    assert proof["proof_fingerprint"] == canonical_sha256({
+        key: value
+        for key, value in proof.items()
+        if key != "proof_fingerprint"
+    })
+    assert after["log_source_removal_count"] == 3
+    assert after["pending_log_pickup_count"] == 0
+    assert after["successful_mutation_count"] == before["successful_mutation_count"]
+    assert after["delayed_log_pickup_reconciliation_count"] == 1
+    plank = guard_sp003_action(
+        {"type": "craft", "parameters": {"item": "oak_planks", "count": 12}},
+        machine_observation,
+        progress,
+    )
+    assert plank["allowed"], plank
+    assert reconcile_sp003_observation_log_pickups(
+        progress,
+        machine_observation,
+    ) == {}
+    assert _progress_snapshot(progress) == after
+
+
+@pytest.mark.parametrize(
+    "inventory,tamper",
+    [
+        ({"oak_log": 4}, None),
+        ({"oak_log": 2}, None),
+        ({"birch_log": 3}, None),
+        ({"oak_log": 3, "birch_log": 1}, None),
+        (
+            {"oak_log": 3},
+            lambda progress: progress["pending_log_pickups"][0].update(
+                {"proof_fingerprint": "0" * 64}
+            ),
+        ),
+    ],
+)
+def test_phase136_observation_reconciliation_adverse_controls(inventory, tamper):
+    progress, machine_observation = phase135_progress_before_delayed_observation()
+    machine_observation["inventory"] = inventory
+    if tamper is not None:
+        tamper(progress)
+    before = _progress_snapshot(progress)
+
+    proof = reconcile_sp003_observation_log_pickups(progress, machine_observation)
+
+    assert proof == {}
+    assert _progress_snapshot(progress) == before
+
+
+def test_phase136_agent_observe_reconciles_before_flags_and_targets(monkeypatch):
+    progress, machine_observation = phase135_progress_before_delayed_observation()
+    agent = StonePickaxeSP003RuntimeAgent.__new__(StonePickaxeSP003RuntimeAgent)
+    agent.sp003_arm = "baseline"
+    agent.sp003_progress = progress
+    agent._sp003_feedback_observation_override = None
+    agent.session_logger = LogStub()
+    agent.bot = SimpleNamespace(
+        get_nearby_blocks=lambda radius: [],
+        get_player_state=lambda: copy.deepcopy(machine_observation),
+    )
+    monkeypatch.setattr(
+        StonePickaxeSP002RuntimeAgent,
+        "_observe",
+        lambda _self: copy.deepcopy(machine_observation),
+    )
+
+    observed = agent._observe()
+
+    assert observed["sp003_progress"]["log_source_removal_count"] == 3
+    assert observed["sp003_progress"]["pending_log_pickup_count"] == 0
+    assert "sp003_wood_acquired" in observed["flags"]
+    assert not any(
+        target.get("name") == "oak_log" for target in observed["sp003_targets"]
+    )
+    proof = observed["sp003_observation_log_pickup_reconciliation"]
+    assert proof["reconciled_pending_source_ids"] == ["oak_log:119:141:-33"]
+    audit_events = [
+        event
+        for event in agent.session_logger.events
+        if event["type"]
+        == "stone_pickaxe_sp003_observation_log_pickup_reconciliation"
+    ]
+    assert len(audit_events) == 1
+    assert audit_events[0]["data"]["proof"] == proof
+
+
 def test_third_baseline_reviewed_plank_transition_unblocks_exact_stick_craft():
     session_path = (
         REPO
@@ -4465,6 +4614,82 @@ def delayed_pickup_synthetic_sp003_events():
     return initial, terminal, events
 
 
+def observation_delayed_pickup_synthetic_sp003_events():
+    initial, terminal, events = synthetic_sp003_events()
+    failed = events[1]["data"]
+    position = {
+        axis: failed["action"]["parameters"][axis]
+        for axis in ("x", "y", "z")
+    }
+    failed["result"].update({
+        "success": False,
+        "expected_drops": ["oak_log"],
+        "target_block_before": {"name": "oak_log", "position": dict(position)},
+        "target_block_after": {"name": "air", "position": dict(position)},
+        "pickup_observed": False,
+        "pickup_inventory_delta": {},
+        "pickup_collection": {
+            "detected": True,
+            "attempted": True,
+            "entity_id": 836,
+            "item_name": "oak_log",
+            "position": {"x": 2.25, "y": 64.0, "z": 0.25},
+            "success": False,
+            "completion_grounded": False,
+        },
+        "dig_postcondition": {
+            "required": True,
+            "block_removed": True,
+            "expected_drop_required": True,
+            "expected_drop_observed": False,
+            "passed": False,
+        },
+        "error": "expected block drop was not acquired",
+    })
+    one_log = observation(
+        {"oak_log": 1},
+        [block("oak_log", 3, 64, 0, 3.0)],
+    )
+    failed["pre_observation"] = copy.deepcopy(events[0]["data"]["post_observation"])
+    failed["post_observation"] = copy.deepcopy(one_log)
+    events[2]["data"]["pre_observation"] = copy.deepcopy(one_log)
+    events[2]["data"]["result"]["pickup_inventory_delta"] = {"oak_log": 1}
+
+    progress = _empty_progress()
+    for event in events[:3]:
+        data = event["data"]
+        record_sp003_success(progress, data["action"], data["result"])
+    before = _progress_snapshot(progress)
+    observed = copy.deepcopy(events[2]["data"]["post_observation"])
+    proof = reconcile_sp003_observation_log_pickups(progress, observed)
+    after = _progress_snapshot(progress)
+    observed["sp003_observation_log_pickup_reconciliation"] = copy.deepcopy(proof)
+    observed["sp003_progress"] = copy.deepcopy(after)
+    observed["flags"] = ["sp003_wood_acquired"]
+    events.insert(3, {
+        "type": "stone_pickaxe_sp003_observation_log_pickup_reconciliation",
+        "elapsed_s": 3.0,
+        "data": {
+            "schema_version": 1,
+            "policy_id": SP003_OBSERVATION_LOG_PICKUP_POLICY_ID,
+            "observation_inventory": dict(observed["inventory"]),
+            "before": before,
+            "after": after,
+            "proof": copy.deepcopy(proof),
+        },
+    })
+    events.insert(4, {
+        "type": "observation",
+        "elapsed_s": 3.1,
+        "data": observed,
+    })
+    assert before["log_source_removal_count"] == 2
+    assert before["pending_log_pickup_count"] == 1
+    assert after["log_source_removal_count"] == 3
+    assert after["pending_log_pickup_count"] == 0
+    return initial, terminal, events
+
+
 def build_passing_episode(monkeypatch, *, scenario=None):
     monkeypatch.setattr(
         "singularity.evaluation.stone_pickaxe_sp003_runtime.planner_request_controls_audit",
@@ -4643,6 +4868,73 @@ def test_delayed_pickup_episode_verifier_rejects_tamper(monkeypatch, tamper):
             "delayed_log_pickup_reconciliation_machine_proof",
             "log_transition_machine_proof",
             "transparent_raw_action_failure_accounting",
+        }
+        for issue in report["criteria_issues"]
+    )
+
+
+def test_observation_delayed_pickup_episode_preserves_failure_and_passes(
+    monkeypatch,
+):
+    episode = build_passing_episode(
+        monkeypatch,
+        scenario=observation_delayed_pickup_synthetic_sp003_events(),
+    )
+    report = verify_sp003_runtime_episode(episode)
+
+    assert report["passed"], report
+    assert episode["action_count"] == 13
+    assert episode["action_failures"] == episode["raw_action_failures"]
+    assert episode["reconciled_action_failure_indexes"] == [2]
+    assert episode["unreconciled_action_failures"] == []
+    assert len(episode["pending_log_pickup_proofs"]) == 1
+    assert episode["delayed_log_pickup_reconciliation_proofs"] == []
+    assert len(episode["observation_log_pickup_reconciliation_proofs"]) == 1
+    reconciliation = episode[
+        "observation_log_pickup_reconciliation_proofs"
+    ][0]
+    assert reconciliation["action_count_before"] == 3
+    assert reconciliation["observation_event_index"] > reconciliation["event_index"]
+    assert reconciliation["observation_inventory"] == {"oak_log": 3}
+    assert report["criteria"][
+        "delayed_log_pickup_reconciliation_machine_proof"
+    ] is True
+    assert report["criteria"]["transparent_raw_action_failure_accounting"] is True
+    assert report["criteria"]["zero_unreconciled_action_failures"] is True
+    assert report["criteria"]["log_transition_machine_proof"] is True
+    assert report["metrics"]["observation_log_pickup_reconciliation_count"] == 1
+    assert report["metrics"]["delayed_log_pickup_reconciliation_count"] == 1
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        lambda record: record.update({"observation_event_index": record["event_index"]}),
+        lambda record: record.update({"observation_inventory": {"oak_log": 4}}),
+        lambda record: record["proof"].update({"backend_invoked": True}),
+        lambda record: record["observation_progress"].update(
+            {"pending_log_pickup_count": 1}
+        ),
+    ],
+)
+def test_observation_delayed_pickup_episode_verifier_rejects_tamper(
+    monkeypatch,
+    tamper,
+):
+    episode = build_passing_episode(
+        monkeypatch,
+        scenario=observation_delayed_pickup_synthetic_sp003_events(),
+    )
+    tamper(episode["observation_log_pickup_reconciliation_proofs"][0])
+
+    report = verify_sp003_runtime_episode(episode)
+
+    assert not report["passed"]
+    assert any(
+        issue
+        in {
+            "delayed_log_pickup_reconciliation_machine_proof",
+            "log_transition_machine_proof",
         }
         for issue in report["criteria_issues"]
     )
