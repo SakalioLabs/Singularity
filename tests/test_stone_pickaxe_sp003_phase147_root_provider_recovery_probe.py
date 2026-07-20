@@ -6,7 +6,7 @@ import importlib.util
 import json
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +19,13 @@ SCHEMA_PATH = (
     "stone_pickaxe_sp003_phase147_root_provider_recovery_probe.schema.json"
 )
 LEDGER_PATH = ROOT / "workspace/evals/stone_pickaxe_failure_ledger.json"
+EVIDENCE_PATH = (
+    ROOT
+    / "workspace/evals/stone_pickaxe_sp003_phase147_root_provider_recovery_probe.json"
+)
+EVIDENCE_SHA256 = (
+    "c78d615313f633f7df28d0193b7b402625e3423aecd6a5573a4b035f86e219b8"
+)
 
 
 def _module():
@@ -131,11 +138,62 @@ def test_phase147_schema_and_current_gate_fail_closed_before_probe() -> None:
     assert schema["properties"]["authorization_created"] == {"const": False}
     gate = ledger["next_required_gate"]
     assert gate["id"] == (
-        "sp003_phase_147_probe_tooling_commit_push_then_one_bounded_"
-        "no_minecraft_root_provider_recovery_probe"
+        "sp003_phase_147_probe_evidence_commit_push_then_phase_148_"
+        "parent_bound_one_use_baseline_authorization"
     )
     assert gate["authorization"] is False
     assert gate["live_episode_limit"] == 0
     assert gate["normal_runtime_permission"] is False
     assert gate["automatic_retry_allowed"] is False
     assert ledger["live_authorization"] is False
+
+
+def test_phase147_retained_probe_passes_schema_and_exact_recovery_gate() -> None:
+    module = _module()
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    evidence = json.loads(EVIDENCE_PATH.read_text(encoding="utf-8"))
+
+    assert module.file_sha256(EVIDENCE_PATH) == EVIDENCE_SHA256
+    Draft202012Validator(
+        schema, format_checker=FormatChecker()
+    ).validate(evidence)
+    assert evidence["predecessor_commit"] == (
+        "d64af344dea5d9689991d59cb593cc6463c67881"
+    )
+    assert evidence["passed"] is True
+    assert evidence["decision"] == (
+        "permit_one_new_parent_bound_baseline_authorization"
+    )
+    assert all(evidence["criteria"].values())
+    assert evidence["provider_chat_call_count"] == 1
+    assert evidence["request_count"] == 1
+    assert evidence["retry_count"] == 0
+    assert evidence["duration_ms"] == 5375
+    assert evidence["duration_ms"] <= evidence["thresholds"][
+        "max_acceptable_duration_ms"
+    ]
+    assert evidence["request"]["request_sha256"] == (
+        module.EXPECTED_REQUEST_METADATA["request_sha256"]
+    )
+    assert evidence["request"]["provider_request_sha256"] == (
+        module.EXPECTED_REQUEST_METADATA["request_sha256"]
+    )
+    assert evidence["response_sha256"] == (
+        "094ba433e8d3ea46916d6941a693acd4df6ca67921e1b34f617063ddd20ad5d7"
+    )
+    assert evidence["real_llm_call"] is True
+    assert evidence["schema_valid"] is True
+    assert evidence["returned_plan"] == {
+        "plan_kind": "root",
+        "status": "planning",
+        "subtask_count": 5,
+        "actions": [module.EXPECTED_ACTION],
+    }
+    assert evidence["minecraft_process_started"] is False
+    assert evidence["authorization_created"] is False
+    assert evidence["automatic_retry_attempted"] is False
+    assert evidence["live_authorization"] is False
+    assert evidence["counts_toward_baseline_success"] is False
+    assert evidence["counts_toward_skill_gate"] is False
+    assert evidence["counts_toward_capability"] is False
+    assert evidence["counts_toward_m4"] is False

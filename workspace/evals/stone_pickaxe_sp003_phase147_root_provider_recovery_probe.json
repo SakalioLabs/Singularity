@@ -1,0 +1,198 @@
+{
+  "$schema": "workspace/evals/schemas/stone_pickaxe_sp003_phase147_root_provider_recovery_probe.schema.json",
+  "type": "stone_pickaxe_sp003_root_provider_recovery_probe",
+  "schema_version": 1,
+  "phase": 147,
+  "policy_id": "sp003-phase147-root-provider-recovery-gate-v1",
+  "task_id": "SP-003",
+  "purpose": "recover_from_phase_146_first_root_provider_tls_eof",
+  "predecessor_commit": "d64af344dea5d9689991d59cb593cc6463c67881",
+  "started_at_utc": "2026-07-20T12:45:43.440585+00:00",
+  "ended_at_utc": "2026-07-20T12:45:48.829944+00:00",
+  "passed": true,
+  "decision": "permit_one_new_parent_bound_baseline_authorization",
+  "thresholds": {
+    "request_timeout_s": 12.0,
+    "max_acceptable_duration_ms": 7500,
+    "min_representative_prompt_tokens": 2500,
+    "min_representative_request_bytes": 10000,
+    "max_provider_chat_call_count": 1,
+    "max_transport_request_count": 1,
+    "max_retry_count": 0
+  },
+  "criteria": {
+    "source_sha256_matches": true,
+    "source_observation_matches": true,
+    "source_state_matches": true,
+    "source_predecessor_is_exact_tls_eof": true,
+    "offline_request_fingerprint_matches": true,
+    "captured_request_matches_offline_request": true,
+    "request_payload_matches_provider_sha256": true,
+    "representative_request_size": true,
+    "representative_prompt_tokens": true,
+    "fixed_provider_controls": true,
+    "single_provider_chat_call": true,
+    "single_transport_request": true,
+    "zero_retries": true,
+    "within_latency_gate": true,
+    "real_llm_call": true,
+    "schema_valid": true,
+    "root_plan": true,
+    "exact_five_node_graph": true,
+    "exact_expected_action": true,
+    "no_probe_exception": true
+  },
+  "source": {
+    "episode_id": "sp003_baseline_20260720_194725_phase146",
+    "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_194725_phase146/session_2e77e5b0-07f.jsonl",
+    "sha256": "4e77402fd3ffd7bb9e1706ac2b8aed744fea5ffd0616e5dd8e7cb9fa2f49f8f0",
+    "immutable": true,
+    "rewritten": false,
+    "observation_line_number": 5,
+    "observation_canonical_sha256": "2cd05d400bfd504101dda3807555ff58187b589271747adda3a463be47711fe7",
+    "predecessor_call_id": "llm-3e890a2ab1314645",
+    "predecessor_call_index": 0,
+    "predecessor_request_sha256": "3fc9246f01af2034bfc460b5a0fffc36e51f77f39f196151a4ff41745d5b034b",
+    "predecessor_error_chain": [
+      "APIConnectionError",
+      "ConnectError",
+      "ConnectError",
+      "SSLEOFError"
+    ],
+    "state": {
+      "runtime_mode": "sp003",
+      "arm": "baseline",
+      "stage": "acquire_wood",
+      "inventory": {},
+      "log_source_removal_count": 0,
+      "target_count": 1,
+      "target_source_id": "grass_block:121:141:-36",
+      "target_name": "grass_block",
+      "target_stand_position": {
+        "x": 121,
+        "y": 142,
+        "z": -36
+      },
+      "target_navigation_only": true,
+      "target_canopy_egress": true
+    }
+  },
+  "expected_plan_kind": "root",
+  "expected_action": {
+    "type": "move_to",
+    "parameters": {
+      "x": 121,
+      "y": 142,
+      "z": -36
+    }
+  },
+  "request": {
+    "request_sha256": "97f12aa6c1f929b4a6a7645fa8707932d6f3e279a843f20b151302d57bbb9d26",
+    "request_payload_byte_count": 14144,
+    "system_message_byte_count": 9404,
+    "user_message_byte_count": 4107,
+    "request_message_count": 2,
+    "precomputed_request_sha256": "97f12aa6c1f929b4a6a7645fa8707932d6f3e279a843f20b151302d57bbb9d26",
+    "provider_request_sha256": "97f12aa6c1f929b4a6a7645fa8707932d6f3e279a843f20b151302d57bbb9d26"
+  },
+  "provider_chat_call_count": 1,
+  "request_count": 1,
+  "retry_count": 0,
+  "transport_evidence": {
+    "policy_id": "single-attempt",
+    "attempt_count": 1,
+    "retry_count": 0,
+    "attempts": [
+      {
+        "attempt_index": 0,
+        "success": true,
+        "timeout_s": 11.985,
+        "sdk_max_retries": 0,
+        "error_type": "",
+        "error_chain": []
+      }
+    ]
+  },
+  "provider": "openai",
+  "base_url": "https://opencode.ai/zen/go/v1",
+  "model": "deepseek-v4-flash",
+  "temperature": 0.0,
+  "max_tokens": 4096,
+  "response_format": {
+    "type": "json_object"
+  },
+  "extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "timeout_s": 11.985,
+  "sdk_max_retries": 0,
+  "response_sha256": "094ba433e8d3ea46916d6941a693acd4df6ca67921e1b34f617063ddd20ad5d7",
+  "response_byte_count": 2394,
+  "response_id": "1a5e54de-a56a-4ee3-8618-65c374627efc",
+  "finish_reason": "stop",
+  "reasoning_content_byte_count": 0,
+  "duration_ms": 5375,
+  "wall_duration_ms": 5389,
+  "prompt_tokens": 3377,
+  "completion_tokens": 684,
+  "total_tokens": 4061,
+  "real_llm_call": true,
+  "schema_valid": true,
+  "schema_validation": {
+    "type": "stone_pickaxe_plan_envelope_validation",
+    "schema_version": 1,
+    "passed": true,
+    "expected_goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+    "expected_kind": "root",
+    "status": "planning",
+    "subtask_count": 5,
+    "action_count": 1,
+    "compact_plan_chars": 1686,
+    "completion_requires_machine_verifier": true,
+    "issues": [],
+    "reasoning_normalization": {
+      "type": "planner_reasoning_normalization",
+      "schema_version": 1,
+      "policy_id": "sp003-nonexecutive-reasoning-normalization-v1",
+      "runtime_mode": "sp003",
+      "field": "reasoning",
+      "limit_chars": 320,
+      "applied": false,
+      "original_char_count": 112,
+      "normalized_char_count": 112,
+      "original_sha256": "f43e62b8f64feb6ba7c72523a7304edd4f59bd09a9d37d1279e42b40fb82f8d5",
+      "normalized_sha256": "f43e62b8f64feb6ba7c72523a7304edd4f59bd09a9d37d1279e42b40fb82f8d5",
+      "executable_envelope_sha256": "d69ad0617c1a0474761664a7ac3258ecf2501819b59d176c4527c03b2a4f1579",
+      "executable_fields_preserved": true,
+      "provider_response_preserved": true,
+      "action_rewrite": false
+    }
+  },
+  "returned_plan": {
+    "plan_kind": "root",
+    "status": "planning",
+    "subtask_count": 5,
+    "actions": [
+      {
+        "type": "move_to",
+        "parameters": {
+          "x": 121,
+          "y": 142,
+          "z": -36
+        }
+      }
+    ]
+  },
+  "probe_exception_type": "",
+  "credential_value_retained": false,
+  "minecraft_process_started": false,
+  "authorization_created": false,
+  "automatic_retry_attempted": false,
+  "live_authorization": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
