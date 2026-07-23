@@ -37,7 +37,11 @@ request returned HTTP 502, so the run terminated `empty_plan` with zero gameplay
 actions. The immutable episode is classified `infrastructure_provider_http_502` and
 grants no capability or M4 credit. The next admissible step is a bounded provider probe
 without Minecraft after this evidence is committed and pushed; another live episode is
-not authorized by this record.
+not authorized by this record. Probe `sp004_provider_probe_20260724_034229` then made
+one zero-retry chat request and received HTTP 502; a separate read-only models request
+was disconnected before any response. Minecraft was not started. The provider is
+currently unavailable, and a new live episode remains unauthorized until the provider
+recovers and a fresh bounded no-Minecraft probe passes.
 
 ## Live Acceptance
 

@@ -375,3 +375,9 @@ The material below is retained as historical context and is not active work whil
   retain the infrastructure failure, with no retry, capability credit, or M4 credit.
   The next gate is a bounded no-Minecraft provider probe after this evidence commit is
   pushed.
+- After evidence commit `78d8123` was pushed, bounded SP-004 provider probe
+  `sp004_provider_probe_20260724_034229` ran without Minecraft. Its only chat request
+  used one attempt and zero retries and returned HTTP 502 after 6.625 seconds; a
+  separate read-only models query was disconnected before a response. The provider is
+  classified unavailable. No gameplay action, retry authorization, capability credit,
+  or M4 credit was created.

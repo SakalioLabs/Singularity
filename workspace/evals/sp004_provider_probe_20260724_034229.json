@@ -1,0 +1,33 @@
+{
+  "type": "iron_pickaxe_sp004_provider_probe",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-23T19:42:29.4607244Z",
+  "source_episode_id": "sp004_live_20260724_032722",
+  "source_evidence_commit": "78d8123070e66e2ac8fc70c1ba78b365adebb8fb",
+  "provider": "openai_compatible",
+  "base_url": "http://192.168.3.27:8317/v1",
+  "model": "grok-4.5",
+  "minecraft_started": false,
+  "gameplay_action_count": 0,
+  "automatic_retry_performed": false,
+  "chat_completion_probe": {
+    "attempt_count": 1,
+    "retry_count": 0,
+    "elapsed_s": 6.625,
+    "passed": false,
+    "error_type": "InternalServerError",
+    "http_status": 502
+  },
+  "models_endpoint_probe": {
+    "attempt_count": 1,
+    "retry_count": 0,
+    "passed": false,
+    "error_type": "RemoteDisconnected",
+    "response_received": false
+  },
+  "classification": "provider_unavailable",
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "authorizes_live_retry": false,
+  "next_gate": "restore_provider_then_run_a_new_bounded_no_minecraft_probe"
+}
