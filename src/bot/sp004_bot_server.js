@@ -71,6 +71,16 @@ const SMELT_FUEL_CAPACITY = new Map([
     ['coal', 8],
     ['charcoal', 8],
 ]);
+
+function smeltPolicyStatus() {
+    return {
+        policy_id: SMELT_OUTPUT_SETTLEMENT_POLICY_ID,
+        max_attempts: 1,
+        automatic_retry: false,
+        supported_outputs: Array.from(SMELT_INPUT_BY_OUTPUT.keys()).sort(),
+        supported_fuels: Array.from(SMELT_FUEL_CAPACITY.keys()).sort(),
+    };
+}
 const HOSTILE_ENTITY_NAMES = new Set([
     'blaze', 'bogged', 'breeze', 'cave_spider', 'creeper', 'drowned', 'elder_guardian',
     'endermite', 'evoker', 'ghast', 'guardian', 'hoglin', 'husk', 'magma_cube',
@@ -3557,13 +3567,7 @@ const handlers = {
             max_attempts: CRAFT_MAX_ATTEMPTS,
             automatic_retry: CRAFT_MAX_ATTEMPTS > 1,
         },
-        smelt_policy: {
-            policy_id: SMELT_OUTPUT_SETTLEMENT_POLICY_ID,
-            max_attempts: 1,
-            automatic_retry: false,
-            supported_outputs: Object.keys(SMELT_INPUT_BY_OUTPUT).sort(),
-            supported_fuels: Object.keys(SMELT_FUEL_CAPACITY).sort(),
-        },
+        smelt_policy: smeltPolicyStatus(),
         screenshot_capture_supported: Boolean(findScreenshotCapture(bot)),
         screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
     }),
@@ -3852,6 +3856,7 @@ module.exports = {
     publicScreenshotPluginStatus,
     resolveScreenshotPluginSpec,
     screenshotPathFromCaptureResult,
+    smeltPolicyStatus,
     shelterBlockState,
     sealedCellTemplatePositions,
     shelterTemplatePositions,

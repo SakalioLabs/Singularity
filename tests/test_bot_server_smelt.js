@@ -5,6 +5,7 @@ const { Vec3 } = require('vec3');
 const {
     SMELT_OUTPUT_SETTLEMENT_POLICY_ID,
     createSmeltHandler,
+    smeltPolicyStatus,
 } = require('../src/bot/sp004_bot_server');
 
 function removeInventory(items, name, count) {
@@ -136,6 +137,17 @@ async function testSmeltHandlerCollectsThreeVerifiedIronIngots() {
     console.log('PASS: smelt handler collects three machine-settled iron ingots');
 }
 
+function testSmeltPolicyAdvertisesMapBackedCapabilities() {
+    assert.deepStrictEqual(smeltPolicyStatus(), {
+        policy_id: SMELT_OUTPUT_SETTLEMENT_POLICY_ID,
+        max_attempts: 1,
+        automatic_retry: false,
+        supported_outputs: ['iron_ingot'],
+        supported_fuels: ['charcoal', 'coal'],
+    });
+    console.log('PASS: smelt health policy advertises map-backed capabilities');
+}
+
 async function testSmeltHandlerRejectsMissingMaterialsBeforeOpeningFurnace() {
     const fixture = createSmeltFixture({
         items: [
@@ -235,6 +247,7 @@ async function testSmeltHandlerTimesOutWithoutRetryOrFalseSuccess() {
 }
 
 async function main() {
+    testSmeltPolicyAdvertisesMapBackedCapabilities();
     await testSmeltHandlerCollectsThreeVerifiedIronIngots();
     await testSmeltHandlerRejectsMissingMaterialsBeforeOpeningFurnace();
     await testSmeltHandlerRequiresObservedFurnace();
