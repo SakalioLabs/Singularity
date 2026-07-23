@@ -1,0 +1,20 @@
+{
+  "type": "iron_pickaxe_sp004_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_032722",
+  "session_id": "b0774555-bb0",
+  "classification": "infrastructure_provider_http_502",
+  "preflight_passed": true,
+  "gameplay_action_count": 0,
+  "automatic_retry_performed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "next_gate": "bounded_no_minecraft_provider_probe_after_evidence_push",
+  "evidence": {
+    "preflight_sha256": "58e82c51aedc151602af8bea8b63760871e5fc58b04226aec33d6c2ccd312a13",
+    "session_sha256": "3b8ad36f74610c218a29a0e6f3d0aec68a08061ff544584669f1e28da3ff66f0",
+    "episode_sha256": "2432ebf05af282655a2c2a5cd91169436396b4b7d959d1de63d83474517dd53f",
+    "verification_sha256": "db7507b5adbf532575255d849ffd5dd2b258f3a95606a86c1726f9ad7c02dd9f",
+    "manifest_sha256": "0c91dee175c120e9e2adf30ef26d7df9bea7b31da5f33f62e4995c001e71d545"
+  }
+}

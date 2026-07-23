@@ -30,7 +30,14 @@ Starting with exactly one stone pickaxe and no carried cobblestone, coal, raw ir
 
 ## Current State
 
-Offline implementation and focused regressions pass. The live loop is not yet verified. The next admissible step is one SP-004 run from a machine-audited SP-003 terminal state. A failed preflight performs no gameplay action. A gameplay or infrastructure failure is retained without automatic retry and becomes the next bounded repair input.
+Offline implementation and focused regressions pass. Episode `sp004_live_20260724_032722`
+passed the exact initial-state and bridge preflight with one stone pickaxe, two existing
+sticks, an observed crafting table, and the zero-retry smelt policy. Its first Planner
+request returned HTTP 502, so the run terminated `empty_plan` with zero gameplay
+actions. The immutable episode is classified `infrastructure_provider_http_502` and
+grants no capability or M4 credit. The next admissible step is a bounded provider probe
+without Minecraft after this evidence is committed and pushed; another live episode is
+not authorized by this record.
 
 ## Live Acceptance
 
