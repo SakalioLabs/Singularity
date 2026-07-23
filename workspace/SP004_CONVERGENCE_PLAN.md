@@ -59,6 +59,17 @@ stone-pickaxe/stick/table/8-stone/10-coal/3-iron fixture, and invoke one bounded
 Its `finally` block stops only owned processes and restores the original server
 properties.
 
+## Blocked Audit
+
+Three consecutive goal turns now contain equivalent one-attempt, zero-retry probes
+against canonical `http://192.168.3.27:8317/v1` with model `grok-4.5`; all returned
+HTTP 502 before any response bytes. The third canonical probe is
+`sp004_recovery_audit_turn3_equivalent_20260724`. The earlier turn-three diagnostic
+without `/v1` is retained but explicitly excluded from the threshold. No probe started
+Minecraft or granted a live retry. The objective is blocked on external provider
+recovery; work resumes only after the reusable bounded probe passes, at which point the
+controlled launcher may start one fresh episode.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

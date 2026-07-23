@@ -1,0 +1,58 @@
+{
+  "type": "iron_pickaxe_sp004_provider_blocked_audit",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-23T20:12:37.691724+00:00",
+  "objective": "complete the live stone-pickaxe-to-iron-pickaxe chain",
+  "blocking_condition": {
+    "classification": "external_provider_unavailable",
+    "provider": "openai_compatible",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "error_type": "InternalServerError",
+    "http_status": 502
+  },
+  "consecutive_goal_turn_count": 3,
+  "threshold_satisfied": true,
+  "equivalent_probe_evidence": [
+    {
+      "goal_turn": 1,
+      "path": "workspace/evals/sp004_provider_probe_20260724_034229.json",
+      "sha256": "15fb7bb3eb422adcbe296420440c999f9986b2353ff41b6ed500199a4001d851",
+      "attempt_count": 1,
+      "retry_count": 0,
+      "http_status": 502,
+      "minecraft_process_started": false
+    },
+    {
+      "goal_turn": 2,
+      "path": "workspace/evals/sp004_provider_probe_20260724_035327.json",
+      "sha256": "d95af62615cbc691d0ca603d2a82d962d87d8ba912b5442939bd5961a6510732",
+      "attempt_count": 1,
+      "retry_count": 0,
+      "http_status": 502,
+      "minecraft_process_started": false
+    },
+    {
+      "goal_turn": 3,
+      "path": "workspace/evals/sp004_provider_probes/sp004_recovery_audit_turn3_equivalent_20260724.json",
+      "sha256": "58f8240160dee9161272d67fdd4e9924944f68313a332870cbb67ec4d012c5cb",
+      "attempt_count": 1,
+      "retry_count": 0,
+      "http_status": 502,
+      "minecraft_process_started": false
+    }
+  ],
+  "excluded_diagnostic_probe": {
+    "path": "workspace/evals/sp004_provider_probes/sp004_recovery_audit_turn3_20260724.json",
+    "sha256": "c0d63e15ec3b3c15a06c2f3afcb76c0cc1ea85c6588e18103e9657d15d7cac72",
+    "reason": "base URL lacked the canonical /v1 suffix before normalization was fixed",
+    "counts_toward_consecutive_threshold": false
+  },
+  "minecraft_process_started": false,
+  "gameplay_action_count": 0,
+  "automatic_retry_performed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "decision": "blocked_external_state_change_required",
+  "resume_condition": "a fresh bounded provider probe passes against the canonical /v1 endpoint"
+}

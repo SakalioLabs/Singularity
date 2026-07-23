@@ -396,3 +396,13 @@ The material below is retained as historical context and is not active work whil
   restores server properties. PowerShell parsing and focused SP-004 coverage pass
   32/32. No provider request or Minecraft process was started while validating the
   launcher.
+- Fixed the provider recovery gate to normalize every configured endpoint to `/v1`;
+  focused SP-004 coverage passes 33/33 and fix commit `d3e5115` is pushed. The first
+  turn-three diagnostic lacked canonical `/v1` and is retained but excluded from the
+  blocked threshold. The replacement probe
+  `sp004_recovery_audit_turn3_equivalent_20260724` proves canonical `/v1`,
+  `grok-4.5`, JSON response mode, thinking disabled, bounded timeout, one attempt, and
+  zero retries, but still received HTTP 502 with zero response bytes. Together with
+  the two prior canonical probes, this satisfies three consecutive goal turns of the
+  same external provider blocker. No Minecraft process, gameplay action, automatic
+  retry, capability credit, or M4 credit occurred.
