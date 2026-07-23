@@ -388,3 +388,11 @@ The material below is retained as historical context and is not active work whil
   27/27. Recovery probe `sp004_provider_probe_20260724_035327` still returned HTTP 502
   after 6.594 seconds with one attempt and zero retries, so no new live episode is
   authorized.
+- Added controlled launcher `scripts/iron-pickaxe-sp004-runtime.ps1`. It checks
+  synchronized protected runtime state, fresh evidence/world paths, EULA/operator and
+  port prerequisites, then runs the provider gate before any process start. A passing
+  gate alone may start Paper and the isolated bridge, construct the exact audited
+  fixture, and invoke one bounded episode; cleanup always stops owned processes and
+  restores server properties. PowerShell parsing and focused SP-004 coverage pass
+  32/32. No provider request or Minecraft process was started while validating the
+  launcher.

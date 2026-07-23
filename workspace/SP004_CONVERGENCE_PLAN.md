@@ -50,6 +50,15 @@ SDK retries disabled, records no credential or raw response, refuses output over
 and never starts Minecraft. Probe `sp004_provider_probe_20260724_035327` exercised the
 same gate controls and again received HTTP 502, so the live hold remains in force.
 
+The controlled launcher is
+`scripts/iron-pickaxe-sp004-runtime.ps1 -EpisodeId <unique-id>`. It requires synchronized
+`main`, fresh evidence and world paths, accepted EULA state, free controlled ports, and
+an operator account. It runs the provider recovery gate before every process start.
+Only a passing probe may start Paper and the isolated bridge, initialize the exact
+stone-pickaxe/stick/table/8-stone/10-coal/3-iron fixture, and invoke one bounded episode.
+Its `finally` block stops only owned processes and restores the original server
+properties.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:
