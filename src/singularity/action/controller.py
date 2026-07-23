@@ -52,6 +52,7 @@ class ActionController:
             "dig": self._dig,
             "place": self._place,
             "craft": self._craft,
+            "smelt": self._smelt,
             "attack": self._attack,
             "equip": self._equip,
             "use_item": self._use_item,
@@ -248,7 +249,7 @@ class ActionController:
             # Allow hand digging for wood, but not stone
             pass
 
-        if action_type == "craft":
+        if action_type in {"craft", "smelt"}:
             # Will be validated by the bot itself
             pass
 
@@ -428,6 +429,18 @@ class ActionController:
         item_name = params.get("item")
         count = params.get("count", 1)
         return self.bot.craft(item_name, count)
+
+    def _smelt(self, params: dict) -> dict:
+        return self.bot.smelt(
+            params.get("item"),
+            params.get("input", "raw_iron"),
+            params.get("fuel", "coal"),
+            params.get("count", 1),
+            x=params.get("x"),
+            y=params.get("y"),
+            z=params.get("z"),
+            timeout_ms=params.get("timeout_ms"),
+        )
 
     def _attack(self, params: dict) -> dict:
         entity_id = params.get("entity_id")

@@ -11,6 +11,8 @@ def action_signature(action: dict) -> str:
     params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
     if action_type == "craft":
         return f"craft:{params.get('item') or 'unknown'}"
+    if action_type == "smelt":
+        return f"smelt:{params.get('item') or 'unknown'}"
     if action_type == "dig":
         target = params.get("block") or params.get("name")
         return f"dig:{target or 'coordinates'}"

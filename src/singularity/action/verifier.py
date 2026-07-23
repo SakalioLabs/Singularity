@@ -86,6 +86,8 @@ class ActionVerifier:
             return self._decision(action_type, "accept", 0.9, "navigation or low-impact action")
         if action_type == "craft":
             return self._verify_craft(params, inventory)
+        if action_type == "smelt":
+            return self._verify_smelt(params, state, inventory)
         if action_type == "dig":
             return self._verify_dig(params, state, inventory)
         if action_type == "build_shelter_5x5":
@@ -145,6 +147,68 @@ class ActionVerifier:
             0.95,
             f"ingredients available for {item}",
             evidence=evidence,
+            required=required,
+        )
+
+    def _verify_smelt(
+        self,
+        params: dict,
+        state: dict,
+        inventory: dict,
+    ) -> ActionVerificationDecision:
+        item = str(params.get("item") or "").strip()
+        if not item:
+            return self._decision("smelt", "reject", 0.0, "smelt action missing item parameter")
+        recipe = self.kb.get_recipe(item)
+        if not recipe or recipe.get("category") != "smelting":
+            return self._decision("smelt", "reject", 0.0, f"unsupported smelting recipe for {item}")
+        ingredients = dict(recipe.get("ingredients", {}) or {})
+        if len(ingredients) != 1:
+            return self._decision("smelt", "reject", 0.0, f"ambiguous smelting input for {item}")
+        expected_input, input_per_output = next(iter(ingredients.items()))
+        input_item = str(params.get("input") or expected_input).strip()
+        if input_item != expected_input:
+            return self._decision(
+                "smelt",
+                "reject",
+                0.0,
+                f"{item} requires input {expected_input}",
+                required={"input": expected_input},
+            )
+        fuel = str(params.get("fuel") or "coal").strip()
+        if fuel not in {"coal", "charcoal"}:
+            return self._decision("smelt", "reject", 0.0, f"unsupported smelting fuel {fuel}")
+        count = params.get("count", 1)
+        if isinstance(count, bool) or not isinstance(count, int) or not 1 <= count <= 64:
+            return self._decision("smelt", "reject", 0.0, "smelt count must be an integer from 1 to 64")
+        output = max(1, self._safe_int(recipe.get("output"), default=1))
+        smelt_calls = max(1, math.ceil(count / output))
+        input_count = self._safe_int(input_per_output, default=1) * smelt_calls
+        fuel_count = max(1, math.ceil(smelt_calls / 8))
+        required = {input_item: input_count, fuel: fuel_count}
+        missing = [
+            f"{name}:{needed - self._safe_int(inventory.get(name), default=0)}"
+            for name, needed in required.items()
+            if self._safe_int(inventory.get(name), default=0) < needed
+        ]
+        visible = self._visible_block_names(state)
+        if "furnace" not in visible:
+            missing.append("nearby_furnace:1")
+        if missing:
+            return self._decision(
+                "smelt",
+                "reject",
+                0.1,
+                f"smelting prerequisites missing for {item}",
+                missing=missing,
+                required=required,
+            )
+        return self._decision(
+            "smelt",
+            "accept",
+            0.98,
+            f"furnace, input, and fuel available for {item}",
+            evidence=[f"observed:furnace", f"input:{input_item}", f"fuel:{fuel}"],
             required=required,
         )
 

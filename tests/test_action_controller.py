@@ -462,6 +462,124 @@ def test_use_item_equips_requested_item_first():
     print("PASS: ActionController equips item before use_item")
 
 
+def test_smelt_action_maps_verifies_and_executes_exact_furnace_contract():
+    class SmeltBot(FakeBot):
+        def smelt(
+            self,
+            item_name,
+            input_item,
+            fuel_item,
+            count,
+            *,
+            x=None,
+            y=None,
+            z=None,
+            timeout_ms=None,
+        ):
+            self.calls.append((
+                "smelt",
+                item_name,
+                input_item,
+                fuel_item,
+                count,
+                x,
+                y,
+                z,
+                timeout_ms,
+            ))
+            return {
+                "success": True,
+                "output_settled": True,
+                "output_inventory_increase": count,
+            }
+
+    state = {
+        "health": 20,
+        "inventory": {"raw_iron": 3, "coal": 1},
+        "nearby_blocks": [
+            {"name": "furnace", "position": {"x": 4, "y": 63, "z": 2}},
+        ],
+    }
+    action = {
+        "type": "smelt",
+        "parameters": {
+            "item": "iron_ingot",
+            "input": "raw_iron",
+            "fuel": "coal",
+            "count": 3,
+            "x": 4,
+            "y": 63,
+            "z": 2,
+            "timeout_ms": 35000,
+        },
+    }
+    verifier = ActionVerifier()
+    decision = verifier.verify(action, state)
+    bot = SmeltBot()
+    result = ActionController(bot, Config()).execute(action, state)
+    mapped = ActionMapper().map(action, "mineflayer")
+
+    assert decision.status == "accept"
+    assert decision.required == {"raw_iron": 3, "coal": 1}
+    assert mapped.executable is True
+    assert mapped.command == "smelt"
+    assert mapped.params == action["parameters"]
+    assert result["success"] is True
+    assert result["output_settled"] is True
+    assert bot.calls == [
+        ("smelt", "iron_ingot", "raw_iron", "coal", 3, 4, 63, 2, 35000),
+    ]
+    print("PASS: smelt action maps, verifies, and executes one exact furnace request")
+
+
+def test_smelt_verifier_rejects_missing_furnace_material_and_wrong_input():
+    verifier = ActionVerifier()
+    base = {
+        "type": "smelt",
+        "parameters": {
+            "item": "iron_ingot",
+            "input": "raw_iron",
+            "fuel": "coal",
+            "count": 3,
+        },
+    }
+
+    no_furnace = verifier.verify(
+        base,
+        {"inventory": {"raw_iron": 3, "coal": 1}, "nearby_blocks": []},
+    )
+    missing_input = verifier.verify(
+        base,
+        {
+            "inventory": {"raw_iron": 2, "coal": 1},
+            "nearby_blocks": [{"name": "furnace"}],
+        },
+    )
+    wrong_input = verifier.verify(
+        {
+            "type": "smelt",
+            "parameters": {
+                "item": "iron_ingot",
+                "input": "iron_ore",
+                "fuel": "coal",
+                "count": 3,
+            },
+        },
+        {
+            "inventory": {"iron_ore": 3, "coal": 1},
+            "nearby_blocks": [{"name": "furnace"}],
+        },
+    )
+
+    assert no_furnace.status == "reject"
+    assert "nearby_furnace:1" in no_furnace.missing
+    assert missing_input.status == "reject"
+    assert "raw_iron:1" in missing_input.missing
+    assert wrong_input.status == "reject"
+    assert wrong_input.required == {"input": "raw_iron"}
+    print("PASS: smelt verifier fails closed on missing or conflicting prerequisites")
+
+
 def test_partial_navigation_requires_replanning_before_plan_suffix():
     bot = NavigationBot()
     controller = ActionController(bot, Config())
@@ -1202,6 +1320,8 @@ def test_action_candidate_selector_uses_failure_correction_pairs():
 if __name__ == "__main__":
     test_self_evolution_policy_formats_advisory_context()
     test_use_item_equips_requested_item_first()
+    test_smelt_action_maps_verifies_and_executes_exact_furnace_contract()
+    test_smelt_verifier_rejects_missing_furnace_material_and_wrong_input()
     test_partial_navigation_requires_replanning_before_plan_suffix()
     test_action_mapper_desktop_backend_is_planned_not_executable()
     test_action_controller_rejects_non_executable_backend()

@@ -114,6 +114,38 @@ def test_navigation_commands_omit_null_y_and_forward_pathfinder_controls():
     print("PASS: BotBridge preserves horizontal navigation and pathfinder controls")
 
 
+def test_smelt_forwards_exact_furnace_materials_and_deadline():
+    bridge = RecordingBridge()
+
+    bridge.smelt(
+        "iron_ingot",
+        "raw_iron",
+        "coal",
+        3,
+        x=4,
+        y=63,
+        z=2,
+        timeout_ms=35000,
+    )
+
+    assert bridge.calls == [
+        (
+            "smelt",
+            {
+                "item": "iron_ingot",
+                "input": "raw_iron",
+                "fuel": "coal",
+                "count": 3,
+                "x": 4,
+                "y": 63,
+                "z": 2,
+                "timeout_ms": 35000,
+            },
+        ),
+    ]
+    print("PASS: BotBridge forwards exact furnace inputs, fuel, output, and deadline")
+
+
 def test_m4_dig_forwards_explicit_pickup_and_tool_equip_postconditions():
     bridge = RecordingBridge()
 
@@ -208,6 +240,7 @@ def test_single_shot_navigation_extends_and_restores_socket_timeout():
     assert BotBridge._single_response_timeout("walk_to", {"ms": 10000}, 10.0) == 15.0
     assert BotBridge._single_response_timeout("dig", {}, 10.0) == 15.0
     assert BotBridge._single_response_timeout("dig", {"timeout_ms": 30000}, 10.0) == 35.0
+    assert BotBridge._single_response_timeout("smelt", {"timeout_ms": 35000}, 10.0) == 40.0
     print("PASS: Single-shot navigation aligns socket and action timeout budgets")
 
 
@@ -235,6 +268,7 @@ if __name__ == "__main__":
     test_decode_response_handles_empty_or_invalid_payloads()
     test_capture_screenshot_sends_renderer_command()
     test_navigation_commands_omit_null_y_and_forward_pathfinder_controls()
+    test_smelt_forwards_exact_furnace_materials_and_deadline()
     test_m4_place_forwards_explicit_player_clearance_postcondition()
     test_benchmark_protocol_commands_are_fixed_and_typed()
     test_single_shot_navigation_extends_and_restores_socket_timeout()

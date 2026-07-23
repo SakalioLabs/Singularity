@@ -18,7 +18,7 @@ class ActionMapper:
     """Maps high-level actions to Mineflayer API or future desktop controls."""
 
     CANONICAL_ACTIONS = {
-        "walk_to", "move_to", "look_at", "dig", "place", "craft",
+        "walk_to", "move_to", "look_at", "dig", "place", "craft", "smelt",
         "attack", "equip", "use_item", "chat", "wait", "build_shelter_5x5",
         "build_shelter_cell",
     }
@@ -45,6 +45,16 @@ class ActionMapper:
             "dig": ("mouse_hold_attack", {"target_block": self._position(params, include_y=True)}),
             "place": ("mouse_place_block", {"target_block": self._position(params, include_y=True), "item": params.get("item")}),
             "craft": ("open_inventory_craft", {"item": params.get("item"), "count": params.get("count", 1)}),
+            "smelt": (
+                "open_furnace_smelt",
+                {
+                    "item": params.get("item"),
+                    "input": params.get("input", "raw_iron"),
+                    "fuel": params.get("fuel", "coal"),
+                    "count": params.get("count", 1),
+                    "target": self._position(params, include_y=True),
+                },
+            ),
             "attack": ("mouse_click_attack", {"entity_id": params.get("entity_id")}),
             "equip": ("hotbar_equip", {"item": params.get("item"), "destination": params.get("destination", "hand")}),
             "use_item": ("right_click_use", {"item": params.get("item"), "destination": params.get("destination", "hand")}),

@@ -18,7 +18,7 @@ MAX_ACTION_RESPONSE_TIMEOUT_SECONDS = 370.0
 DEADLINE_BOUND_RECOVERY_POLICY_ID = "m4-deadline-bound-bridge-recovery-v1"
 DEADLINE_BOUND_PATHFINDER_RECOVERY_POLICY_ID = "m4-deadline-bound-pathfinder-readiness-v1"
 ACTION_COMMANDS = frozenset({
-    "walk_to", "move_to", "look_at", "dig", "place", "craft", "attack",
+    "walk_to", "move_to", "look_at", "dig", "place", "craft", "smelt", "attack",
     "equip", "use_item", "chat", "build_shelter_5x5", "build_shelter_cell",
 })
 
@@ -568,6 +568,13 @@ class BotBridge:
             except (TypeError, ValueError):
                 action_seconds = 10.0
             action_seconds = max(1.0, min(60.0, action_seconds))
+        elif command == "smelt":
+            requested = params.get("timeout_ms")
+            try:
+                action_seconds = float(requested) / 1000.0 if requested is not None else 45.0
+            except (TypeError, ValueError):
+                action_seconds = 45.0
+            action_seconds = max(1.0, min(120.0, action_seconds))
         elif command == "build_shelter_5x5":
             try:
                 action_seconds = float(params.get("timeout_ms", 360000)) / 1000.0
@@ -643,6 +650,34 @@ class BotBridge:
 
     def craft(self, item_name: str, count: int = 1) -> dict:
         return self._send_command("craft", {"item": item_name, "count": count})
+
+    def smelt(
+        self,
+        item_name: str,
+        input_item: str = "raw_iron",
+        fuel_item: str = "coal",
+        count: int = 1,
+        *,
+        x=None,
+        y=None,
+        z=None,
+        timeout_ms=None,
+    ) -> dict:
+        params = {
+            "item": item_name,
+            "input": input_item,
+            "fuel": fuel_item,
+            "count": count,
+        }
+        if x is not None:
+            params["x"] = x
+        if y is not None:
+            params["y"] = y
+        if z is not None:
+            params["z"] = z
+        if timeout_ms is not None:
+            params["timeout_ms"] = timeout_ms
+        return self._send_command("smelt", params)
 
     def build_shelter_5x5(self, params: dict) -> dict:
         return self._send_command_single("build_shelter_5x5", dict(params or {}))
