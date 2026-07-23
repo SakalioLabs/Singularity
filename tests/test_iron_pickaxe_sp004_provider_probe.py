@@ -75,6 +75,30 @@ def test_probe_passes_exact_single_request_zero_retry(monkeypatch) -> None:
     assert created[0].calls[0]["timeout_s"] == module.REQUEST_TIMEOUT_S
 
 
+def test_probe_normalizes_openai_compatible_base_url(monkeypatch) -> None:
+    module = _module()
+    monkeypatch.setenv("SINGULARITY_LLM_API_KEY", "test-only-secret")
+    created = []
+
+    def factory(config):
+        provider = FakeProvider(config)
+        created.append(provider)
+        return provider
+
+    evidence = module.run_probe(
+        base_url="http://192.168.3.27:8317/",
+        model=module.DEFAULT_MODEL,
+        provider_factory=factory,
+    )
+
+    assert evidence["passed"] is True
+    assert evidence["base_url"] == "http://192.168.3.27:8317/v1"
+    assert created[0].config.base_url == "http://192.168.3.27:8317/v1"
+    assert module.normalize_base_url("http://example.test/v1/") == (
+        "http://example.test/v1"
+    )
+
+
 def test_probe_retains_provider_failure_without_retry(monkeypatch) -> None:
     module = _module()
     monkeypatch.setenv("SINGULARITY_LLM_API_KEY", "test-only-secret")

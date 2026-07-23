@@ -46,6 +46,13 @@ def configured_api_key() -> str:
     ).strip()
 
 
+def normalize_base_url(value: str) -> str:
+    base = str(value or "").strip().rstrip("/")
+    if not base:
+        raise RuntimeError("SP-004 provider probe requires a non-empty base URL")
+    return base if base.endswith("/v1") else f"{base}/v1"
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -85,11 +92,12 @@ def run_probe(
         raise RuntimeError(
             "probe requires SINGULARITY_LLM_API_KEY or OPENAI_API_KEY"
         )
+    normalized_base_url = normalize_base_url(base_url)
     config = LLMConfig(
         provider="openai",
         model=model,
         api_key=api_key,
-        base_url=base_url.rstrip("/"),
+        base_url=normalized_base_url,
         max_tokens=64,
         temperature=0.0,
     )
@@ -116,7 +124,7 @@ def run_probe(
     response_sha256 = hashlib.sha256(response_text.encode("utf-8")).hexdigest()
     criteria = {
         "exact_provider": metadata.get("provider") == "openai",
-        "exact_base_url": metadata.get("base_url") == base_url.rstrip("/"),
+        "exact_base_url": metadata.get("base_url") == normalized_base_url,
         "exact_model": metadata.get("model") == model,
         "json_response_format": metadata.get("response_format")
         == {"type": "json_object"},
@@ -136,7 +144,7 @@ def run_probe(
         "started_at_utc": started_at_utc,
         "source_commit": current_head(),
         "provider": "openai_compatible",
-        "base_url": base_url.rstrip("/"),
+        "base_url": normalized_base_url,
         "model": model,
         "passed": passed,
         "decision": (
