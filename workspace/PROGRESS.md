@@ -381,3 +381,10 @@ The material below is retained as historical context and is not active work whil
   separate read-only models query was disconnected before a response. The provider is
   classified unavailable. No gameplay action, retry authorization, capability credit,
   or M4 credit was created.
+- Added the reusable SP-004 provider recovery gate
+  `scripts/iron_pickaxe_sp004_provider_probe.py`. It is output-exclusive,
+  evidence-scoped, bounded to one 15-second request, disables SDK retries, records no
+  secret or raw response, and never starts Minecraft. Focused SP-004 coverage passes
+  27/27. Recovery probe `sp004_provider_probe_20260724_035327` still returned HTTP 502
+  after 6.594 seconds with one attempt and zero retries, so no new live episode is
+  authorized.

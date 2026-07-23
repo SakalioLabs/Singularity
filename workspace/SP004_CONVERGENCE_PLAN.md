@@ -43,6 +43,13 @@ was disconnected before any response. Minecraft was not started. The provider is
 currently unavailable, and a new live episode remains unauthorized until the provider
 recovers and a fresh bounded no-Minecraft probe passes.
 
+The recovery gate is now executable as
+`python scripts/iron_pickaxe_sp004_provider_probe.py --output
+workspace/evals/<unique-probe-name>.json`. It makes one 15-second-bounded request with
+SDK retries disabled, records no credential or raw response, refuses output overwrite,
+and never starts Minecraft. Probe `sp004_provider_probe_20260724_035327` exercised the
+same gate controls and again received HTTP 502, so the live hold remains in force.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:
