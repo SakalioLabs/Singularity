@@ -387,6 +387,13 @@ The material below is retained as historical context and is not active work whil
   threshold. Hash-bound audit `sp004_resumed_authentication_audit_r2_20260724` records
   both r1 and r2. No Minecraft process, gameplay action, automatic retry, capability
   credit, or M4 credit occurred.
+- Resumed SP-004 audit r3 again used canonical `/v1`, model `grok-4.5`, one attempt,
+  and zero retries, and returned HTTP 401 `AuthenticationError`. The same resumed
+  authentication blocker now reaches 3/3 consecutive goal turns and satisfies the
+  strict blocked threshold. Hash-bound audit
+  `sp004_resumed_authentication_blocked_audit_20260724` records all three probes. No
+  Minecraft process, gameplay action, automatic retry, capability credit, or M4 credit
+  occurred; progress requires an external valid-credential change.
 - Added the reusable SP-004 provider recovery gate
   `scripts/iron_pickaxe_sp004_provider_probe.py`. It is output-exclusive,
   evidence-scoped, bounded to one 15-second request, disables SDK retries, records no

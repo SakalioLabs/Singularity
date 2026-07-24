@@ -82,6 +82,13 @@ attempt and zero retries. The new authentication blocker is now 2/3 consecutive 
 goal turns; its blocked threshold is not yet satisfied. No Minecraft process or live
 episode was started.
 
+Resumed audit r3 again returned canonical HTTP 401 `AuthenticationError` with one
+attempt and zero retries. The resumed authentication blocker is now 3/3 consecutive
+goal turns and satisfies the strict blocked threshold. The objective is blocked on an
+external credential change. No Minecraft process or live episode was started; after a
+valid credential is configured outside chat, a fresh resumed audit begins and must
+first pass the bounded provider gate.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:
