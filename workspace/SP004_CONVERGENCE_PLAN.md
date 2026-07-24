@@ -77,6 +77,11 @@ audit count is 1/3 and the prior 502 threshold is not reused. Minecraft was not
 started. A valid credential must be configured outside chat and a fresh bounded probe
 must pass before the controlled launcher can run.
 
+Resumed audit r2 again returned canonical HTTP 401 `AuthenticationError` with one
+attempt and zero retries. The new authentication blocker is now 2/3 consecutive resumed
+goal turns; its blocked threshold is not yet satisfied. No Minecraft process or live
+episode was started.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

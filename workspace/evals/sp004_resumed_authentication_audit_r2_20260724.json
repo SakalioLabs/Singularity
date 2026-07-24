@@ -1,0 +1,42 @@
+{
+  "type": "iron_pickaxe_sp004_resumed_authentication_audit",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-24T00:31:38.914790+00:00",
+  "blocking_condition": {
+    "classification": "provider_authentication_failed",
+    "provider": "openai_compatible",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "error_type": "AuthenticationError",
+    "http_status": 401
+  },
+  "resumed_blocked_audit_count": 2,
+  "blocked_threshold_satisfied": false,
+  "probe_evidence": [
+    {
+      "resumed_goal_turn": 1,
+      "path": "workspace/evals/sp004_provider_probes/sp004_resumed_audit_r1_20260724.json",
+      "sha256": "e0d4e424284e674552c2147681981623beb63690581e9d1228c2ca7eeefc3fcf",
+      "attempt_count": 1,
+      "retry_count": 0,
+      "http_status": 401,
+      "minecraft_process_started": false
+    },
+    {
+      "resumed_goal_turn": 2,
+      "path": "workspace/evals/sp004_provider_probes/sp004_resumed_audit_r2_20260724.json",
+      "sha256": "a2b0f379d960ef45a14b07bbdbdee54b1a31ad20b50232a063d35a0ebe07c4ec",
+      "attempt_count": 1,
+      "retry_count": 0,
+      "http_status": 401,
+      "minecraft_process_started": false
+    }
+  ],
+  "minecraft_process_started": false,
+  "gameplay_action_count": 0,
+  "automatic_retry_performed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "decision": "hold_live_episode_provider_authentication_failed",
+  "resume_condition": "configure a valid provider credential outside chat, then pass a fresh bounded canonical probe"
+}

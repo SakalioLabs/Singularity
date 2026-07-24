@@ -381,6 +381,12 @@ The material below is retained as historical context and is not active work whil
   separate read-only models query was disconnected before a response. The provider is
   classified unavailable. No gameplay action, retry authorization, capability credit,
   or M4 credit was created.
+- Resumed SP-004 audit r2 used canonical `/v1`, model `grok-4.5`, one attempt, and zero
+  retries, and again returned HTTP 401 `AuthenticationError`. The new authentication
+  blocker advances to 2/3 consecutive resumed goal turns without reusing the prior 502
+  threshold. Hash-bound audit `sp004_resumed_authentication_audit_r2_20260724` records
+  both r1 and r2. No Minecraft process, gameplay action, automatic retry, capability
+  credit, or M4 credit occurred.
 - Added the reusable SP-004 provider recovery gate
   `scripts/iron_pickaxe_sp004_provider_probe.py`. It is output-exclusive,
   evidence-scoped, bounded to one 15-second request, disables SDK retries, records no
