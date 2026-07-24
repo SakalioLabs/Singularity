@@ -138,6 +138,14 @@ the generic dusk/night shelter decisions inside the SP-004 runtime supervisor.
 Health, hunger, hostile-entity, task-deadline, and absolute episode-deadline checks
 remain inherited and active.
 
+Episode `sp004_live_20260724_112322` confirms the shelter isolation, but exposes
+unsupported fixture geometry. The first x/z move fell from Y=137 to natural ground
+near Y=62, the first natural-stone dig removed its source without collecting a drop,
+and 57 later navigation actions failed against the suspended fixture before call 59
+returned HTTP 502. Policy `sp004-supported-fixture-platform-v1` adds a cobblestone
+support plane, clears three blocks of headroom, and recenters the player before placing
+the unchanged 8/10/3 resources and crafting table.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

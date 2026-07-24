@@ -39,6 +39,11 @@ def test_launcher_builds_exact_audited_fixture() -> None:
     assert "/give @s minecraft:stone_pickaxe 1" in text
     assert "/give @s minecraft:stick 2" in text
     assert "minecraft:crafting_table" in text
+    assert "minecraft:cobblestone" in text
+    assert 'minecraft:air"' in text
+    assert '"/tp @s $($x + 0.5) $y $($z + 0.5)"' in text
+    assert "$($y - 1)" in text
+    assert "$($y + 2)" in text
     assert text.count("minecraft:stone") == 2
     assert "minecraft:coal_ore" in text
     assert "minecraft:iron_ore" in text

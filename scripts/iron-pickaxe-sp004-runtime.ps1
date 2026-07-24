@@ -194,7 +194,10 @@ function Initialize-AuditedFixture {
         "/give @s minecraft:stick 2",
         "/time set day",
         "/weather clear",
-        "/setblock $($x + 4) $y $($z + 2) minecraft:crafting_table"
+        "/fill $($x - 12) $($y - 1) $($z - 1) $($x + 12) $($y - 1) $($z + 16) minecraft:cobblestone",
+        "/fill $($x - 12) $y $($z - 1) $($x + 12) $($y + 2) $($z + 16) minecraft:air",
+        "/setblock $($x + 4) $y $($z + 2) minecraft:crafting_table",
+        "/tp @s $($x + 0.5) $y $($z + 0.5)"
     )) { $commands.Add($command) }
     foreach ($offset in @(-8, -6, -4, -2, 2, 4, 6, 8)) {
         $commands.Add("/setblock $($x + $offset) $y $($z + 6) minecraft:stone")

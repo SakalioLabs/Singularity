@@ -469,3 +469,9 @@ The material below is retained as historical context and is not active work whil
 - Added SP-004-only policy `sp004-peaceful-shelter-interrupt-isolation-v1`.
   It suppresses only dusk/night shelter scheduling in the peaceful fixture while
   preserving health, hunger, hostile, task, and absolute-deadline safety checks.
+- Episode `sp004_live_20260724_112322` exercised that isolation but revealed the
+  fixture had no support plane: its first x/z move fell from Y=137 to Y=62.77, one
+  natural stone was removed without pickup, and 57 navigation replans then failed
+  before a final zero-retry HTTP 502. Added `sp004-supported-fixture-platform-v1`:
+  a cobblestone floor, three-block clearance, and player recentering while preserving
+  the exact 8 stone, 10 coal ore, 3 iron ore, and one-table contract.

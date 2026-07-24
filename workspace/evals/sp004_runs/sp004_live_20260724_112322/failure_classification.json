@@ -1,0 +1,45 @@
+{
+  "type": "iron_pickaxe_sp004_derived_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_112322",
+  "classification": "fixture_vertical_path_escape_and_unbounded_navigation_replan",
+  "termination_reason": "empty_plan",
+  "primary_blocker": {
+    "initial_player_y": 137,
+    "first_move_terminal_y": 62.76619707006594,
+    "first_dig_source_removed": true,
+    "first_dig_pickup_observed": false,
+    "first_dig_error": "expected block drop was not acquired",
+    "subsequent_failed_navigation_count": 57
+  },
+  "terminal_provider_failure": {
+    "planner_call_index": 59,
+    "http_status": 502,
+    "attempt_count": 1,
+    "retry_count": 0,
+    "primary_blocker": false
+  },
+  "repair_policy": {
+    "id": "sp004-supported-fixture-platform-v1",
+    "support_floor": "cobblestone",
+    "clearance_height": 3,
+    "player_recentered": true,
+    "resource_counts_unchanged": {
+      "stone": 8,
+      "coal_ore": 10,
+      "iron_ore": 3
+    }
+  },
+  "raw_evidence_sha256": {
+    "episode.json": "a262192fbd4b166eb6ea8c7be9b41d854ad5faceedf88310e49924a9ad82517f",
+    "manifest.json": "1f476766b5e93c406aee824152b4515bb5baffed5f7d2755f83185d4e1b8d051",
+    "preflight.json": "607b83b17f0549ff430e069a06fa1353f675bc4583e0a26aed85ffcfad89f17c",
+    "session.json": "f522ef38ed236eec7d9db626bdbe882761900ec183e60fcaf0c19e0e9000ce2a",
+    "session_cd03bfbf-0fc.jsonl": "4e934cc2ffb22087267dc6fb173b2e9cfdea979a2d28c02941a891731045e098",
+    "session_cd03bfbf-0fc_summary.json": "eb78299b6f1948057ece5da2608c8f97a43afe2b7ef79a901ab5c0e97c7ce20d",
+    "verification.json": "9d33c24c7395abc5e14cf20f88a7ec40e74febfa9c72e2a3b47ad70c283d00f4",
+    "provider_probe": "0a14eed9f359e5b16bd3f35ea853f848b1b524d8b5b104be7ba11e046eb6ae5f"
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
