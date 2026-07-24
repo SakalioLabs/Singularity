@@ -1,0 +1,30 @@
+{
+  "type": "iron_pickaxe_sp004_derived_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_130921",
+  "classification": "provider_http_502_after_valid_partial_progress",
+  "termination_reason": "empty_plan",
+  "primary_blocker": {
+    "error_type": "InternalServerError",
+    "http_status": 502,
+    "attempt_count": 1,
+    "retry_count": 0
+  },
+  "verified_partial_progress": {
+    "successful_action_count": 5,
+    "verified_stone_source_count": 3,
+    "action_failure_count": 0
+  },
+  "raw_evidence_sha256": {
+    "episode.json": "6a5faa829298edbe168500714a925adf31835acb467823413f6d21ceab4e8323",
+    "manifest.json": "5727ae67ae3a8023c2475f13543efbe277991bf5c7dc58f91738bf82c550d1bf",
+    "preflight.json": "14deeba1f115f129b27a76728092ec304a2bc2fd6498979d352c96ea4d069102",
+    "session.json": "d966cd00b37d6cda025be3d6dff76cbb7f078a76a83763cfd7721ba4340281e4",
+    "session_c31b8f5b-eb4.jsonl": "58bc87f7b2193a216b62a1472db7290476bea21cfaf9525d2e071df3886e9f59",
+    "session_c31b8f5b-eb4_summary.json": "1c01dfd979eb2f25c6c9b9e976ca6db3cb5649c1a1b7765ce8c3d401c5b44c81",
+    "verification.json": "8446975c7f990cd248eac68b3f223d37e6f57078cefec70aaf60c403473a64d3",
+    "provider_probe": "21707cf2f3f948f939440629fbe14355a9330a0b786981d4ecaed46c0ef067b5"
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

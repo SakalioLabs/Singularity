@@ -487,3 +487,7 @@ The material below is retained as historical context and is not active work whil
   targeting the cell above the table. Added
   `sp004-open-support-furnace-reference-v1`, which requires a machine-observed solid
   support with an open cell above for furnace placement.
+- Episode `sp004_live_20260724_130921` passed preflight and made five successful
+  actions with three verified stone sources before a single zero-retry Planner call
+  returned HTTP 502. The new furnace-placement repair was not reached. The retained
+  episode is infrastructure-ineligible and grants no capability or M4 credit.

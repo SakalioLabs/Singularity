@@ -163,6 +163,12 @@ the cell above the table. Policy `sp004-open-support-furnace-reference-v1` remov
 that special case and requires the existing machine-observed open-support selector for
 furnace placement.
 
+Episode `sp004_live_20260724_130921` passed its provider gate and executed five
+successful actions with three verified stone sources, then one Planner request
+returned HTTP 502. No action failed and the placement repair was not reached. This is
+retained as an infrastructure-only interruption with no retry or credit; a bounded
+no-Minecraft recovery probe is required before another live episode.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:
