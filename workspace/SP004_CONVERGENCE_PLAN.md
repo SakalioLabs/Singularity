@@ -94,6 +94,21 @@ The goal was resumed a second time. Second-resume audit r1 returned canonical HT
 starts another fresh authentication blocked audit at 1/3; neither prior 3/3 threshold
 is reused. Minecraft was not started.
 
+The user then demonstrated a successful direct provider request. A canonical bounded
+probe using that credential passed, and controlled episode
+`sp004_live_20260724_090802` started. Preflight passed with exact initial inventory and
+the first real root plan produced one successful stone dig. Continuation call 1 used
+one transport attempt and zero retries, returned `finish_reason=stop`, 203 reasoning
+bytes, but zero ordinary content bytes; strict parsing ended `empty_plan`. The retained
+episode has one verified stone source and no capability or M4 credit.
+
+Offline policy `sp004-reasoning-content-json-fallback-v1` is default-off and enabled
+only in SP-004 configuration. When ordinary content is empty, it accepts
+`reasoning_content` only if the entire value parses as one JSON object, then subjects it
+to the unchanged strict plan envelope and action guard. It adds no request or retry.
+Non-JSON text, arrays, and fenced JSON remain empty and fail closed. A new live episode
+requires this evidence and repair to be committed and pushed first.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

@@ -21,6 +21,7 @@ class LLMConfig:
     base_url: str = ""
     max_tokens: int = 4096
     temperature: float = 0.7
+    use_reasoning_json_fallback: bool = False
 
 
 @dataclass

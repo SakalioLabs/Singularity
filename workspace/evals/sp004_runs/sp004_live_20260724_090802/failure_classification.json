@@ -1,0 +1,59 @@
+{
+  "type": "iron_pickaxe_sp004_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_090802",
+  "session_id": "ab62d4ce-971",
+  "classification": "provider_empty_content_with_json_candidate_in_reasoning",
+  "preflight_passed": true,
+  "gameplay_action_count": 1,
+  "successful_gameplay_action_count": 1,
+  "automatic_retry_performed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "planner_calls": [
+    {
+      "call_index": 0,
+      "plan_kind": "root",
+      "attempt_count": 1,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "response_byte_count": 2498,
+      "reasoning_content_byte_count": 107,
+      "schema_valid": true
+    },
+    {
+      "call_index": 1,
+      "plan_kind": "continuation",
+      "attempt_count": 1,
+      "retry_count": 0,
+      "finish_reason": "stop",
+      "response_byte_count": 0,
+      "reasoning_content_byte_count": 203,
+      "schema_valid": false,
+      "schema_issue": "planner_response_empty"
+    }
+  ],
+  "verified_progress": {
+    "stone_sources": 1,
+    "coal_sources": 0,
+    "iron_sources": 0,
+    "terminal_iron_pickaxe": 0
+  },
+  "offline_repair": {
+    "policy": "sp004-reasoning-content-json-fallback-v1",
+    "enabled_only_for_sp004": true,
+    "requires_empty_content": true,
+    "requires_reasoning_content_to_parse_as_json_object": true,
+    "adds_provider_request": false,
+    "adds_retry": false,
+    "preserves_plan_schema_validation": true
+  },
+  "evidence": {
+    "preflight_sha256": "26a46d66b8021cb954cbee48be638b6ed97cf76f8f76c1f7265f9cd894998da7",
+    "session_sha256": "a7da7e52d7d314c727517a25f2306ac9f263be524e0b9cdc403c85de2398f921",
+    "episode_sha256": "e2873d7355871665fb45ff44ac063f0d152c38a96bb35ea247d80ae5979da086",
+    "verification_sha256": "537465c90457ce80df766dc411f78c28a6bfa50d038ca6e2f2cbc22754872b48",
+    "manifest_sha256": "e7ece632792510fde8d507ee5d457b732f6a798ece3ec5abcaf7ee69542976af"
+  },
+  "next_gate": "commit_and_push_failure_evidence_and_offline_repair_before_any_new_live_episode"
+}

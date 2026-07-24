@@ -131,6 +131,21 @@ class LLMProvider:
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
+        response_content_source = "content"
+        if (
+            not text.strip()
+            and reasoning_content.strip()
+            and bool(getattr(self.config, "use_reasoning_json_fallback", False))
+        ):
+            reasoning_candidate = reasoning_content.strip()
+            try:
+                parsed_reasoning = json.loads(reasoning_candidate)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                parsed_reasoning = None
+            if isinstance(parsed_reasoning, dict):
+                text = reasoning_candidate
+                response_content_source = "reasoning_content_json_fallback"
+
         usage = getattr(response, "usage", None)
         prompt_tokens = self._usage_value(usage, "prompt_tokens", "input_tokens")
         completion_tokens = self._usage_value(usage, "completion_tokens", "output_tokens")
@@ -146,6 +161,7 @@ class LLMProvider:
             "total_tokens": total_tokens,
             "finish_reason": finish_reason,
             "reasoning_content_byte_count": len(reasoning_content.encode("utf-8")),
+            "response_content_source": response_content_source,
             "duration_ms": int((time.monotonic() - started_at) * 1000),
         }
         logger.debug(f"LLM response: {text[:200]}")

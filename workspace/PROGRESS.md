@@ -433,3 +433,16 @@ The material below is retained as historical context and is not active work whil
   availability, and transport/protocol failures; focused SP-004 coverage passes 34/34.
   No credential value, Minecraft process, gameplay action, retry, capability credit,
   or M4 credit was created.
+- The user demonstrated a successful direct `grok-4.5` request, and a canonical
+  zero-retry recovery probe passed. Controlled episode `sp004_live_20260724_090802`
+  passed exact preflight; root Planner call 0 was schema-valid and action 1 mined one
+  distinct stone successfully. Continuation call 1 made one request with zero retries
+  and returned `finish_reason=stop` plus 203 reasoning bytes but zero ordinary content
+  bytes, so strict parsing ended `empty_plan`. The immutable episode grants no
+  capability or M4 credit.
+- Added default-off provider policy `sp004-reasoning-content-json-fallback-v1`, enabled
+  only by SP-004 configuration. Empty ordinary content may use reasoning content only
+  when the entire value parses as one JSON object; unchanged plan schema and action
+  guards still apply, and no request or retry is added. Non-JSON, array, and fenced
+  controls fail closed. Targeted Python regressions pass 327/327 and Node smelt
+  regressions pass 6/6.
