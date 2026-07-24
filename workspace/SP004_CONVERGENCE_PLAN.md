@@ -232,6 +232,15 @@ exact inventory delta for at most five seconds without retrying the smelt.
 `sp004-machine-observed-placement-progress-v1` also records the current place result
 when `target_block_after` and `placed_position` machine coordinates match.
 
+Episode `sp004_live_20260724_154625` passed the complete live acceptance contract
+from source commit `8baac9756ee68a81fc5f41c30435147dcde81671`.
+All 29 actions were accepted with zero failures: exact 8 stone, exact 10 coal,
+exact 3 iron, one furnace craft and machine-observed placement, one zero-retry smelt
+that consumed 3 raw iron and 1 coal and collected 3 ingots, then one iron-pickaxe
+craft consuming the initial 2 sticks. Terminal inventory contains exactly one iron
+pickaxe and the verifier reports no criteria issues. This proves one SP-004 lifecycle
+episode; it does not independently upgrade capability or M4 status.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

@@ -534,3 +534,10 @@ The material below is retained as historical context and is not active work whil
 - Added `sp004-machine-observed-placement-progress-v1` so the successful current
   place result shape advances progress only when `target_block_after` and
   `placed_position` names and coordinates agree.
+- Episode `sp004_live_20260724_154625` passed every SP-004 machine criterion from
+  source commit `8baac9756ee68a81fc5f41c30435147dcde81671`: 29 accepted actions,
+  zero failures, exact 8 stone / 10 coal / 3 iron sources, one furnace craft and
+  placement, one zero-retry smelt consuming 3 raw iron and 1 coal, 3 ingots
+  collected, and one terminal iron pickaxe crafted with the initial 2 sticks.
+- This is verified lifecycle completion only. The episode counts toward SP-004
+  lifecycle evidence, not autonomous capability promotion or M4.
