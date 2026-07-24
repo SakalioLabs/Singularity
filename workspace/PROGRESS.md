@@ -512,3 +512,6 @@ The material below is retained as historical context and is not active work whil
   showed the central fill succeeded while adjacent resource chunks were not loaded.
   Added `sp004-forceloaded-machine-verified-platform-v1`, which force-loads the
   bounded fixture rectangle before filling and preserves six exact sentinel checks.
+- Provider gate `sp004_live_20260724_142451` stopped before Minecraft startup with
+  HTTP 403 `unauthenticated:bad-credentials`. It made one request, zero retries, and
+  zero gameplay actions. The force-loaded platform repair is not yet exercised.

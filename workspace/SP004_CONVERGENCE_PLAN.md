@@ -202,6 +202,11 @@ adjacent resource chunks were not loaded when their segmented fills ran. Policy
 rectangle before any segmented fill, then retains exact six-sentinel verification;
 sentinel failures now report their coordinate and observed block.
 
+Provider gate `sp004_live_20260724_142451` returned HTTP 403
+`unauthenticated:bad-credentials` in one zero-retry request. Minecraft was not
+started and no gameplay action occurred. The force-loaded platform repair remains
+unexercised until the configured endpoint accepts a replacement credential.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:
