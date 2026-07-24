@@ -475,3 +475,9 @@ The material below is retained as historical context and is not active work whil
   before a final zero-retry HTTP 502. Added `sp004-supported-fixture-platform-v1`:
   a cobblestone floor, three-block clearance, and player recentering while preserving
   the exact 8 stone, 10 coal ore, 3 iron ore, and one-table contract.
+- Episode `sp004_live_20260724_115339` kept the player on the new Y=145 platform,
+  used only two navigation actions, and verified four distinct stone sources. Pickup
+  then changed the selected held item while `stone_pickaxe:1` remained in inventory;
+  55 later digs were guard-rejected. Added `sp004-resource-tool-requip-v1`, permitting
+  only an explicit LLM-planned `equip stone_pickaxe` during stone/coal/iron stages
+  when the exact tool is present and not already held.

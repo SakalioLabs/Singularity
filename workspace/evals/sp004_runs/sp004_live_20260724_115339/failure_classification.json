@@ -1,0 +1,44 @@
+{
+  "type": "iron_pickaxe_sp004_derived_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_115339",
+  "classification": "stone_pickaxe_held_state_recovery_missing",
+  "termination_reason": "max_duration",
+  "verified_repair_exercise": {
+    "platform_y_preserved": true,
+    "initial_y": 145,
+    "terminal_y": 145,
+    "successful_navigation_count": 2,
+    "verified_stone_source_count": 4
+  },
+  "primary_blocker": {
+    "first_guard_rejection_action_index": 7,
+    "issue": "sp004_acquire_cobblestone_held_stone_pickaxe_required",
+    "repeated_guard_rejection_count": 55,
+    "stone_pickaxe_inventory_count": 1,
+    "stone_pickaxe_held": false
+  },
+  "repair_policy": {
+    "id": "sp004-resource-tool-requip-v1",
+    "allowed_item": "stone_pickaxe",
+    "allowed_stages": [
+      "acquire_cobblestone",
+      "acquire_coal",
+      "acquire_raw_iron"
+    ],
+    "planner_action_required": true,
+    "automatic_retry": false
+  },
+  "raw_evidence_sha256": {
+    "episode.json": "7255600d53fe30f219a46f16cf8be475a87e6b3c9e013a7bc773a6a71d28ff25",
+    "manifest.json": "14e97574aed18dafde5105c4d206dd32752e1512e5a3beaf7c566c763bfac49f",
+    "preflight.json": "fdb26df5676d834ed78d8bc594d19a72b5cf7d498bb437dd691a5a08be69cbc2",
+    "session.json": "86af5018a9336578be6f94e915379b70b6689fa6091261463324f02b807ad0a2",
+    "session_c2723cb1-91b.jsonl": "8d810543456177ec297f22dc0193a2e6abb0133ec27fa76911653a45ed35cdd8",
+    "session_c2723cb1-91b_summary.json": "500880f61502d7dcf3ab4d0e62a54394ba27ad2e75b5cdb05c882b59510744c9",
+    "verification.json": "364629085428005c8af453dde91b5c734b6118d2ebc26fee6e9f2722c179f005",
+    "provider_probe": "a240f90368953332017dc524d92c06acd6fe1f144bdcf7a17d6ba4212b300727"
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

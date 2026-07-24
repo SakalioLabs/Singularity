@@ -269,6 +269,33 @@ def test_resource_guard_requires_move_before_out_of_reach_dig():
     assert accepted["passed"] is True
 
 
+def test_resource_guard_allows_exact_stone_pickaxe_re_equip() -> None:
+    target = resource("stone", 5, distance=2.0)
+    obs = observation(
+        {"stone_pickaxe": 1, "cobblestone": 4},
+        [target],
+        held_item="cobblestone",
+    )
+    progress = empty_sp004_progress()
+
+    accepted = guard_sp004_action(
+        action("equip", item="stone_pickaxe"),
+        obs,
+        progress,
+    )
+    wrong = guard_sp004_action(
+        action("equip", item="wooden_pickaxe"),
+        obs,
+        progress,
+    )
+
+    assert accepted["passed"] is True
+    assert wrong["passed"] is False
+    assert "sp004_acquire_cobblestone_exact_stone_pickaxe_equip_required" in (
+        wrong["issues"]
+    )
+
+
 def test_table_found_and_table_make_branches_are_bounded():
     progress = empty_sp004_progress()
     progress["stone_sources"] = [f"s{i}" for i in range(8)]
@@ -472,6 +499,32 @@ def test_strict_planner_accepts_exact_smelt_continuation_action():
                     "y": 65,
                     "z": 1,
                 },
+            }
+        ],
+    }
+
+    report = IronPickaxeSP004Planner._validate_stone_pickaxe_plan_envelope(
+        plan,
+        expected_goal=SP004_GOAL,
+        expected_kind="continuation",
+        runtime_mode="sp004",
+    )
+
+    assert report["passed"] is True
+
+
+def test_strict_planner_accepts_stone_pickaxe_equip_continuation_action():
+    plan = {
+        "schema_version": "stone-pickaxe-plan-v1",
+        "plan_kind": "continuation",
+        "goal": SP004_GOAL,
+        "status": "planning",
+        "reasoning": "The stone pickaxe is in inventory but not held.",
+        "subtasks": [],
+        "actions": [
+            {
+                "type": "equip",
+                "parameters": {"item": "stone_pickaxe"},
             }
         ],
     }

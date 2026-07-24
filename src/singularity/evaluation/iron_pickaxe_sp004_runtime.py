@@ -124,9 +124,9 @@ SP004_ROOT_GRAPH = [
     },
 ]
 SP004_STAGE_INSTRUCTIONS = {
-    "acquire_cobblestone": "Use only sp004_target. Move to x/z if distance exceeds 4.5; otherwise dig exact stone x/y/z.",
-    "acquire_coal": "Use only sp004_target. Move to x/z if distance exceeds 4.5; otherwise dig exact coal_ore x/y/z.",
-    "acquire_raw_iron": "Use only sp004_target. Move to x/z if distance exceeds 4.5; otherwise dig exact iron_ore x/y/z.",
+    "acquire_cobblestone": "If held_item is not stone_pickaxe, equip item=stone_pickaxe. Otherwise use only sp004_target: move to x/z if distance exceeds 4.5, else dig exact stone x/y/z.",
+    "acquire_coal": "If held_item is not stone_pickaxe, equip item=stone_pickaxe. Otherwise use only sp004_target: move to x/z if distance exceeds 4.5, else dig exact coal_ore x/y/z.",
+    "acquire_raw_iron": "If held_item is not stone_pickaxe, equip item=stone_pickaxe. Otherwise use only sp004_target: move to x/z if distance exceeds 4.5, else dig exact iron_ore x/y/z.",
     "locate_crafting_table": "Move only to the observed crafting-table target x/z.",
     "craft_crafting_table": "Craft exactly one crafting_table.",
     "place_crafting_table": "Place one crafting_table at target.reference_position x/y/z.",
@@ -236,7 +236,14 @@ def guard_sp004_action(action: Any, observation: Any, progress: Any) -> dict:
     if stage in SP004_RESOURCE_STAGES:
         block_name, _drop_name, source_field, limit = SP004_RESOURCE_STAGES[stage]
         target = _resource_target(obs, block_name, state[source_field])
-        if target is None:
+        if action_type == "equip":
+            if params != {"item": "stone_pickaxe"}:
+                issues.append(f"sp004_{stage}_exact_stone_pickaxe_equip_required")
+            if _positive_int(inventory.get("stone_pickaxe")) != 1:
+                issues.append(f"sp004_{stage}_stone_pickaxe_inventory_required")
+            if _held_item(obs) == "stone_pickaxe":
+                issues.append(f"sp004_{stage}_stone_pickaxe_already_held")
+        elif target is None:
             issues.append(f"sp004_{stage}_machine_target_missing")
         elif action_type == "move_to":
             if _block_distance(target) <= 4.5:
@@ -256,7 +263,7 @@ def guard_sp004_action(action: Any, observation: Any, progress: Any) -> dict:
             if len(state[source_field]) >= limit:
                 issues.append(f"sp004_{stage}_source_limit_reached")
         else:
-            issues.append(f"sp004_{stage}_requires_move_or_dig")
+            issues.append(f"sp004_{stage}_requires_equip_move_or_dig")
     elif stage in {"locate_crafting_table", "locate_furnace"}:
         block_name = "crafting_table" if stage == "locate_crafting_table" else "furnace"
         target = _nearest_block(obs, block_name)
@@ -356,7 +363,7 @@ class IronPickaxeSP004Planner(Planner):
 Return only one JSON object with schema_version=stone-pickaxe-plan-v1.
 The required keys are plan_kind, goal, status, reasoning, subtasks, and actions.
 Status planning requires exactly one action. Complete or blocked requires actions=[].
-Allowed actions are move_to, dig, craft, place, smelt, and wait.
+Allowed actions are equip, move_to, dig, craft, place, smelt, and wait.
 Use only the supplied compact machine state and target. Never invent coordinates.
 Craft parameters are item,count. Dig parameters are block,x,y,z.
 Move parameters are x,z with optional y. Place parameters are item,x,y,z.
@@ -568,6 +575,7 @@ Text predictions never advance machine state. Return compact contract-valid JSON
             issues.append("action_parameters_not_object")
             return
         allowed_by_type = {
+            "equip": {"item"},
             "move_to": {"x", "y", "z"},
             "dig": {"block", "x", "y", "z"},
             "craft": {"item", "count"},
@@ -593,6 +601,8 @@ Text predictions never advance machine state. Return compact contract-valid JSON
             issues.append("action_parameter_y_invalid")
         if action_type == "dig" and not str(params.get("block") or ""):
             issues.append("dig_block_missing")
+        if action_type == "equip" and not str(params.get("item") or ""):
+            issues.append("equip_item_missing")
         if action_type in {"craft", "place"} and not str(params.get("item") or ""):
             issues.append(f"{action_type}_item_missing")
         if action_type == "craft":

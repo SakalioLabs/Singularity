@@ -1,0 +1,31 @@
+{
+  "type": "iron_pickaxe_sp004_live_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-24T04:24:44.471068+00:00",
+  "episode_id": "sp004_live_20260724_115339",
+  "session_id": "c2723cb1-91b",
+  "runtime_policy_id": "iron-pickaxe-sp004-stone-to-iron-runtime-v1",
+  "passed": false,
+  "single_episode": true,
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "files": [
+    {
+      "path": "workspace/evals/sp004_runs/sp004_live_20260724_115339/preflight.json",
+      "sha256": "fdb26df5676d834ed78d8bc594d19a72b5cf7d498bb437dd691a5a08be69cbc2"
+    },
+    {
+      "path": "workspace/evals/sp004_runs/sp004_live_20260724_115339/session.json",
+      "sha256": "86af5018a9336578be6f94e915379b70b6689fa6091261463324f02b807ad0a2"
+    },
+    {
+      "path": "workspace/evals/sp004_runs/sp004_live_20260724_115339/episode.json",
+      "sha256": "7255600d53fe30f219a46f16cf8be475a87e6b3c9e013a7bc773a6a71d28ff25"
+    },
+    {
+      "path": "workspace/evals/sp004_runs/sp004_live_20260724_115339/verification.json",
+      "sha256": "364629085428005c8af453dde91b5c734b6118d2ebc26fee6e9f2722c179f005"
+    }
+  ]
+}

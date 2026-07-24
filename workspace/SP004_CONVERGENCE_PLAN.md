@@ -146,6 +146,15 @@ returned HTTP 502. Policy `sp004-supported-fixture-platform-v1` adds a cobblesto
 support plane, clears three blocks of headroom, and recenters the player before placing
 the unchanged 8/10/3 resources and crafting table.
 
+Episode `sp004_live_20260724_115339` validates the supported platform: the player
+remained at Y=145, navigation succeeded, and four distinct stone sources advanced.
+After pickup changed the selected held item, however, the stone pickaxe remained in
+inventory but was no longer held; 55 repeated digs failed closed on
+`sp004_acquire_cobblestone_held_stone_pickaxe_required`. Policy
+`sp004-resource-tool-requip-v1` allows one explicit LLM-planned
+`equip stone_pickaxe` action only during the three resource stages and only when the
+exact pickaxe is present but not already held.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:
