@@ -122,6 +122,10 @@ the forced tool argument channel in one request with zero retries, but rejected 
 extra model field under the probe's exact-object criterion. The follow-up contract
 pins the seven plan fields as required and sets `additionalProperties=false`; a fresh
 probe is required before another live episode.
+Probe `sp004_forced_schema_probe_20260724_0950` then passed every criterion in one
+request with zero retries and no Minecraft process. It returned the exact seven-field
+object through `forced_json_tool_arguments`, authorizing one new live episode after
+this probe evidence is committed and pushed.
 
 ## Live Acceptance
 

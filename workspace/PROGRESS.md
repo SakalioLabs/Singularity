@@ -458,3 +458,6 @@ The material below is retained as historical context and is not active work whil
   exact-object check because the permissive tool schema admitted an extra field.
   Minecraft did not start. The tool contract now requires exactly the seven SP-004
   plan fields and forbids additional properties before the unchanged validator runs.
+- No-Minecraft probe `sp004_forced_schema_probe_20260724_0950` passed all criteria:
+  one request, zero retries, exact seven-field object, and the forced tool argument
+  channel. It started no Minecraft process and grants no capability or M4 credit.
