@@ -394,6 +394,12 @@ The material below is retained as historical context and is not active work whil
   `sp004_resumed_authentication_blocked_audit_20260724` records all three probes. No
   Minecraft process, gameplay action, automatic retry, capability credit, or M4 credit
   occurred; progress requires an external valid-credential change.
+- After a second goal resume, canonical probe
+  `sp004_second_resume_audit_r1_20260724` again returned HTTP 401
+  `AuthenticationError` with one attempt and zero retries. The fresh second-resume
+  authentication audit starts at 1/3 and does not reuse either prior blocked threshold.
+  No Minecraft process, gameplay action, automatic retry, capability credit, or M4
+  credit occurred.
 - Added the reusable SP-004 provider recovery gate
   `scripts/iron_pickaxe_sp004_provider_probe.py`. It is output-exclusive,
   evidence-scoped, bounded to one 15-second request, disables SDK retries, records no

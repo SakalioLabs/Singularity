@@ -89,6 +89,11 @@ external credential change. No Minecraft process or live episode was started; af
 valid credential is configured outside chat, a fresh resumed audit begins and must
 first pass the bounded provider gate.
 
+The goal was resumed a second time. Second-resume audit r1 returned canonical HTTP 401
+`AuthenticationError` with one attempt and zero retries. Per the resumed-goal rule this
+starts another fresh authentication blocked audit at 1/3; neither prior 3/3 threshold
+is reused. Minecraft was not started.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

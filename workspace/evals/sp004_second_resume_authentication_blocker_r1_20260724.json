@@ -1,0 +1,27 @@
+{
+  "type": "iron_pickaxe_sp004_second_resume_blocker_classification",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-24T01:02:49.128950+00:00",
+  "source_probe": {
+    "path": "workspace/evals/sp004_provider_probes/sp004_second_resume_audit_r1_20260724.json",
+    "sha256": "59caadf0dabbf36dc62352907dd67626c3a8156b57742bf4c0fe2483666599c9",
+    "source_commit": "8c53267936a50b2638c9862e1a3afc7bc90f5e56"
+  },
+  "provider": "openai_compatible",
+  "base_url": "http://192.168.3.27:8317/v1",
+  "model": "grok-4.5",
+  "classification": "provider_authentication_failed",
+  "error_type": "AuthenticationError",
+  "http_status": 401,
+  "attempt_count": 1,
+  "retry_count": 0,
+  "second_resume_blocked_audit_count": 1,
+  "blocked_threshold_satisfied": false,
+  "minecraft_process_started": false,
+  "gameplay_action_count": 0,
+  "automatic_retry_performed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "decision": "hold_live_episode_provider_authentication_failed",
+  "resume_condition": "configure a valid provider credential outside chat, then pass a fresh bounded canonical probe"
+}
