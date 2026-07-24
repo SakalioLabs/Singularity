@@ -70,6 +70,13 @@ Minecraft or granted a live retry. The objective is blocked on external provider
 recovery; work resumes only after the reusable bounded probe passes, at which point the
 controlled launcher may start one fresh episode.
 
+The goal was subsequently resumed. Resumed audit r1 reached the canonical provider but
+returned HTTP 401 `AuthenticationError` rather than the prior HTTP 502. This is a new
+blocking condition, classified `provider_authentication_failed`, so its resumed blocked
+audit count is 1/3 and the prior 502 threshold is not reused. Minecraft was not
+started. A valid credential must be configured outside chat and a fresh bounded probe
+must pass before the controlled launcher can run.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

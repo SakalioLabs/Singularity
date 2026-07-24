@@ -81,6 +81,26 @@ def probe_messages() -> list[dict]:
     ]
 
 
+def exception_http_status(exc: Exception) -> int | None:
+    candidate = getattr(exc, "status_code", None)
+    if candidate is None:
+        candidate = getattr(getattr(exc, "response", None), "status_code", None)
+    try:
+        return int(candidate) if candidate is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def failure_classification(error_type: str, http_status: int | None) -> str:
+    if http_status in {401, 403} or error_type == "AuthenticationError":
+        return "provider_authentication_failed"
+    if http_status is not None and http_status >= 500:
+        return "provider_unavailable"
+    if error_type:
+        return "provider_transport_or_protocol_failed"
+    return ""
+
+
 def run_probe(
     *,
     base_url: str,
@@ -106,6 +126,7 @@ def run_probe(
     parsed_response: object = None
     error_type = ""
     error_message = ""
+    http_status = None
     started_at_utc = utc_now()
     started = time.monotonic()
     try:
@@ -119,6 +140,7 @@ def run_probe(
     except Exception as exc:
         error_type = type(exc).__name__
         error_message = str(exc)[:200]
+        http_status = exception_http_status(exc)
     elapsed_s = round(time.monotonic() - started, 3)
     metadata = dict(getattr(provider, "last_call_metadata", {}) or {})
     response_sha256 = hashlib.sha256(response_text.encode("utf-8")).hexdigest()
@@ -136,6 +158,7 @@ def run_probe(
         "no_exception": not error_type,
     }
     passed = all(criteria.values())
+    classification = failure_classification(error_type, http_status)
     return {
         "type": "iron_pickaxe_sp004_provider_probe",
         "schema_version": 1,
@@ -150,8 +173,13 @@ def run_probe(
         "decision": (
             "provider_recovered_live_episode_still_requires_explicit_launch"
             if passed
-            else "hold_live_episode_provider_unavailable"
+            else (
+                "hold_live_episode_provider_authentication_failed"
+                if classification == "provider_authentication_failed"
+                else "hold_live_episode_provider_unavailable"
+            )
         ),
+        "classification": "provider_recovered" if passed else classification,
         "criteria": criteria,
         "attempt_count": 1,
         "retry_count": 0,
@@ -160,6 +188,7 @@ def run_probe(
         "response_sha256": response_sha256,
         "error_type": error_type,
         "error": error_message,
+        "http_status": http_status,
         "minecraft_process_started": False,
         "gameplay_action_count": 0,
         "automatic_retry_attempted": False,

@@ -47,6 +47,10 @@ class FakeProvider:
         return '{"status":"ok","stage":"acquire_cobblestone"}'
 
 
+class FakeAuthenticationError(RuntimeError):
+    status_code = 401
+
+
 def test_probe_passes_exact_single_request_zero_retry(monkeypatch) -> None:
     module = _module()
     monkeypatch.setenv("SINGULARITY_LLM_API_KEY", "test-only-secret")
@@ -117,11 +121,36 @@ def test_probe_retains_provider_failure_without_retry(monkeypatch) -> None:
 
     assert evidence["passed"] is False
     assert evidence["decision"] == "hold_live_episode_provider_unavailable"
+    assert evidence["classification"] == "provider_transport_or_protocol_failed"
     assert evidence["error_type"] == "RuntimeError"
     assert evidence["attempt_count"] == 1
     assert evidence["retry_count"] == 0
     assert evidence["automatic_retry_attempted"] is False
     assert len(created[0].calls) == 1
+
+
+def test_probe_classifies_authentication_failure(monkeypatch) -> None:
+    module = _module()
+    monkeypatch.setenv("SINGULARITY_LLM_API_KEY", "test-only-secret")
+
+    def factory(config):
+        return FakeProvider(config, error=FakeAuthenticationError("invalid key"))
+
+    evidence = module.run_probe(
+        base_url=module.DEFAULT_BASE_URL,
+        model=module.DEFAULT_MODEL,
+        provider_factory=factory,
+    )
+
+    assert evidence["passed"] is False
+    assert evidence["classification"] == "provider_authentication_failed"
+    assert evidence["decision"] == (
+        "hold_live_episode_provider_authentication_failed"
+    )
+    assert evidence["http_status"] == 401
+    assert evidence["attempt_count"] == 1
+    assert evidence["retry_count"] == 0
+    assert evidence["minecraft_process_started"] is False
 
 
 def test_probe_output_is_exclusive_and_eval_scoped(tmp_path) -> None:

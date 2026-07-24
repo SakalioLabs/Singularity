@@ -406,3 +406,11 @@ The material below is retained as historical context and is not active work whil
   the two prior canonical probes, this satisfies three consecutive goal turns of the
   same external provider blocker. No Minecraft process, gameplay action, automatic
   retry, capability credit, or M4 credit occurred.
+- After the blocked goal resumed, canonical probe
+  `sp004_resumed_audit_r1_20260724` reached the configured `/v1` endpoint but returned
+  HTTP 401 `AuthenticationError` with one attempt and zero retries. This differs from
+  the prior three-turn HTTP 502 blocker and starts a fresh resumed audit at 1/3.
+  The provider gate now records HTTP status and distinguishes authentication,
+  availability, and transport/protocol failures; focused SP-004 coverage passes 34/34.
+  No credential value, Minecraft process, gameplay action, retry, capability credit,
+  or M4 credit was created.
