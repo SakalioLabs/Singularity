@@ -69,6 +69,11 @@ def test_launcher_builds_exact_audited_fixture() -> None:
 def test_bridge_exposes_exact_fixture_block_observation() -> None:
     text = BOT_SERVER.read_text(encoding="utf-8")
 
+    support_handler = text[
+        text.index("get_block_below: () =>") : text.index("get_block_at: (params) =>")
+    ]
+    assert "Math.ceil(entityPosition.y) - 1" in support_handler
+    assert "compactPosition(position)" in support_handler
     assert "get_block_at: (params) =>" in text
     assert "coordinates.every(Number.isFinite)" in text
     assert "compactPosition(position)" in text

@@ -522,3 +522,7 @@ The material below is retained as historical context and is not active work whil
 - Independent no-Minecraft probe `sp004_auth_recovery_probe_20260724_143844`
   passed all provider recovery criteria in one zero-retry forced-structured request.
   The external provider hold is cleared for a new live episode.
+- Preflight `sp004_live_20260724_144535` started no gameplay but proved every
+  force-loaded platform segment was created. Its support lookup could floor a
+  fractional post-teleport Y onto the layer below the real support. Added
+  `sp004-support-block-ceil-minus-one-v1` and preserved six resource sentinels.

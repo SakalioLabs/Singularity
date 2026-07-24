@@ -3651,9 +3651,17 @@ const handlers = {
     },
 
     get_block_below: () => {
-        const pos = bot.entity.position.offset(0, -1, 0);
-        const block = bot.blockAt(pos);
-        return { block: block ? block.name : 'air' };
+        const entityPosition = bot.entity.position;
+        const position = new Vec3(
+            Math.floor(entityPosition.x),
+            Math.ceil(entityPosition.y) - 1,
+            Math.floor(entityPosition.z),
+        );
+        const block = bot.blockAt(position);
+        return {
+            block: block ? block.name : 'air',
+            position: compactPosition(position),
+        };
     },
 
     get_block_at: (params) => {

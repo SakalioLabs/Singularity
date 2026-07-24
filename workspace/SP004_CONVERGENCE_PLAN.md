@@ -217,6 +217,11 @@ Independent no-Minecraft probe `sp004_auth_recovery_probe_20260724_143844` passe
 every structured-output, timeout, and zero-retry criterion. The external provider
 hold is cleared and a new live episode may exercise the force-loaded platform repair.
 
+Preflight `sp004_live_20260724_144535` proved all five force-loaded platform segments
+were created, but `get_block_below` could misread a fractional post-teleport Y such
+as 199.92 as support layer 198. Policy `sp004-support-block-ceil-minus-one-v1`
+computes the support layer as `ceil(entity_y)-1` and returns the observed coordinate.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:
