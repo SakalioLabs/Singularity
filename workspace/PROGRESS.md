@@ -466,3 +466,6 @@ The material below is retained as historical context and is not active work whil
   shelter interrupts and a terminal provider timeout. It completed 33 recorded
   actions but only four verified stone removals, with no coal, iron, furnace, smelt,
   or iron pickaxe. No retry, capability credit, or M4 credit was granted.
+- Added SP-004-only policy `sp004-peaceful-shelter-interrupt-isolation-v1`.
+  It suppresses only dusk/night shelter scheduling in the peaceful fixture while
+  preserving health, hunger, hostile, task, and absolute-deadline safety checks.

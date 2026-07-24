@@ -133,6 +133,10 @@ sources. Generic dusk and night shelter interrupts consumed the run, and a termi
 Planner request timed out at the 1800-second absolute deadline. The episode grants no
 credit and was not retried. The next offline repair must isolate SP-004 from unrelated
 shelter interrupts while preserving its action guard and absolute deadline.
+Offline policy `sp004-peaceful-shelter-interrupt-isolation-v1` now suppresses only
+the generic dusk/night shelter decisions inside the SP-004 runtime supervisor.
+Health, hunger, hostile-entity, task-deadline, and absolute episode-deadline checks
+remain inherited and active.
 
 ## Live Acceptance
 

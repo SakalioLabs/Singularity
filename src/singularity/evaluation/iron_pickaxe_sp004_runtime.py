@@ -13,6 +13,7 @@ from singularity.core.agent import Agent
 from singularity.core.config import Config
 from singularity.core.goal_verifier import GoalVerification
 from singularity.core.planner import Planner
+from singularity.core.runtime import InterruptDecision, RuntimeSupervisor
 
 
 SP004_GOAL = (
@@ -614,12 +615,30 @@ Text predictions never advance machine state. Return compact contract-valid JSON
                 issues.append("wait_ms_invalid")
 
 
+class SP004RuntimeSupervisor(RuntimeSupervisor):
+    """Keep general safety checks while excluding unrelated shelter scheduling."""
+
+    def evaluate_interrupt(self, observation: dict, goal: str = "", active_task=None):
+        decision = super().evaluate_interrupt(observation, goal, active_task)
+        if decision.reason in {"dusk_shelter_required", "night_shelter_required"}:
+            return InterruptDecision(
+                False,
+                reason="sp004_shelter_interrupt_suppressed",
+                evidence={
+                    "policy_id": "sp004-peaceful-shelter-interrupt-isolation-v1",
+                    "suppressed_reason": decision.reason,
+                },
+            )
+        return decision
+
+
 class IronPickaxeSP004RuntimeAgent(Agent):
     """Strict continuation agent for the stone-pickaxe-to-iron-pickaxe episode."""
 
     def __init__(self, config: Config):
         self.sp004_progress = empty_sp004_progress()
         super().__init__(config)
+        self.runtime = SP004RuntimeSupervisor(config, self.explorer)
         if getattr(self, "_use_llm", False):
             self.planner = IronPickaxeSP004Planner(
                 self.llm,

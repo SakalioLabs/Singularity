@@ -9,6 +9,7 @@ from singularity.evaluation.iron_pickaxe_sp004_runtime import (
     SP004_GOAL,
     SP004_ROOT_GRAPH,
     IronPickaxeSP004Planner,
+    SP004RuntimeSupervisor,
     build_sp004_runtime_config,
     empty_sp004_progress,
     guard_sp004_action,
@@ -56,6 +57,37 @@ def successful_dig(block, drop, index, stage):
             "pickup_inventory_delta": {drop: 1},
         },
     }
+
+
+def test_sp004_suppresses_only_unrelated_shelter_interrupts() -> None:
+    supervisor = SP004RuntimeSupervisor(Config())
+    decision = supervisor.evaluate_interrupt(
+        {
+            "time_of_day": 14000,
+            "health": 20,
+            "hunger": 20,
+            "inventory": {},
+            "nearby_entities": [],
+        },
+        SP004_GOAL,
+    )
+
+    assert decision.should_interrupt is False
+    assert decision.reason == "sp004_shelter_interrupt_suppressed"
+    assert decision.evidence["suppressed_reason"] == "night_shelter_required"
+
+    health_decision = supervisor.evaluate_interrupt(
+        {
+            "time_of_day": 1000,
+            "health": 1,
+            "hunger": 20,
+            "inventory": {},
+            "nearby_entities": [],
+        },
+        SP004_GOAL,
+    )
+    assert health_decision.should_interrupt is True
+    assert health_decision.reason == "health_critical"
 
 
 def successful_craft(item, delta, count=1):
