@@ -501,3 +501,5 @@ The material below is retained as historical context and is not active work whil
   actions with exact 8 stone, exact 10 coal, and 1 of 3 iron before planner call 22
   returned a single zero-retry HTTP 502. No action failed. The episode is retained as
   infrastructure-ineligible and grants no lifecycle, capability, or M4 credit.
+- No-Minecraft probe `sp004_post502_recovery_probe_20260724_140031` passed all
+  provider recovery criteria in one zero-retry forced-structured request.

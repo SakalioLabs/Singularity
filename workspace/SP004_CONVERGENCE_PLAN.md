@@ -185,6 +185,9 @@ completed 22 accepted actions with exact 8 stone, exact 10 coal, and 1 of 3 iron
 Planner call 22 then returned one HTTP 502 with zero retries. No action failed and no
 runtime repair is indicated; the retained episode is infrastructure-ineligible and
 requires a passing no-Minecraft provider recovery probe before another live episode.
+Probe `sp004_post502_recovery_probe_20260724_140031` passed every structured-output,
+timeout, and zero-retry criterion without starting Minecraft. A new independent live
+episode may now continue acceptance testing.
 
 ## Live Acceptance
 
