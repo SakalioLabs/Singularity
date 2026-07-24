@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER = ROOT / "scripts/iron-pickaxe-sp004-runtime.ps1"
+BOT_SERVER = ROOT / "src/bot/sp004_bot_server.js"
 
 
 def _text() -> str:
@@ -44,8 +45,12 @@ def test_launcher_builds_exact_audited_fixture() -> None:
     assert '"/tp @s $($x + 0.5) $y $($z + 0.5)"' in text
     assert "$y = 200" in text
     assert 'Invoke-BridgeCommand "get_block_below"' in text
+    assert 'Invoke-BridgeCommand "get_block_at"' in text
     assert 'supportState.block -ne "cobblestone"' in text
+    assert 'floorState.block -ne "cobblestone"' in text
     assert "fixture player is not stabilized" in text
+    assert '"allow-flight" = "true"' in text
+    assert "/setblock $x $($y - 1) $z minecraft:cobblestone" in text
     assert "$($y - 1)" in text
     assert "$($y + 2)" in text
     assert text.count("minecraft:stone") == 2
@@ -54,6 +59,14 @@ def test_launcher_builds_exact_audited_fixture() -> None:
     assert "@(-8, -6, -4, -2, 2, 4, 6, 8)" in text
     assert "@(-9, -7, -5, -3, -1, 1, 3, 5, 7, 9)" in text
     assert "@(-2, 0, 2)" in text
+
+
+def test_bridge_exposes_exact_fixture_block_observation() -> None:
+    text = BOT_SERVER.read_text(encoding="utf-8")
+
+    assert "get_block_at: (params) =>" in text
+    assert "coordinates.every(Number.isFinite)" in text
+    assert "compactPosition(position)" in text
 
 
 def test_launcher_always_stops_owned_processes_and_restores_properties() -> None:

@@ -157,6 +157,7 @@ function Set-EpisodeServerProperties {
         "gamemode" = "survival"
         "difficulty" = "peaceful"
         "spawn-monsters" = "false"
+        "allow-flight" = "true"
     }).GetEnumerator()) {
         $content = Set-ServerProperty $content $entry.Key $entry.Value
     }
@@ -187,17 +188,36 @@ function Initialize-AuditedFixture {
     $x = [math]::Floor([double]$state.position.x)
     $y = 200
     $z = [math]::Floor([double]$state.position.z)
-    $commands = [Collections.Generic.List[string]]::new()
-    foreach ($command in @(
+    foreach ($message in @(
         "/clear @s",
         "/give @s minecraft:stone_pickaxe 1",
         "/give @s minecraft:stick 2",
         "/time set day",
         "/weather clear",
-        "/fill $($x - 12) $($y - 1) $($z - 1) $($x + 12) $($y - 1) $($z + 16) minecraft:cobblestone",
-        "/fill $($x - 12) $y $($z - 1) $($x + 12) $($y + 2) $($z + 16) minecraft:air",
-        "/setblock $($x + 4) $y $($z + 2) minecraft:crafting_table",
+        "/setblock $x $($y - 1) $z minecraft:cobblestone",
         "/tp @s $($x + 0.5) $y $($z + 0.5)"
+    )) {
+        $result = Invoke-BridgeCommand "chat" @{ message = $message }
+        if ($result.success -ne $true) {
+            throw "SP-004 fixture bootstrap command failed: $message"
+        }
+        Start-Sleep -Milliseconds 250
+    }
+    Start-Sleep -Seconds 1
+
+    $commands = [Collections.Generic.List[string]]::new()
+    foreach ($command in @(
+        "/fill $($x - 2) $($y - 1) $($z - 1) $($x + 2) $($y - 1) $($z + 2) minecraft:cobblestone",
+        "/fill $($x - 2) $y $($z - 1) $($x + 2) $($y + 2) $($z + 2) minecraft:air",
+        "/fill $($x - 2) $($y - 1) $($z + 3) $($x + 2) $($y - 1) $($z + 15) minecraft:cobblestone",
+        "/fill $($x - 2) $y $($z + 3) $($x + 2) $($y + 2) $($z + 15) minecraft:air",
+        "/fill $($x - 9) $($y - 1) $($z + 5) $($x + 9) $($y - 1) $($z + 7) minecraft:cobblestone",
+        "/fill $($x - 9) $y $($z + 5) $($x + 9) $($y + 2) $($z + 7) minecraft:air",
+        "/fill $($x - 10) $($y - 1) $($z + 9) $($x + 10) $($y - 1) $($z + 11) minecraft:cobblestone",
+        "/fill $($x - 10) $y $($z + 9) $($x + 10) $($y + 2) $($z + 11) minecraft:air",
+        "/fill $($x - 3) $($y - 1) $($z + 13) $($x + 3) $($y - 1) $($z + 15) minecraft:cobblestone",
+        "/fill $($x - 3) $y $($z + 13) $($x + 3) $($y + 2) $($z + 15) minecraft:air",
+        "/setblock $($x + 4) $y $($z + 2) minecraft:crafting_table"
     )) { $commands.Add($command) }
     foreach ($offset in @(-8, -6, -4, -2, 2, 4, 6, 8)) {
         $commands.Add("/setblock $($x + $offset) $y $($z + 6) minecraft:stone")
@@ -223,6 +243,23 @@ function Initialize-AuditedFixture {
     }
     if ([string]$supportState.block -ne "cobblestone") {
         throw "SP-004 fixture support floor is not machine-observed cobblestone."
+    }
+    foreach ($sentinel in @(
+        @{ x = $x - 8; z = $z + 6 },
+        @{ x = $x + 8; z = $z + 6 },
+        @{ x = $x - 9; z = $z + 10 },
+        @{ x = $x + 9; z = $z + 10 },
+        @{ x = $x - 2; z = $z + 14 },
+        @{ x = $x + 2; z = $z + 14 }
+    )) {
+        $floorState = Invoke-BridgeCommand "get_block_at" @{
+            x = $sentinel.x
+            y = $y - 1
+            z = $sentinel.z
+        }
+        if ([string]$floorState.block -ne "cobblestone") {
+            throw "SP-004 fixture resource floor sentinel is not cobblestone."
+        }
     }
     $inventory = Invoke-BridgeCommand "get_inventory"
     $counts = @{}

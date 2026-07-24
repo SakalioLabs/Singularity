@@ -1,0 +1,31 @@
+{
+  "type": "iron_pickaxe_sp004_preflight_failure",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_140408",
+  "classification": "fixture_platform_fill_unconfirmed_and_player_floating",
+  "provider_gate_passed": true,
+  "minecraft_episode_started": false,
+  "gameplay_action_count": 0,
+  "primary_blocker": {
+    "preflight_error": "SP-004 fixture support floor is not machine-observed cobblestone.",
+    "server_observation": "platform fill had no success response",
+    "disconnect_reason": "multiplayer.disconnect.flying"
+  },
+  "repair_policy": {
+    "id": "sp004-segmented-machine-verified-platform-v1",
+    "bootstrap_support_before_teleport": true,
+    "temporary_allow_flight": true,
+    "segmented_platform_fills": true,
+    "exact_resource_floor_sentinels": 6
+  },
+  "raw_evidence_sha256": {
+    "provider_probe": "73e122c3cb0c62316396611218c02408bbf3a4a6d9efbd71404fe9750bb906f2",
+    "bridge_stdout_log": "15c4d899b14c26e3bdf982f04666ecaab3d50c4066150bfa0ee1a7d31188ad86",
+    "bridge_stderr_log": "baea233dd846e64b901e547a60198ea0afc18f5df6a6b4db2c35d9b01a70d8d5",
+    "server_stdout_log": "7ea61cbbd9e4f3020f0890ea361b75f25dfb3a75c8831ea3ba5d23a3ac704718",
+    "server_stderr_log": "abecda7d02d7013fc88b67ece5249ffcfe3ae86789b7645740a190dd583e9096"
+  },
+  "counts_toward_sp004_lifecycle": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

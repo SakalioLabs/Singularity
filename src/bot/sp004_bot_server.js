@@ -3656,6 +3656,19 @@ const handlers = {
         return { block: block ? block.name : 'air' };
     },
 
+    get_block_at: (params) => {
+        const coordinates = ['x', 'y', 'z'].map(axis => Number(params?.[axis]));
+        if (!coordinates.every(Number.isFinite)) {
+            return { block: 'unknown', error: 'get_block_at requires finite x, y, z' };
+        }
+        const position = new Vec3(...coordinates.map(Math.floor));
+        const block = bot.blockAt(position);
+        return {
+            block: block ? block.name : 'air',
+            position: compactPosition(position),
+        };
+    },
+
     get_time: () => ({ time: bot.time.timeOfDay }),
 
     get_weather: () => ({

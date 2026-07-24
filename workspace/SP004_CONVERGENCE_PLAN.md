@@ -189,6 +189,13 @@ Probe `sp004_post502_recovery_probe_20260724_140031` passed every structured-out
 timeout, and zero-retry criterion without starting Minecraft. A new independent live
 episode may now continue acceptance testing.
 
+Preflight `sp004_live_20260724_140408` correctly refused to start gameplay because
+the large platform fill was not confirmed and the server disconnected the unsupported
+high-altitude player for flying. Policy
+`sp004-segmented-machine-verified-platform-v1` places bootstrap support before
+teleport, temporarily permits fixture flight, splits the floor into bounded regions,
+and machine-verifies six exact resource-row floor sentinels before gameplay.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

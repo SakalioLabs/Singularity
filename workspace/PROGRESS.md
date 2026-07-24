@@ -503,3 +503,8 @@ The material below is retained as historical context and is not active work whil
   infrastructure-ineligible and grants no lifecycle, capability, or M4 credit.
 - No-Minecraft probe `sp004_post502_recovery_probe_20260724_140031` passed all
   provider recovery criteria in one zero-retry forced-structured request.
+- Preflight `sp004_live_20260724_140408` started no gameplay: its provider gate
+  passed, but the machine support check caught an unconfirmed platform fill before
+  the unsupported high-altitude player could enter the episode. Added
+  `sp004-segmented-machine-verified-platform-v1`: bootstrap support before teleport,
+  temporary fixture flight, segmented fills, and six exact floor sentinels.
