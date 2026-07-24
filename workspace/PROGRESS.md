@@ -461,3 +461,8 @@ The material below is retained as historical context and is not active work whil
 - No-Minecraft probe `sp004_forced_schema_probe_20260724_0950` passed all criteria:
   one request, zero retries, exact seven-field object, and the forced tool argument
   channel. It started no Minecraft process and grants no capability or M4 credit.
+- Live episode `sp004_live_20260724_095220` proved the structured tool channel no
+  longer failed empty, but ended at the 1800-second deadline after generic dusk/night
+  shelter interrupts and a terminal provider timeout. It completed 33 recorded
+  actions but only four verified stone removals, with no coal, iron, furnace, smelt,
+  or iron pickaxe. No retry, capability credit, or M4 credit was granted.

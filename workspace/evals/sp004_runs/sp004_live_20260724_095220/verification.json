@@ -1,0 +1,91 @@
+{
+  "type": "iron_pickaxe_sp004_machine_verification",
+  "schema_version": 1,
+  "verifier_id": "iron-pickaxe-sp004-machine-verifier-v1",
+  "runtime_policy_id": "iron-pickaxe-sp004-stone-to-iron-runtime-v1",
+  "passed": false,
+  "criteria": {
+    "initial_stone_pickaxe_present": true,
+    "initial_iron_pickaxe_absent": true,
+    "initial_mined_and_smelted_resources_absent": true,
+    "exact_eight_distinct_stone_sources": false,
+    "exact_ten_distinct_coal_sources": false,
+    "exact_three_distinct_iron_sources": false,
+    "only_required_ore_digs": false,
+    "crafting_table_found_or_made": true,
+    "furnace_crafted_once": false,
+    "furnace_placed_once": false,
+    "furnace_machine_observed": false,
+    "one_zero_retry_smelt": false,
+    "exact_three_raw_iron_smelted": false,
+    "exact_three_iron_ingots_collected": false,
+    "exact_one_coal_fuel_consumed": false,
+    "sticks_available_for_pickaxe": true,
+    "iron_pickaxe_crafted_once": false,
+    "terminal_iron_pickaxe_present": false,
+    "no_failed_actions": false,
+    "ordered_progression": false,
+    "progress_matches_action_evidence": true,
+    "terminal_stage_complete": false
+  },
+  "criteria_issues": [
+    "exact_eight_distinct_stone_sources",
+    "exact_one_coal_fuel_consumed",
+    "exact_ten_distinct_coal_sources",
+    "exact_three_distinct_iron_sources",
+    "exact_three_iron_ingots_collected",
+    "exact_three_raw_iron_smelted",
+    "furnace_crafted_once",
+    "furnace_machine_observed",
+    "furnace_placed_once",
+    "iron_pickaxe_crafted_once",
+    "no_failed_actions",
+    "one_zero_retry_smelt",
+    "only_required_ore_digs",
+    "ordered_progression",
+    "terminal_iron_pickaxe_present",
+    "terminal_stage_complete"
+  ],
+  "metrics": {
+    "action_count": 33,
+    "stone_source_removal_count": 4,
+    "coal_source_removal_count": 0,
+    "iron_source_removal_count": 0,
+    "smelt_action_count": 0,
+    "iron_pickaxe_craft_count": 0
+  },
+  "progress": {
+    "stone_sources": [
+      "87,137,-34",
+      "85,137,-34",
+      "83,137,-34",
+      "81,137,-34"
+    ],
+    "coal_sources": [],
+    "iron_sources": [],
+    "crafting_table_craft_count": 0,
+    "crafting_table_place_count": 0,
+    "furnace_craft_count": 0,
+    "furnace_place_count": 0,
+    "smelt_action_count": 0,
+    "smelted_iron_ingot_count": 0,
+    "smelted_raw_iron_count": 0,
+    "smelting_fuel_consumed_count": 0,
+    "stick_craft_count": 0,
+    "iron_pickaxe_craft_count": 0,
+    "stage_history": [
+      "acquire_cobblestone",
+      "acquire_cobblestone",
+      "acquire_cobblestone",
+      "acquire_cobblestone"
+    ]
+  },
+  "terminal_inventory": {
+    "stone_pickaxe": 1,
+    "stick": 2,
+    "cobblestone": 2
+  },
+  "counts_toward_sp004_lifecycle": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

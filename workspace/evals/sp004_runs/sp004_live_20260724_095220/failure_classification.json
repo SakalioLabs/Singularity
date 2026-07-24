@@ -1,0 +1,34 @@
+{
+  "type": "iron_pickaxe_sp004_derived_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_095220",
+  "classification": "runtime_safety_interrupts_and_provider_timeout_before_progression",
+  "termination_reason": "max_duration",
+  "elapsed_s": 1800.0,
+  "verified_progress": {
+    "action_count": 33,
+    "stone_source_removal_count": 4,
+    "coal_source_removal_count": 0,
+    "iron_source_removal_count": 0,
+    "furnace_craft_count": 0,
+    "iron_pickaxe_craft_count": 0
+  },
+  "observed_blockers": [
+    "dusk_shelter_required",
+    "night_shelter_required",
+    "terminal_planner_request_timeout"
+  ],
+  "automatic_retry": false,
+  "raw_evidence_sha256": {
+    "episode.json": "0fab598c23b04fdc0e8152a8616cb65565a651db6a415869400dddfa262b8ada",
+    "manifest.json": "0050b779872dbc6294e9767bcb76bbaf8dacefb8f1c4d42a72c35302d7851a0c",
+    "preflight.json": "ead515b41661fe8f58d3ea341d353810558a9dcbdcb9068323185499a4a1fe5a",
+    "session.json": "69b1deae29d8ba0e9eaa62c50961da1e2f6a594e10762970f66fb132f47e0e11",
+    "session_8cfe2c61-1c8.jsonl": "e4a2d085b4d021e4ba9570d5aede97a1ceaaf3fd226b580c8428e936a54b3d2c",
+    "session_8cfe2c61-1c8_summary.json": "68b85cf7b75bc5cdefb68feec4d4f049c13da73503245756e86d3076fbcd57e3",
+    "verification.json": "d3c99a38df0ca40a74df74386dae2920c02e392401b2f517991468e12db09512",
+    "provider_probe": "c72882ae0741e101327d2f806ff29157ea0b1100d2b6752ed0fc4e39bd3c28a6"
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

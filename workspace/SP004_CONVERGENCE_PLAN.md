@@ -127,6 +127,13 @@ request with zero retries and no Minecraft process. It returned the exact seven-
 object through `forced_json_tool_arguments`, authorizing one new live episode after
 this probe evidence is committed and pushed.
 
+Live episode `sp004_live_20260724_095220` used the structured tool channel without
+the prior empty-content failure, but did not progress beyond four verified stone
+sources. Generic dusk and night shelter interrupts consumed the run, and a terminal
+Planner request timed out at the 1800-second absolute deadline. The episode grants no
+credit and was not retried. The next offline repair must isolate SP-004 from unrelated
+shelter interrupts while preserving its action guard and absolute deadline.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:
