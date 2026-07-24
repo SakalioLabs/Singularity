@@ -155,6 +155,14 @@ inventory but was no longer held; 55 repeated digs failed closed on
 `equip stone_pickaxe` action only during the three resource stages and only when the
 exact pickaxe is present but not already held.
 
+Episode `sp004_live_20260724_124204` reaches exact 8/10/3 resource acquisition and
+crafts one furnace with the intended terminal inputs (`furnace:1`, `coal:10`,
+`raw_iron:3`, `stick:2`). Furnace placement then repeats ten failures because the
+crafting table itself was emitted as the reference block, causing the bridge to target
+the cell above the table. Policy `sp004-open-support-furnace-reference-v1` removes
+that special case and requires the existing machine-observed open-support selector for
+furnace placement.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

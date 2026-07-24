@@ -1139,14 +1139,6 @@ def _sp004_placement_target(observation: dict, progress: Any) -> dict:
     }.get(stage)
     if not item:
         return {}
-    if item == "furnace":
-        table = _nearest_block(observation, "crafting_table")
-        if table is not None and _block_distance(table) <= 4.5:
-            return {
-                "item": item,
-                "reference_position": copy.deepcopy(_position(table)),
-                "reference_block": "crafting_table",
-            }
     reference = _open_place_reference(observation)
     if not reference:
         return {}
@@ -1166,6 +1158,8 @@ def _open_place_reference(observation: dict) -> dict:
     player = _position(observation)
     candidates = []
     for block in _nearby_blocks(observation):
+        if str(block.get("name") or "") in {"crafting_table", "furnace"}:
+            continue
         position = _position(block)
         source = _source_key(block)
         if not source or _block_distance(block) > 4.5:

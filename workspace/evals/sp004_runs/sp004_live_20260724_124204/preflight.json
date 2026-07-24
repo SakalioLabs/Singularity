@@ -1,0 +1,109 @@
+{
+  "type": "iron_pickaxe_sp004_live_preflight",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-24T04:43:19.949058+00:00",
+  "episode_id": "sp004_live_20260724_124204",
+  "runtime_policy_id": "iron-pickaxe-sp004-stone-to-iron-runtime-v1",
+  "initial_state_audit": {
+    "type": "iron_pickaxe_sp004_initial_state_audit",
+    "schema_version": 1,
+    "passed": true,
+    "checks": {
+      "stone_pickaxe_exact": true,
+      "iron_pickaxe_absent": true,
+      "episode_resources_absent": true,
+      "player_position_observed": true,
+      "machine_block_observation_present": true
+    },
+    "issues": [],
+    "inventory": {
+      "stone_pickaxe": 1,
+      "stick": 2
+    },
+    "held_item": "stone_pickaxe",
+    "position": {
+      "x": 92.5,
+      "y": 142,
+      "z": -34.5
+    }
+  },
+  "bridge_health": {
+    "success": true,
+    "bridge": true,
+    "bot_created": true,
+    "bot_ready": true,
+    "mc_host": "127.0.0.1",
+    "mc_port": 25565,
+    "bridge_host": "127.0.0.1",
+    "bridge_port": 30000,
+    "username": "Singularity",
+    "version": "1.20.4",
+    "server_brand": "Paper",
+    "position": {
+      "x": 92.5,
+      "y": 142,
+      "z": -34.5
+    },
+    "last_error": "",
+    "benchmark_protocol": {
+      "profile": "m1-fixed-v1",
+      "configured": true,
+      "episode_id": "sp004_live_20260724_124204",
+      "seed": "12345"
+    },
+    "craft_policy": {
+      "max_attempts": 1,
+      "automatic_retry": false
+    },
+    "smelt_policy": {
+      "policy_id": "furnace-output-inventory-settlement-v1",
+      "max_attempts": 1,
+      "automatic_retry": false,
+      "supported_outputs": [
+        "iron_ingot"
+      ],
+      "supported_fuels": [
+        "charcoal",
+        "coal"
+      ]
+    },
+    "screenshot_capture_supported": false,
+    "screenshot_plugin": {
+      "configured": false,
+      "loaded": false,
+      "supported": false,
+      "source": "",
+      "resolved": "",
+      "options": {
+        "width": 512,
+        "height": 512,
+        "viewDistance": 4,
+        "renderDelayMs": 500
+      },
+      "error": ""
+    }
+  },
+  "llm": {
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "temperature": 0.0,
+    "api_key_present": true,
+    "api_key_recorded": false
+  },
+  "smelt_policy": {
+    "policy_id": "furnace-output-inventory-settlement-v1",
+    "max_attempts": 1,
+    "automatic_retry": false,
+    "supported_outputs": [
+      "iron_ingot"
+    ],
+    "supported_fuels": [
+      "charcoal",
+      "coal"
+    ]
+  },
+  "single_episode": true,
+  "automatic_retry_allowed": false,
+  "passed": true
+}

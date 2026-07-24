@@ -481,3 +481,9 @@ The material below is retained as historical context and is not active work whil
   55 later digs were guard-rejected. Added `sp004-resource-tool-requip-v1`, permitting
   only an explicit LLM-planned `equip stone_pickaxe` during stone/coal/iron stages
   when the exact tool is present and not already held.
+- Episode `sp004_live_20260724_124204` completed exact 8 stone, 10 coal, and 3 iron
+  source removal and crafted one furnace. It then repeated ten failed placements
+  because the table coordinate was incorrectly used as the supporting reference,
+  targeting the cell above the table. Added
+  `sp004-open-support-furnace-reference-v1`, which requires a machine-observed solid
+  support with an open cell above for furnace placement.

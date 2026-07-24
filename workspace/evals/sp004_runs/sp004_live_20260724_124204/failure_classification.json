@@ -1,0 +1,53 @@
+{
+  "type": "iron_pickaxe_sp004_derived_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_124204",
+  "classification": "furnace_reference_block_semantics_mismatch",
+  "termination_reason": "empty_plan",
+  "verified_progress": {
+    "stone_source_count": 8,
+    "coal_source_count": 10,
+    "iron_source_count": 3,
+    "furnace_craft_count": 1,
+    "terminal_inventory": {
+      "furnace": 1,
+      "coal": 10,
+      "raw_iron": 3,
+      "stick": 2,
+      "stone_pickaxe": 1
+    }
+  },
+  "primary_blocker": {
+    "first_failed_action_index": 27,
+    "repeated_failed_place_count": 10,
+    "requested_reference": {
+      "x": 96,
+      "y": 142,
+      "z": -33
+    },
+    "backend_expected_placement": {
+      "x": 96,
+      "y": 143,
+      "z": -33
+    },
+    "error": "furnace reference was the crafting table instead of an open supporting floor block"
+  },
+  "repair_policy": {
+    "id": "sp004-open-support-furnace-reference-v1",
+    "crafting_table_as_place_reference": false,
+    "machine_observed_open_support_required": true,
+    "automatic_retry": false
+  },
+  "raw_evidence_sha256": {
+    "episode.json": "bba779cc8f49995cfd426e2ff45d162e78f486ede767e1e34fdd04926ef28876",
+    "manifest.json": "485937cc75526acd6e31cfa0666a0fda2df1418763f0979d66da1a6c6a75328c",
+    "preflight.json": "eb1a42069e130a6ff6b935dfc50ab6f1da48ddbf476d9c1f73b2cea341e0e614",
+    "session.json": "3d460a26ababd6bfca1c6bc14190ee04968b813681fc5f5a519c141dde0cd9d5",
+    "session_79b1c59d-978.jsonl": "2005e93dfd674b6bb4c125ee87c95e5fd2aafd43730153f7ca3c8c910403fb57",
+    "session_79b1c59d-978_summary.json": "750260524c0a5849affefddc0770601abc5772d01a46453655847f0128d05e9d",
+    "verification.json": "15fcb1ada00eae4ea9a7490356eecd8447788878c41c6e19dad75c9f314a24f1",
+    "provider_probe": "2f822cb37529cd46400410c49777f2768c7f43cf8ff3760aea05bb79a000ad71"
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

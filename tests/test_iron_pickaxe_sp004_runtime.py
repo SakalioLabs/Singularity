@@ -10,6 +10,7 @@ from singularity.evaluation.iron_pickaxe_sp004_runtime import (
     SP004_ROOT_GRAPH,
     IronPickaxeSP004Planner,
     SP004RuntimeSupervisor,
+    _sp004_placement_target,
     build_sp004_runtime_config,
     empty_sp004_progress,
     guard_sp004_action,
@@ -309,6 +310,27 @@ def test_table_found_and_table_make_branches_are_bounded():
         observation({"cobblestone": 8, "oak_planks": 4}),
         progress,
     )["passed"] is True
+
+
+def test_furnace_placement_uses_open_support_not_crafting_table() -> None:
+    progress = empty_sp004_progress()
+    progress["stone_sources"] = [f"s{i}" for i in range(8)]
+    progress["coal_sources"] = [f"c{i}" for i in range(10)]
+    progress["iron_sources"] = [f"i{i}" for i in range(3)]
+    progress["furnace_craft_count"] = 1
+    support = {
+        "name": "cobblestone",
+        "position": {"x": 2, "y": 63, "z": 2},
+        "distance": 2.0,
+    }
+    obs = observation({"furnace": 1}, [TABLE, support])
+    obs["position"] = {"x": 0.5, "y": 64, "z": 0.5}
+
+    target = _sp004_placement_target(obs, progress)
+
+    assert target["item"] == "furnace"
+    assert target["reference_block"] == "machine_observed_solid"
+    assert target["reference_position"] == support["position"]
 
     made = record_sp004_success(
         progress,
