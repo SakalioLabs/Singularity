@@ -196,6 +196,12 @@ high-altitude player for flying. Policy
 teleport, temporarily permits fixture flight, splits the floor into bounded regions,
 and machine-verifies six exact resource-row floor sentinels before gameplay.
 
+Preflight `sp004_live_20260724_141411` proved the central segment was sound but the
+adjacent resource chunks were not loaded when their segmented fills ran. Policy
+`sp004-forceloaded-machine-verified-platform-v1` force-loads the bounded fixture
+rectangle before any segmented fill, then retains exact six-sentinel verification;
+sentinel failures now report their coordinate and observed block.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

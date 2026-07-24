@@ -51,6 +51,11 @@ def test_launcher_builds_exact_audited_fixture() -> None:
     assert "fixture player is not stabilized" in text
     assert '"allow-flight" = "true"' in text
     assert "/setblock $x $($y - 1) $z minecraft:cobblestone" in text
+    assert "/forceload add" in text
+    assert text.index("/forceload add") < text.index(
+        '"/fill $($x - 2) $($y - 1)'
+    )
+    assert "is $($floorState.block), not cobblestone" in text
     assert "$($y - 1)" in text
     assert "$($y + 2)" in text
     assert text.count("minecraft:stone") == 2

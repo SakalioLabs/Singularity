@@ -195,6 +195,7 @@ function Initialize-AuditedFixture {
         "/time set day",
         "/weather clear",
         "/setblock $x $($y - 1) $z minecraft:cobblestone",
+        "/forceload add $($x - 12) $($z - 2) $($x + 12) $($z + 16)",
         "/tp @s $($x + 0.5) $y $($z + 0.5)"
     )) {
         $result = Invoke-BridgeCommand "chat" @{ message = $message }
@@ -258,7 +259,7 @@ function Initialize-AuditedFixture {
             z = $sentinel.z
         }
         if ([string]$floorState.block -ne "cobblestone") {
-            throw "SP-004 fixture resource floor sentinel is not cobblestone."
+            throw "SP-004 fixture resource floor sentinel at $($sentinel.x),$($y - 1),$($sentinel.z) is $($floorState.block), not cobblestone."
         }
     }
     $inventory = Invoke-BridgeCommand "get_inventory"

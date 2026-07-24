@@ -1,0 +1,31 @@
+{
+  "type": "iron_pickaxe_sp004_preflight_failure",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_141411",
+  "classification": "fixture_adjacent_chunks_not_loaded_before_segmented_fill",
+  "provider_gate_passed": true,
+  "minecraft_episode_started": false,
+  "gameplay_action_count": 0,
+  "primary_blocker": {
+    "preflight_error": "SP-004 fixture resource floor sentinel is not cobblestone.",
+    "server_observation": "only the player-chunk platform fill returned success before sentinel verification",
+    "action_failure_count": 0
+  },
+  "repair_policy": {
+    "id": "sp004-forceloaded-machine-verified-platform-v1",
+    "fixture_chunks_forceloaded_before_fill": true,
+    "segmented_platform_fills": true,
+    "exact_resource_floor_sentinels": 6,
+    "sentinel_error_includes_coordinate_and_observed_block": true
+  },
+  "raw_evidence_sha256": {
+    "provider_probe": "9b48e2e24a94ce619b1c910d76c6f5bce665b60a634c8c67b66c7caf73d6fa03",
+    "bridge_stdout_log": "4ca0bc265bd5d86e2697f00dacabe2821cceef71caed71e1bb1494305ae8dfa0",
+    "bridge_stderr_log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server_stdout_log": "b339b21157c7a23c0fa6d2da3428d37646bdf4f2d5a2bcb934c3e9f184c2a198",
+    "server_stderr_log": "abecda7d02d7013fc88b67ece5249ffcfe3ae86789b7645740a190dd583e9096"
+  },
+  "counts_toward_sp004_lifecycle": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

@@ -508,3 +508,7 @@ The material below is retained as historical context and is not active work whil
   the unsupported high-altitude player could enter the episode. Added
   `sp004-segmented-machine-verified-platform-v1`: bootstrap support before teleport,
   temporary fixture flight, segmented fills, and six exact floor sentinels.
+- Preflight `sp004_live_20260724_141411` also started no gameplay. Server evidence
+  showed the central fill succeeded while adjacent resource chunks were not loaded.
+  Added `sp004-forceloaded-machine-verified-platform-v1`, which force-loads the
+  bounded fixture rectangle before filling and preserves six exact sentinel checks.
