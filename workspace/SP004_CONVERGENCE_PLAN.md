@@ -207,6 +207,12 @@ Provider gate `sp004_live_20260724_142451` returned HTTP 403
 started and no gameplay action occurred. The force-loaded platform repair remains
 unexercised until the configured endpoint accepts a replacement credential.
 
+Independent no-Minecraft probe `sp004_auth_recovery_probe_20260724_143244` no longer
+returned the client-side 403; the endpoint instead returned HTTP 503
+`auth_unavailable: no auth available` for xAI `grok-4.5`. It used one request, zero
+retries, and started no Minecraft process. Live acceptance remains held on external
+provider authentication availability.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

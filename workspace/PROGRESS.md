@@ -515,3 +515,7 @@ The material below is retained as historical context and is not active work whil
 - Provider gate `sp004_live_20260724_142451` stopped before Minecraft startup with
   HTTP 403 `unauthenticated:bad-credentials`. It made one request, zero retries, and
   zero gameplay actions. The force-loaded platform repair is not yet exercised.
+- Independent no-Minecraft probe `sp004_auth_recovery_probe_20260724_143244`
+  observed a changed upstream failure: HTTP 503 `auth_unavailable: no auth
+  available` for xAI `grok-4.5`, again with one request and zero retries. This is an
+  external provider hold and grants no lifecycle, capability, or M4 credit.
