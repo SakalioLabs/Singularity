@@ -491,3 +491,5 @@ The material below is retained as historical context and is not active work whil
   actions with three verified stone sources before a single zero-retry Planner call
   returned HTTP 502. The new furnace-placement repair was not reached. The retained
   episode is infrastructure-ineligible and grants no capability or M4 credit.
+- No-Minecraft probe `sp004_post502_recovery_probe_20260724_1320` passed all provider
+  recovery criteria in one zero-retry request using the forced structured channel.

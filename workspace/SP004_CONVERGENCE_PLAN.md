@@ -168,6 +168,9 @@ successful actions with three verified stone sources, then one Planner request
 returned HTTP 502. No action failed and the placement repair was not reached. This is
 retained as an infrastructure-only interruption with no retry or credit; a bounded
 no-Minecraft recovery probe is required before another live episode.
+Probe `sp004_post502_recovery_probe_20260724_1320` passed every structured-output,
+timeout, and zero-retry criterion without starting Minecraft. After this evidence is
+pushed, one new live episode may exercise the open-support placement repair.
 
 ## Live Acceptance
 
