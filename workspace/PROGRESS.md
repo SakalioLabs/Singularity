@@ -497,3 +497,7 @@ The material below is retained as historical context and is not active work whil
   additional drop fell to Y=136 and timed out pickup; the initial observation exposed
   no cobblestone support. Added `sp004-machine-verified-sky-platform-v1`: fixed
   fixture Y=200 plus mandatory player-height and cobblestone-below machine preflight.
+- Episode `sp004_live_20260724_134510` verified that repair, completing 22 accepted
+  actions with exact 8 stone, exact 10 coal, and 1 of 3 iron before planner call 22
+  returned a single zero-retry HTTP 502. No action failed. The episode is retained as
+  infrastructure-ineligible and grants no lifecycle, capability, or M4 credit.
