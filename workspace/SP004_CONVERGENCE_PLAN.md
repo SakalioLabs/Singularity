@@ -117,6 +117,11 @@ and the run stopped without retry or credit. Policy
 `sp004-forced-json-tool-output-v1` keeps one real LLM call and forces SP-004 JSON
 through one `submit_json` function argument. The unchanged strict envelope and action
 guard validate the arguments before execution; the policy is default-off elsewhere.
+No-Minecraft probe `sp004_forced_tool_probe_20260724_0945` proved the endpoint used
+the forced tool argument channel in one request with zero retries, but rejected an
+extra model field under the probe's exact-object criterion. The follow-up contract
+pins the seven plan fields as required and sets `additionalProperties=false`; a fresh
+probe is required before another live episode.
 
 ## Live Acceptance
 

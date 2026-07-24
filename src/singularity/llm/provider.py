@@ -101,7 +101,28 @@ class LLMProvider:
                         "description": "Submit the required JSON response.",
                         "parameters": {
                             "type": "object",
-                            "additionalProperties": True,
+                            "properties": {
+                                "schema_version": {"type": "string"},
+                                "plan_kind": {"type": "string"},
+                                "goal": {"type": "string"},
+                                "status": {
+                                    "type": "string",
+                                    "enum": ["planning", "complete", "blocked"],
+                                },
+                                "reasoning": {"type": "string"},
+                                "subtasks": {"type": "array"},
+                                "actions": {"type": "array"},
+                            },
+                            "required": [
+                                "schema_version",
+                                "plan_kind",
+                                "goal",
+                                "status",
+                                "reasoning",
+                                "subtasks",
+                                "actions",
+                            ],
+                            "additionalProperties": False,
                         },
                     },
                 }]

@@ -46,7 +46,7 @@ class FakeProvider:
         }
         if self.error:
             raise self.error
-        return '{"status":"ok","stage":"acquire_cobblestone"}'
+        return json.dumps(_module().EXPECTED_RESPONSE, separators=(",", ":"))
 
 
 class FakeAuthenticationError(RuntimeError):

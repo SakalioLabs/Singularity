@@ -453,3 +453,8 @@ The material below is retained as historical context and is not active work whil
   SP-004-only policy `sp004-forced-json-tool-output-v1`: one forced `submit_json`
   function carries the model's plan arguments, while the existing schema and action
   guard remain authoritative and no request or retry is added.
+- No-Minecraft probe `sp004_forced_tool_probe_20260724_0945` successfully exercised
+  the forced tool argument channel with one request and zero retries, but failed its
+  exact-object check because the permissive tool schema admitted an extra field.
+  Minecraft did not start. The tool contract now requires exactly the seven SP-004
+  plan fields and forbids additional properties before the unchanged validator runs.

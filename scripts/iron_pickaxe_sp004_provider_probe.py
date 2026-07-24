@@ -25,7 +25,16 @@ POLICY_ID = "iron-pickaxe-sp004-provider-recovery-gate-v1"
 DEFAULT_BASE_URL = "http://192.168.3.27:8317/v1"
 DEFAULT_MODEL = "grok-4.5"
 REQUEST_TIMEOUT_S = 15.0
-EXPECTED_RESPONSE = {"status": "ok", "stage": "acquire_cobblestone"}
+PROBE_GOAL = "SP-004 structured provider probe."
+EXPECTED_RESPONSE = {
+    "schema_version": "stone-pickaxe-plan-v1",
+    "plan_kind": "continuation",
+    "goal": PROBE_GOAL,
+    "status": "blocked",
+    "reasoning": "Provider probe only.",
+    "subtasks": [],
+    "actions": [],
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -75,7 +84,8 @@ def probe_messages() -> list[dict]:
             "role": "user",
             "content": (
                 "SP-004 provider recovery probe. Return exactly "
-                '{"status":"ok","stage":"acquire_cobblestone"}.'
+                + json.dumps(EXPECTED_RESPONSE, separators=(",", ":"))
+                + "."
             ),
         },
     ]
@@ -118,7 +128,7 @@ def run_probe(
         model=model,
         api_key=api_key,
         base_url=normalized_base_url,
-        max_tokens=64,
+        max_tokens=256,
         temperature=0.0,
         use_forced_json_tool=True,
     )
