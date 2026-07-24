@@ -75,6 +75,10 @@ class LLMProvider:
             "request_sha256": hashlib.sha256(request_payload.encode("utf-8")).hexdigest(),
             "timeout_s": round(bounded_timeout, 3) if bounded_timeout is not None else None,
             "max_retries": 0 if bounded_timeout is not None else None,
+            "forced_json_tool": bool(
+                provider == "openai"
+                and getattr(self.config, "use_forced_json_tool", False)
+            ),
         }
         self.last_call_metadata = dict(request_metadata)
 
@@ -85,7 +89,27 @@ class LLMProvider:
                 "max_tokens": self.config.max_tokens,
                 "temperature": self.config.temperature,
             }
-            if response_format and provider == "openai":
+            forced_json_tool = bool(
+                provider == "openai"
+                and getattr(self.config, "use_forced_json_tool", False)
+            )
+            if forced_json_tool:
+                kwargs["tools"] = [{
+                    "type": "function",
+                    "function": {
+                        "name": "submit_json",
+                        "description": "Submit the required JSON response.",
+                        "parameters": {
+                            "type": "object",
+                            "additionalProperties": True,
+                        },
+                    },
+                }]
+                kwargs["tool_choice"] = {
+                    "type": "function",
+                    "function": {"name": "submit_json"},
+                }
+            elif response_format and provider == "openai":
                 kwargs["response_format"] = response_format
             if extra_body:
                 kwargs["extra_body"] = dict(extra_body)
@@ -101,6 +125,7 @@ class LLMProvider:
             text = message.content or ""
             finish_reason = str(getattr(choice, "finish_reason", "") or "")
             reasoning_content = str(getattr(message, "reasoning_content", "") or "")
+            tool_calls = list(getattr(message, "tool_calls", None) or [])
         elif provider == "anthropic":
             # Anthropic uses a different message format
             system_msg = ""
@@ -128,10 +153,27 @@ class LLMProvider:
             text = response.content[0].text if response.content else ""
             finish_reason = str(getattr(response, "stop_reason", "") or "")
             reasoning_content = ""
+            tool_calls = []
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
         response_content_source = "content"
+        if (
+            not text.strip()
+            and bool(getattr(self.config, "use_forced_json_tool", False))
+            and len(tool_calls) == 1
+        ):
+            function = getattr(tool_calls[0], "function", None)
+            function_name = str(getattr(function, "name", "") or "")
+            arguments = str(getattr(function, "arguments", "") or "").strip()
+            if function_name == "submit_json" and arguments:
+                try:
+                    parsed_arguments = json.loads(arguments)
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    parsed_arguments = None
+                if isinstance(parsed_arguments, dict):
+                    text = arguments
+                    response_content_source = "forced_json_tool_arguments"
         if (
             not text.strip()
             and reasoning_content.strip()

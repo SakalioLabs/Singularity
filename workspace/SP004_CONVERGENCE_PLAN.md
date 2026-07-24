@@ -109,6 +109,15 @@ to the unchanged strict plan envelope and action guard. It adds no request or re
 Non-JSON text, arrays, and fenced JSON remain empty and fail closed. A new live episode
 requires this evidence and repair to be committed and pushed first.
 
+Episode `sp004_live_20260724_093304` exercised the repair but exposed a narrower
+provider output-channel blocker. Calls 0-3 were real, schema-valid, single-attempt
+plans and completed one move plus three distinct stone digs. Call 4 returned stop,
+zero ordinary content bytes, and 203 non-object reasoning bytes, so it remained empty
+and the run stopped without retry or credit. Policy
+`sp004-forced-json-tool-output-v1` keeps one real LLM call and forces SP-004 JSON
+through one `submit_json` function argument. The unchanged strict envelope and action
+guard validate the arguments before execution; the policy is default-off elsewhere.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

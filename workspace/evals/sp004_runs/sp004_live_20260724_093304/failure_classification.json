@@ -1,0 +1,41 @@
+{
+  "type": "iron_pickaxe_sp004_derived_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_093304",
+  "classification": "provider_empty_content_non_json_reasoning_after_partial_progress",
+  "termination_reason": "empty_plan",
+  "first_blocker": {
+    "planner_call_index": 4,
+    "attempt_count": 1,
+    "retry_count": 0,
+    "finish_reason": "stop",
+    "content_byte_count": 0,
+    "reasoning_content_byte_count": 203,
+    "response_content_source": "content",
+    "schema_issue": "planner_response_empty"
+  },
+  "verified_partial_progress": {
+    "successful_action_count": 4,
+    "stone_source_removal_count": 3,
+    "failed_action_count": 0
+  },
+  "repair_policy": {
+    "id": "sp004-forced-json-tool-output-v1",
+    "scope": "sp004_only",
+    "single_llm_call": true,
+    "automatic_retry": false,
+    "existing_plan_schema_and_action_guard_preserved": true
+  },
+  "raw_evidence_sha256": {
+    "episode.json": "4f3acabaf653e68b7d8d8fcea5e5506d7acda91ed3c513c4540f2c7273f72456",
+    "manifest.json": "448ea7e3a685eedfa50ed78cfffebf49a84b4cca06547ea365829472e6f55b7c",
+    "preflight.json": "6425e89f25a5d262163056884006359d6317bef90e45548bee4e6f29aa408d42",
+    "session.json": "3f14ed63895c419a05b7f789a16278b03c518b3bf81f6308c39802013f9d309f",
+    "session_4a2fa349-652.jsonl": "c261c9d2f93e46e5912821778fd3d0995f9ea73b3d262b9397a37c59d04a2c88",
+    "session_4a2fa349-652_summary.json": "5899efa700d8822b1536a40cbce678266da45007e599728e9f20a1d2722e5859",
+    "verification.json": "c4ce610106951b3b9394a68fb06441bb4c1295b1f92132e1790c0b44ab7a498c",
+    "provider_probe": "b9be9535b96ff636f02744603dd6b72d06b96cd70ea2eec1798b0404bf82b6c0"
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

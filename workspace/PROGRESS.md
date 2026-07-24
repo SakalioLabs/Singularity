@@ -446,3 +446,10 @@ The material below is retained as historical context and is not active work whil
   guards still apply, and no request or retry is added. Non-JSON, array, and fenced
   controls fail closed. Targeted Python regressions pass 327/327 and Node smelt
   regressions pass 6/6.
+- Episode `sp004_live_20260724_093304` made four valid zero-retry Planner calls,
+  completing one move and three distinct stone digs with no action failure. Call 4
+  returned stop with zero content bytes and 203 non-object reasoning bytes; the run
+  therefore ended `empty_plan` with no capability or M4 credit. Added default-off,
+  SP-004-only policy `sp004-forced-json-tool-output-v1`: one forced `submit_json`
+  function carries the model's plan arguments, while the existing schema and action
+  guard remain authoritative and no request or retry is added.

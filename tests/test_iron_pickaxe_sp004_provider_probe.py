@@ -41,6 +41,8 @@ class FakeProvider:
             "extra_body": extra_body,
             "timeout_s": timeout_s,
             "max_retries": 0,
+            "forced_json_tool": self.config.use_forced_json_tool,
+            "response_content_source": "forced_json_tool_arguments",
         }
         if self.error:
             raise self.error

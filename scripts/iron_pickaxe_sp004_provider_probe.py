@@ -120,6 +120,7 @@ def run_probe(
         base_url=normalized_base_url,
         max_tokens=64,
         temperature=0.0,
+        use_forced_json_tool=True,
     )
     provider = provider_factory(config)
     response_text = ""
@@ -150,6 +151,9 @@ def run_probe(
         "exact_model": metadata.get("model") == model,
         "json_response_format": metadata.get("response_format")
         == {"type": "json_object"},
+        "forced_json_tool": metadata.get("forced_json_tool") is True,
+        "structured_output_channel": metadata.get("response_content_source")
+        == "forced_json_tool_arguments",
         "thinking_disabled": metadata.get("extra_body")
         == {"thinking": {"type": "disabled"}},
         "bounded_timeout": metadata.get("timeout_s") == REQUEST_TIMEOUT_S,

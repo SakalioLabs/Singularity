@@ -22,6 +22,7 @@ class LLMConfig:
     max_tokens: int = 4096
     temperature: float = 0.7
     use_reasoning_json_fallback: bool = False
+    use_forced_json_tool: bool = False
 
 
 @dataclass

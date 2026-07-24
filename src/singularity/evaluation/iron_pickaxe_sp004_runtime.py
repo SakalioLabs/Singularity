@@ -785,7 +785,11 @@ class IronPickaxeSP004RuntimeAgent(Agent):
 def build_sp004_runtime_config(*, base_config: Config) -> Config:
     return replace(
         base_config,
-        llm=replace(base_config.llm, use_reasoning_json_fallback=True),
+        llm=replace(
+            base_config.llm,
+            use_reasoning_json_fallback=True,
+            use_forced_json_tool=True,
+        ),
         skill_execution_mode="off",
         enable_skill_frontier_routing=False,
         enable_autocurriculum=False,
