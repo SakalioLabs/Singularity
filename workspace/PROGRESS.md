@@ -519,3 +519,6 @@ The material below is retained as historical context and is not active work whil
   observed a changed upstream failure: HTTP 503 `auth_unavailable: no auth
   available` for xAI `grok-4.5`, again with one request and zero retries. This is an
   external provider hold and grants no lifecycle, capability, or M4 credit.
+- Independent no-Minecraft probe `sp004_auth_recovery_probe_20260724_143844`
+  passed all provider recovery criteria in one zero-retry forced-structured request.
+  The external provider hold is cleared for a new live episode.

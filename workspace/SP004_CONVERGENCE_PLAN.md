@@ -213,6 +213,10 @@ returned the client-side 403; the endpoint instead returned HTTP 503
 retries, and started no Minecraft process. Live acceptance remains held on external
 provider authentication availability.
 
+Independent no-Minecraft probe `sp004_auth_recovery_probe_20260724_143844` passed
+every structured-output, timeout, and zero-retry criterion. The external provider
+hold is cleared and a new live episode may exercise the force-loaded platform repair.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:
