@@ -172,6 +172,14 @@ Probe `sp004_post502_recovery_probe_20260724_1320` passed every structured-outpu
 timeout, and zero-retry criterion without starting Minecraft. After this evidence is
 pushed, one new live episode may exercise the open-support placement repair.
 
+Episode `sp004_live_20260724_132407` made five verified stone removals but one
+additional removed stone dropped from fixture height to Y=136 and could not be
+collected. The initial observation contained no cobblestone support block, proving
+the prior dynamic-height floor was not machine-observed. Policy
+`sp004-machine-verified-sky-platform-v1` moves the fixture to fixed Y=200 and refuses
+to start the episode unless the player is stabilized there and `get_block_below`
+returns cobblestone.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

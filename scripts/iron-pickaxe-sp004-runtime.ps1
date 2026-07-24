@@ -185,7 +185,7 @@ function Assert-FreshPaths {
 function Initialize-AuditedFixture {
     $state = Invoke-BridgeCommand "get_player_state"
     $x = [math]::Floor([double]$state.position.x)
-    $y = [math]::Floor([double]$state.position.y)
+    $y = 200
     $z = [math]::Floor([double]$state.position.z)
     $commands = [Collections.Generic.List[string]]::new()
     foreach ($command in @(
@@ -216,6 +216,14 @@ function Initialize-AuditedFixture {
         Start-Sleep -Milliseconds 250
     }
     Start-Sleep -Seconds 2
+    $fixtureState = Invoke-BridgeCommand "get_player_state"
+    $supportState = Invoke-BridgeCommand "get_block_below"
+    if ([math]::Abs([double]$fixtureState.position.y - [double]$y) -gt 0.1) {
+        throw "SP-004 fixture player is not stabilized at Y=$y."
+    }
+    if ([string]$supportState.block -ne "cobblestone") {
+        throw "SP-004 fixture support floor is not machine-observed cobblestone."
+    }
     $inventory = Invoke-BridgeCommand "get_inventory"
     $counts = @{}
     foreach ($item in @($inventory.items)) {

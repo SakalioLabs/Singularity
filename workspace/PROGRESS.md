@@ -493,3 +493,7 @@ The material below is retained as historical context and is not active work whil
   episode is infrastructure-ineligible and grants no capability or M4 credit.
 - No-Minecraft probe `sp004_post502_recovery_probe_20260724_1320` passed all provider
   recovery criteria in one zero-retry request using the forced structured channel.
+- Episode `sp004_live_20260724_132407` reached five verified stone sources, but one
+  additional drop fell to Y=136 and timed out pickup; the initial observation exposed
+  no cobblestone support. Added `sp004-machine-verified-sky-platform-v1`: fixed
+  fixture Y=200 plus mandatory player-height and cobblestone-below machine preflight.

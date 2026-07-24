@@ -1,0 +1,40 @@
+{
+  "type": "iron_pickaxe_sp004_derived_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_132407",
+  "classification": "fixture_support_floor_not_machine_observed",
+  "termination_reason": "blocked_plan",
+  "primary_blocker": {
+    "failed_action_index": 5,
+    "source_removed": true,
+    "drop_detected": true,
+    "drop_initial_y": 141.206298828125,
+    "drop_final_y": 136,
+    "pickup_navigation_timeout_ms": 6000,
+    "initial_observation_cobblestone_support_count": 0
+  },
+  "verified_partial_progress": {
+    "stone_source_count": 5,
+    "action_failure_count": 1,
+    "furnace_placement_repair_reached": false
+  },
+  "repair_policy": {
+    "id": "sp004-machine-verified-sky-platform-v1",
+    "fixture_y": 200,
+    "support_block": "cobblestone",
+    "player_y_preflight_required": true,
+    "support_below_preflight_required": true
+  },
+  "raw_evidence_sha256": {
+    "episode.json": "2f2074f06a45234948f42344acc2f0b1ff44cf7d652f58986cdd5de8ce03d1ad",
+    "manifest.json": "336df341ccd748ee01c7e87ed8735b720ffbfa0908f2ffcf36bb472fa59a3013",
+    "preflight.json": "4f1c82f2d18078fb2fc879aa1d64dd03e7c2194857014a321a9795832202c42a",
+    "session.json": "250ece2f6baa083f9bd054ef7268d8756e21c68397773ca9242988dd536af9e0",
+    "session_3526dc24-cac.jsonl": "89cd2997fd71b5191244c4619976dcd605cf230f811e7d7a8614b402495a16fd",
+    "session_3526dc24-cac_summary.json": "f439cc7098fa78d588b9fb44f0dff7d5fdcfd1c6254f81168fc9f08eecf5b84d",
+    "verification.json": "f8aafb65ba0fcfc293cb71cb2c0922901751372b79d3fa1db7270cd68aea4d7e",
+    "provider_probe": "3a5174fac3b304524b466f7a01d179814b7810faa8830ac0a242b5e0ba3e08ad"
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

@@ -42,6 +42,10 @@ def test_launcher_builds_exact_audited_fixture() -> None:
     assert "minecraft:cobblestone" in text
     assert 'minecraft:air"' in text
     assert '"/tp @s $($x + 0.5) $y $($z + 0.5)"' in text
+    assert "$y = 200" in text
+    assert 'Invoke-BridgeCommand "get_block_below"' in text
+    assert 'supportState.block -ne "cobblestone"' in text
+    assert "fixture player is not stabilized" in text
     assert "$($y - 1)" in text
     assert "$($y + 2)" in text
     assert text.count("minecraft:stone") == 2
