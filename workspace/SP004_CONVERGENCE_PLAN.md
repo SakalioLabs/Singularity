@@ -222,6 +222,16 @@ were created, but `get_block_below` could misread a fractional post-teleport Y s
 as 199.92 as support layer 198. Policy `sp004-support-block-ceil-minus-one-v1`
 computes the support layer as `ceil(entity_y)-1` and returns the observed coordinate.
 
+Episode `sp004_live_20260724_145546` completed exact 8 stone, 10 coal, and 3 iron,
+crafted and machine-observed a furnace, and physically produced 3 iron ingots while
+consuming one coal. The furnace window returned three outputs before Mineflayer's
+inventory synchronized, so the smelt action falsely failed and 29 later duplicate
+smelts were guard-rejected until deadline. Policy
+`sp004-post-furnace-inventory-settlement-v1` closes the furnace and polls for the
+exact inventory delta for at most five seconds without retrying the smelt.
+`sp004-machine-observed-placement-progress-v1` also records the current place result
+when `target_block_after` and `placed_position` machine coordinates match.
+
 ## Live Acceptance
 
 A live episode passes only when all independent verifier criteria pass, including:

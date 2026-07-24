@@ -3223,17 +3223,49 @@ function createSmeltHandler(
             }
 
             const taken = await furnace.takeOutput();
-            await wait(100);
-            const inventoryAfter = inventoryCounts(activeBot);
-            const signedDelta = signedInventoryDelta(inventoryBefore, inventoryAfter);
-            const outputIncrease = Number(signedDelta[outputName] || 0);
-            const inputDecrease = Math.max(0, -Number(signedDelta[inputName] || 0));
-            const fuelDecrease = Math.max(0, -Number(signedDelta[fuelName] || 0));
-            const settled = (
-                outputIncrease >= count
-                && inputDecrease === count
-                && fuelDecrease === fuelCount
-            );
+            let furnaceClosed = false;
+            let furnaceCloseError = '';
+            try {
+                furnace.close();
+                furnaceClosed = true;
+                furnace = null;
+            } catch (error) {
+                furnaceCloseError = String(error?.message || error);
+            }
+
+            const settlementTimeoutMs = 5000;
+            const settlementPollMs = 100;
+            let settlementWaitedMs = 0;
+            let inventoryAfter = inventoryCounts(activeBot);
+            let signedDelta = signedInventoryDelta(inventoryBefore, inventoryAfter);
+            let outputIncrease = 0;
+            let inputDecrease = 0;
+            let fuelDecrease = 0;
+            let settled = false;
+            for (
+                let elapsed = 0;
+                elapsed <= settlementTimeoutMs;
+                elapsed += settlementPollMs
+            ) {
+                inventoryAfter = inventoryCounts(activeBot);
+                signedDelta = signedInventoryDelta(inventoryBefore, inventoryAfter);
+                outputIncrease = Number(signedDelta[outputName] || 0);
+                inputDecrease = Math.max(0, -Number(signedDelta[inputName] || 0));
+                fuelDecrease = Math.max(0, -Number(signedDelta[fuelName] || 0));
+                settled = (
+                    outputIncrease >= count
+                    && inputDecrease === count
+                    && fuelDecrease === fuelCount
+                );
+                settlementWaitedMs = elapsed;
+                if (settled) break;
+                if (elapsed < settlementTimeoutMs) {
+                    await wait(Math.min(
+                        settlementPollMs,
+                        settlementTimeoutMs - elapsed,
+                    ));
+                }
+            }
             result = {
                 ...base,
                 success: settled,
@@ -3254,7 +3286,13 @@ function createSmeltHandler(
                 output_inventory_increase: outputIncrease,
                 input_inventory_decrease: inputDecrease,
                 fuel_inventory_decrease: fuelDecrease,
+                inventory_settlement_timeout_ms: settlementTimeoutMs,
+                inventory_settlement_waited_ms: settlementWaitedMs,
                 output_settled: settled,
+                furnace_closed: furnaceClosed,
+                ...(furnaceCloseError
+                    ? { furnace_close_error: furnaceCloseError }
+                    : {}),
             };
             return result;
         } catch (error) {

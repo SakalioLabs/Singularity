@@ -526,3 +526,11 @@ The material below is retained as historical context and is not active work whil
   force-loaded platform segment was created. Its support lookup could floor a
   fractional post-teleport Y onto the layer below the real support. Added
   `sp004-support-block-ceil-minus-one-v1` and preserved six resource sentinels.
+- Episode `sp004_live_20260724_145546` reached exact 8 stone, 10 coal, and 3 iron,
+  crafted and machine-observed a furnace, then physically produced 3 iron ingots and
+  consumed one coal. Inventory synchronization lagged behind `takeOutput`, so the
+  smelt was falsely failed and duplicate plans ran until deadline. Added bounded
+  post-close inventory settlement polling with one smelt attempt and zero retries.
+- Added `sp004-machine-observed-placement-progress-v1` so the successful current
+  place result shape advances progress only when `target_block_after` and
+  `placed_position` names and coordinates agree.

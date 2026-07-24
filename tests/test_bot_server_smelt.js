@@ -28,6 +28,7 @@ function createSmeltFixture(options = {}) {
     let putFuelCount = 0;
     let takeOutputCount = 0;
     let closeCount = 0;
+    let pendingInventorySettlement = null;
     const furnaceBlock = {
         name: 'furnace',
         type: 61,
@@ -39,21 +40,29 @@ function createSmeltFixture(options = {}) {
         outputItem: () => outputSlot,
         async putInput(_type, _metadata, count) {
             putInputCount += 1;
-            items = removeInventory(items, 'raw_iron', count);
+            if (!options.delayedInventorySettlement) {
+                items = removeInventory(items, 'raw_iron', count);
+            }
             inputSlot = { name: 'raw_iron', count };
         },
         async putFuel(_type, _metadata, count) {
             putFuelCount += 1;
-            items = removeInventory(items, 'coal', count);
+            if (!options.delayedInventorySettlement) {
+                items = removeInventory(items, 'coal', count);
+            }
             fuelSlot = { name: 'coal', count };
         },
         async takeOutput() {
             takeOutputCount += 1;
             const taken = outputSlot;
             outputSlot = null;
-            const existing = items.find((item) => item.name === taken.name);
-            if (existing) existing.count += taken.count;
-            else items.push({ name: taken.name, count: taken.count });
+            if (options.delayedInventorySettlement) {
+                pendingInventorySettlement = taken;
+            } else {
+                const existing = items.find((item) => item.name === taken.name);
+                if (existing) existing.count += taken.count;
+                else items.push({ name: taken.name, count: taken.count });
+            }
             return taken;
         },
         close() {
@@ -78,6 +87,13 @@ function createSmeltFixture(options = {}) {
             inputSlot = null;
             fuelSlot = null;
             outputSlot = { name: 'iron_ingot', count };
+        },
+        settleInventory() {
+            if (!pendingInventorySettlement) return;
+            items = removeInventory(items, 'raw_iron', 3);
+            items = removeInventory(items, 'coal', 1);
+            items.push({ ...pendingInventorySettlement });
+            pendingInventorySettlement = null;
         },
         counters() {
             return {
@@ -135,6 +151,46 @@ async function testSmeltHandlerCollectsThreeVerifiedIronIngots() {
         closeCount: 1,
     });
     console.log('PASS: smelt handler collects three machine-settled iron ingots');
+}
+
+async function testSmeltHandlerWaitsForDelayedInventorySettlement() {
+    const fixture = createSmeltFixture({ delayedInventorySettlement: true });
+    let outputWaits = 0;
+    let settlementWaits = 0;
+    const handler = createSmeltHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {
+            if (fixture.counters().takeOutputCount === 0) {
+                outputWaits += 1;
+                if (outputWaits === 2) fixture.setCompletedOutput(3);
+                return;
+            }
+            settlementWaits += 1;
+            if (settlementWaits === 2) fixture.settleInventory();
+        },
+    );
+
+    const result = await handler({
+        item: 'iron_ingot',
+        input: 'raw_iron',
+        fuel: 'coal',
+        count: 3,
+        timeout_ms: 35000,
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.smelt_attempts, 1);
+    assert.strictEqual(result.smelt_retry_count, 0);
+    assert.strictEqual(result.output_settled, true);
+    assert.strictEqual(result.inventory_settlement_waited_ms, 200);
+    assert.deepStrictEqual(result.inventory_signed_delta, {
+        coal: -1,
+        iron_ingot: 3,
+        raw_iron: -3,
+    });
+    assert.strictEqual(fixture.counters().takeOutputCount, 1);
+    assert.strictEqual(fixture.counters().closeCount, 1);
+    console.log('PASS: smelt handler waits for delayed inventory settlement');
 }
 
 function testSmeltPolicyAdvertisesMapBackedCapabilities() {
@@ -249,6 +305,7 @@ async function testSmeltHandlerTimesOutWithoutRetryOrFalseSuccess() {
 async function main() {
     testSmeltPolicyAdvertisesMapBackedCapabilities();
     await testSmeltHandlerCollectsThreeVerifiedIronIngots();
+    await testSmeltHandlerWaitsForDelayedInventorySettlement();
     await testSmeltHandlerRejectsMissingMaterialsBeforeOpeningFurnace();
     await testSmeltHandlerRequiresObservedFurnace();
     await testSmeltHandlerRejectsOccupiedFurnaceBeforeDepositing();

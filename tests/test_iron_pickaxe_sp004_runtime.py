@@ -404,6 +404,25 @@ def test_failed_or_retried_smelt_does_not_advance_progress():
     assert retried == progress
 
 
+def test_place_progress_accepts_machine_observed_target_after():
+    progress = empty_sp004_progress()
+    placed = record_sp004_success(
+        progress,
+        action("place", item="furnace", x=8, y=63, z=4),
+        {
+            "success": True,
+            "placed_position": {"x": 8, "y": 64, "z": 4},
+            "target_block_after": {
+                "name": "furnace",
+                "position": {"x": 8, "y": 64, "z": 4},
+            },
+        },
+    )
+
+    assert placed["furnace_place_count"] == 1
+    assert placed["stage_history"] == ["place_furnace"]
+
+
 def test_terminal_stage_requires_machine_inventory_iron_pickaxe():
     episode = complete_episode()
     progress = episode["progress"]

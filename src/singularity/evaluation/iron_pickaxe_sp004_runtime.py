@@ -888,9 +888,27 @@ def record_sp004_success(progress: Any, action: Any, result: Any) -> dict:
             state["stage_history"].append("craft_iron_pickaxe")
     elif action_type == "place":
         item = str(params.get("item") or "")
+        target_after = result.get("target_block_after")
+        target_after = target_after if isinstance(target_after, dict) else {}
+        placed_position = result.get("placed_position")
+        placed_position = placed_position if isinstance(placed_position, dict) else {}
+        observed_position = target_after.get("position")
+        observed_position = (
+            observed_position if isinstance(observed_position, dict) else {}
+        )
+        machine_observed_placement = (
+            str(target_after.get("name") or "") == item
+            and placed_position
+            and observed_position
+            and all(
+                placed_position.get(axis) == observed_position.get(axis)
+                for axis in ("x", "y", "z")
+            )
+        )
         placed = (
             result.get("block_placed") is True
             or str(result.get("placed_block") or "") == item
+            or machine_observed_placement
         )
         if placed and item == "crafting_table":
             state["crafting_table_place_count"] += 1

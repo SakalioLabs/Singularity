@@ -1,0 +1,61 @@
+{
+  "type": "iron_pickaxe_sp004_derived_failure_classification",
+  "schema_version": 1,
+  "episode_id": "sp004_live_20260724_145546",
+  "classification": "post_smelt_inventory_settlement_race",
+  "termination_reason": "deadline",
+  "primary_blocker": {
+    "first_failed_action_index": 28,
+    "first_failed_action": "smelt",
+    "first_error": "smelt inventory postcondition failed",
+    "smelt_output_collected_count": 3,
+    "stale_inventory_after": {
+      "raw_iron": 3,
+      "coal": 10,
+      "iron_ingot": 0
+    },
+    "later_machine_inventory": {
+      "raw_iron": 0,
+      "coal": 9,
+      "iron_ingot": 3
+    },
+    "repeated_guard_rejection_count": 29
+  },
+  "verified_partial_progress": {
+    "stone_source_count": 8,
+    "coal_source_count": 10,
+    "iron_source_count": 3,
+    "furnace_craft_count": 1,
+    "furnace_machine_observed": true,
+    "terminal_iron_ingot_count": 3,
+    "terminal_coal_count": 9,
+    "iron_pickaxe_craft_count": 0
+  },
+  "repair_policies": [
+    {
+      "id": "sp004-post-furnace-inventory-settlement-v1",
+      "close_furnace_before_inventory_check": true,
+      "inventory_poll_timeout_ms": 5000,
+      "smelt_attempts": 1,
+      "automatic_retry": false
+    },
+    {
+      "id": "sp004-machine-observed-placement-progress-v1",
+      "requires_target_block_after_name": true,
+      "requires_placed_and_observed_positions_match": true
+    }
+  ],
+  "raw_evidence_sha256": {
+    "episode.json": "586ae085e75ae1cb2daddf98834f78819db8ad2839e5b8e3bcd3c217b95f8768",
+    "manifest.json": "893bf018b3c2f2fa9cbd2a462f9be264339e5151c84ca0992ebf54c4bc4f5f8e",
+    "preflight.json": "ce6277627516b6647204ae0244d2301c34591c321f05e0e9ba2c6e137fa09190",
+    "session.json": "00a7c395fbd80d37ca234c9392205203caeb6409f68b1d14df34fb451996997f",
+    "session_861ba099-786.jsonl": "2739a737d4aef97205a75cc639f6a994033e8090e1fae2f05363759d80ce4561",
+    "session_861ba099-786_summary.json": "6bc16bb1f552724238aa52b1861c9ecb90aa56fd226cab3fadc43a242cb198ed",
+    "verification.json": "04699300dedd0886a985257d1a565aae4bcb337c9b29ad218cf5aa283baac9c6",
+    "provider_probe": "fc3f99d032f84fe4e0834e5da2c029ed376c5a4a2899b3972b0603d541bd24f0"
+  },
+  "counts_toward_sp004_lifecycle": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
