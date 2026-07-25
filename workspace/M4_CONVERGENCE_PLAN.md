@@ -208,7 +208,7 @@ The Probe 23 `torch:4` replay releases the root within one scheduler tick. Repla
 - Compatibility: generic GoalVerifier, task deadlines, success thresholds, M1, M2, M3, non-M4 TaskSystem scheduling, and live evidence remain unchanged
 - Validation: six focused ready-task cases, 155 Memory/TaskSystem plus M4 deadline cases, three historical SP-003 identity cases, 1,247 repository non-live cases excluding the user-modified README consistency check, and eight Node suites with 91 internal assertions pass
 - Evidence: original Probe 23 report SHA-256 `2611472346aa6f9e9e7dce26dc602d73568f4405278acae91c1fb59cf9a7b710` remains unchanged; derived audit SHA-256 `b9620e8bb653130eb6b8ab814777b34a66a68525157a6ff0fc6d79c4524d768a` grants no BM-012 or capability credit
-- Authorization: Probe 24 remains false pending a separately committed and pushed one-use authorization
+- Authorization: exactly one zero-retry Probe 24 is authorized by `workspace/evals/m4_probe24_authorization.json` only after its separate parent-bound commit is pushed; no Probe 25 is authorized
 
 ## BM-012 Offline Preflight
 

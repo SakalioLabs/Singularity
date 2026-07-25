@@ -1,0 +1,21 @@
+{
+  "type": "m4_live_probe_authorization",
+  "schema_version": 1,
+  "generated_at": "2026-07-25T14:31:45Z",
+  "profile": "m4-fixed-v1",
+  "task_id": "BM-012",
+  "probe_number": 24,
+  "gate_parent_commit": "e8d2f8814beec71d009d24759033bb22d37c369a",
+  "gate_tree": "4d953db04b2eecf224d42259c28f6064ce795bb4",
+  "policy_id": "m4-failed-bound-ready-task-machine-state-reconciliation-v1",
+  "authorization_basis": "explicit_user_authorization_for_all_operations",
+  "authorized": true,
+  "one_use": true,
+  "maximum_episode_count": 1,
+  "maximum_retry_count": 0,
+  "fresh_level_required": true,
+  "fixed_runtime_limits_required": true,
+  "skill_execution_mode": "off",
+  "counts_toward_capability_before_independent_verification": false,
+  "consumed": false
+}

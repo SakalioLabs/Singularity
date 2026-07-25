@@ -1019,7 +1019,11 @@
     "bm012_failed_bound_ready_task_machine_state_reconciliation_audit_sha256": "b9620e8bb653130eb6b8ab814777b34a66a68525157a6ff0fc6d79c4524d768a",
     "bm012_probe_23_original_report_sha256": "2611472346aa6f9e9e7dce26dc602d73568f4405278acae91c1fb59cf9a7b710",
     "bm012_probe_23_original_report_modified": false,
-    "bm012_probe_24_authorized": false,
+    "bm012_probe_24_authorized": true,
+    "bm012_probe_24_authorization_path": "workspace/evals/m4_probe24_authorization.json",
+    "bm012_probe_24_authorization_parent_commit": "e8d2f8814beec71d009d24759033bb22d37c369a",
+    "bm012_probe_24_authorization_maximum_episode_count": 1,
+    "bm012_probe_24_authorization_maximum_retry_count": 0,
     "bm012_ready_task_next_authorized_episode": null,
     "bm012_ready_task_authorized_episode_count": 0
   },
