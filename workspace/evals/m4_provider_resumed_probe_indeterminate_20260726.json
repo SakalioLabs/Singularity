@@ -1,0 +1,48 @@
+{
+  "type": "m4_provider_resumed_probe_indeterminate",
+  "schema_version": 1,
+  "audit_id": "m4_provider_resumed_probe_indeterminate_20260726",
+  "generated_at": "2026-07-25T23:43:24.919363Z",
+  "source_commit": "7d9f8a6b0b278b35774c32aa1fa41a9d3e8988bb",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "previous_resumed_audit": {
+    "path": "workspace/evals/m4_provider_resumed_audit_r2_20260726.json",
+    "sha256": "4aee78a0816b2cedf48bbfc6ae52d35db64a120403a06fbbbd47d89e63f43d51",
+    "verified_http401_consecutive_count": 2
+  },
+  "probe_attempt": {
+    "outer_command_timeout_s": 30,
+    "client_timeout_s": 15,
+    "automatic_retry_count": 0,
+    "provider_request_count_upper_bound": 1,
+    "minecraft_started": false,
+    "gameplay_action_count": 0,
+    "provider_result_observed": false,
+    "http_status_observed": false,
+    "credit_error_observed": false,
+    "probe_process_observed_after_timeout": true,
+    "probe_process_clean_after_audit": true
+  },
+  "decision": {
+    "value": "resumed_probe_indeterminate",
+    "reason": "outer_command_timed_out_before_provider_result_was_observed",
+    "qualifying_http401_observation": false,
+    "fixed_provider_recovery_proven": false,
+    "blocked_threshold_satisfied": false,
+    "verified_preceding_http401_count": 2,
+    "current_proven_consecutive_count": 0,
+    "blocked_threshold": 3,
+    "goal_status_after_audit": "active",
+    "probe_25_authorized": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false
+  },
+  "safety": {
+    "same_turn_manual_retry_performed": false,
+    "credential_value_retained": false,
+    "previous_resumed_audit_modified": false,
+    "probe_24_evidence_modified": false,
+    "alternate_provider_substitution_used": false
+  }
+}
