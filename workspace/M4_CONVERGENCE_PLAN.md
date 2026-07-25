@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 24 remain ineligible at 0/3. Probe 24 consumed its one-use authorization at `autonomous_start`, but the fixed provider returned 24 single-attempt, zero-retry HTTP 401 credit errors and zero response bytes. No real/schema-valid Planner response or action occurred, so the failed-bound ready-task policy was neither exercised nor rejected. Two subsequent no-Minecraft recovery probes each made one request with zero retries and again returned HTTP 401 before a response; the third goal-turn observation explicitly classified the provider body as a credit error. The same fixed-provider blocker has therefore persisted for three consecutive goal turns. `workspace/evals/m4_provider_blocked_audit_20260725.json` records the strict blocked decision. Probe 25 is not authorized, BM-012 remains 0/3, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 24 remain ineligible at 0/3. Probe 24 consumed its one-use authorization at `autonomous_start`, but the fixed provider returned 24 single-attempt, zero-retry HTTP 401 credit errors and zero response bytes. No real/schema-valid Planner response or action occurred, so the failed-bound ready-task policy was neither exercised nor rejected. Two subsequent no-Minecraft recovery probes each made one request with zero retries and again returned HTTP 401 before a response; the third goal-turn observation explicitly classified the provider body as a credit error. `workspace/evals/m4_provider_blocked_audit_20260725.json` records that completed three-turn blocked audit. After the goal was resumed, a fresh no-Minecraft request again returned HTTP 401 with a proven credit error. This starts a new resumed blocked audit at 1/3 rather than reusing the previous threshold. Probe 25 is not authorized, BM-012 remains 0/3, and BM-013/BM-014 remain sequentially locked.
 
 ## Stone Pickaxe Research Gate
 
@@ -211,6 +211,7 @@ The Probe 23 `torch:4` replay releases the root within one scheduler tick. Repla
 - Authorization: Probe 24 consumed its one-use authorization at autonomous-start monotonic `741556.75`; Probe 25 is not authorized
 - Provider recovery: `workspace/evals/m4_post_probe24_provider_recovery_probe_r1.json` records one fixed-provider request, zero retries, no Minecraft process or gameplay action, HTTP 401, and a fail-closed `provider_recovery_not_proven` decision
 - Blocked audit: three consecutive goal turns ended at the same fixed-provider HTTP 401 boundary with zero real Planner responses; the final no-Minecraft probe reconfirmed the credit error, and progress now requires credit restoration on the fixed provider
+- Resumed audit r1: after reactivation, one fixed-provider request with zero retries again returned HTTP 401 credit error; the fresh resumed count is 1/3 and does not authorize Probe 25
 
 ## BM-012 Offline Preflight
 
