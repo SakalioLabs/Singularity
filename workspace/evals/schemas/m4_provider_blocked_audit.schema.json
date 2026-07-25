@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "m4_provider_blocked_audit.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "schema_version",
+    "generated_at",
+    "source_commit",
+    "profile",
+    "protocol_sha256",
+    "provider",
+    "blocker",
+    "consecutive_goal_turn_count",
+    "goal_turn_observations",
+    "blocked_audit",
+    "evidence_discipline"
+  ],
+  "properties": {
+    "type": {"const": "m4_provider_blocked_audit"},
+    "schema_version": {"const": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "profile": {"const": "m4-fixed-v1"},
+    "protocol_sha256": {
+      "const": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "base_url", "model"],
+      "properties": {
+        "name": {"const": "openai"},
+        "base_url": {"const": "https://opencode.ai/zen/go/v1"},
+        "model": {"const": "deepseek-v4-flash"}
+      }
+    },
+    "blocker": {
+      "const": "fixed_provider_http_401_before_planner_response"
+    },
+    "consecutive_goal_turn_count": {"const": 3},
+    "goal_turn_observations": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {"$ref": "#/$defs/liveObservation"},
+        {"$ref": "#/$defs/recoveryObservationWithEvidence"},
+        {"$ref": "#/$defs/finalRecoveryObservation"}
+      ]
+    },
+    "blocked_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "same_blocking_condition_across_three_goal_turns",
+        "fixed_provider_recovery_proven",
+        "meaningful_code_only_progress_remaining",
+        "external_state_change_required",
+        "alternate_provider_substitution_allowed",
+        "probe_25_authorized",
+        "m4_status",
+        "bm012_eligible_success_count",
+        "goal_status"
+      ],
+      "properties": {
+        "same_blocking_condition_across_three_goal_turns": {"const": true},
+        "fixed_provider_recovery_proven": {"const": false},
+        "meaningful_code_only_progress_remaining": {"const": false},
+        "external_state_change_required": {
+          "const": "restore_credit_on_the_fixed_provider"
+        },
+        "alternate_provider_substitution_allowed": {"const": false},
+        "probe_25_authorized": {"const": false},
+        "m4_status": {"const": "failing"},
+        "bm012_eligible_success_count": {"const": 0},
+        "goal_status": {"const": "blocked"}
+      }
+    },
+    "evidence_discipline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minecraft_started_for_recovery_probes",
+        "minecraft_ports_closed_after_final_probe",
+        "automatic_retry_count",
+        "credential_value_retained",
+        "probe_24_evidence_modified",
+        "counts_toward_bm012_success",
+        "counts_toward_capability"
+      ],
+      "properties": {
+        "minecraft_started_for_recovery_probes": {"const": false},
+        "minecraft_ports_closed_after_final_probe": {"const": true},
+        "automatic_retry_count": {"const": 0},
+        "credential_value_retained": {"const": false},
+        "probe_24_evidence_modified": {"const": false},
+        "counts_toward_bm012_success": {"const": false},
+        "counts_toward_capability": {"const": false}
+      }
+    }
+  },
+  "$defs": {
+    "baseObservation": {
+      "type": "object",
+      "required": [
+        "goal_turn",
+        "kind",
+        "request_attempt_count",
+        "retry_count",
+        "http_status",
+        "credit_error_proven",
+        "real_planner_response_count",
+        "gameplay_action_count"
+      ]
+    },
+    "liveObservation": {
+      "allOf": [
+        {"$ref": "#/$defs/baseObservation"},
+        {
+          "type": "object",
+          "required": ["evidence_path", "evidence_sha256"],
+          "properties": {
+            "goal_turn": {"const": 1},
+            "kind": {"const": "authorized_live_episode"},
+            "evidence_path": {
+              "const": "workspace/evals/m4_probe24_report.json"
+            },
+            "evidence_sha256": {
+              "const": "91d2a85d11be604e1a2dae79513734f536a2ede7fc10527ad14f6715b4736af3"
+            },
+            "request_attempt_count": {"const": 24},
+            "retry_count": {"const": 0},
+            "http_status": {"const": 401},
+            "credit_error_proven": {"const": true},
+            "real_planner_response_count": {"const": 0},
+            "gameplay_action_count": {"const": 0}
+          }
+        }
+      ]
+    },
+    "recoveryObservationWithEvidence": {
+      "allOf": [
+        {"$ref": "#/$defs/baseObservation"},
+        {
+          "type": "object",
+          "required": ["evidence_path", "evidence_sha256"],
+          "properties": {
+            "goal_turn": {"const": 2},
+            "kind": {"const": "no_minecraft_recovery_probe"},
+            "evidence_path": {
+              "const": "workspace/evals/m4_post_probe24_provider_recovery_probe_r1.json"
+            },
+            "evidence_sha256": {
+              "const": "f3af6fecb9bc8b459b2b2705960b929ecc0829f030af4fcfc420a305f0392c9d"
+            },
+            "request_attempt_count": {"const": 1},
+            "retry_count": {"const": 0},
+            "http_status": {"const": 401},
+            "credit_error_proven": {"const": false},
+            "real_planner_response_count": {"const": 0},
+            "gameplay_action_count": {"const": 0}
+          }
+        }
+      ]
+    },
+    "finalRecoveryObservation": {
+      "allOf": [
+        {"$ref": "#/$defs/baseObservation"},
+        {
+          "type": "object",
+          "required": [
+            "observed_at",
+            "elapsed_s",
+            "error_type",
+            "response_body_retained"
+          ],
+          "properties": {
+            "goal_turn": {"const": 3},
+            "kind": {"const": "no_minecraft_recovery_probe"},
+            "observed_at": {"type": "string", "format": "date-time"},
+            "elapsed_s": {"const": 2.938},
+            "request_attempt_count": {"const": 1},
+            "retry_count": {"const": 0},
+            "http_status": {"const": 401},
+            "error_type": {"const": "AuthenticationError"},
+            "credit_error_proven": {"const": true},
+            "response_body_retained": {"const": false},
+            "real_planner_response_count": {"const": 0},
+            "gameplay_action_count": {"const": 0}
+          }
+        }
+      ]
+    }
+  }
+}

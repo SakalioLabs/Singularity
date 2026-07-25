@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-25T16:20:48Z",
+  "generated_at": "2026-07-25T16:31:11Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -19,7 +19,7 @@
   "current_gate": {
     "hypothesis": "planner_provider_credit_exhaustion_before_action",
     "policy_id": "m4-failed-bound-ready-task-machine-state-reconciliation-v1",
-    "status": "post_probe_24_provider_recovery_not_proven_http_401",
+    "status": "blocked_fixed_provider_http_401_three_consecutive_goal_turns",
     "earliest_blocker": "fixed_provider_http_401_before_planner_response",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -1059,6 +1059,13 @@
     "bm012_post_probe_24_provider_recovery_probe_http_status": 401,
     "bm012_post_probe_24_provider_recovery_probe_credit_error_reconfirmed": false,
     "bm012_post_probe_24_provider_recovery_probe_decision": "provider_recovery_not_proven",
+    "bm012_provider_blocked_audit_path": "workspace/evals/m4_provider_blocked_audit_20260725.json",
+    "bm012_provider_blocked_audit_sha256": "5d9a6799569f9f8c5ccd8e0a780ee792dd25d9d08e76e7b06292f4ace7ea0b64",
+    "bm012_provider_blocked_audit_consecutive_goal_turn_count": 3,
+    "bm012_provider_blocked_audit_same_condition": "fixed_provider_http_401_before_planner_response",
+    "bm012_provider_blocked_audit_final_credit_error_proven": true,
+    "bm012_provider_blocked_audit_external_state_change_required": "restore_credit_on_the_fixed_provider",
+    "bm012_provider_blocked_audit_goal_status": "blocked",
     "bm012_probe_25_authorized": false,
     "bm012_ready_task_next_authorized_episode": null,
     "bm012_ready_task_authorized_episode_count": 0
