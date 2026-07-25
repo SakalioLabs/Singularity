@@ -1,0 +1,57 @@
+{
+  "type": "m4_provider_resumed_audit",
+  "schema_version": 1,
+  "audit_id": "m4_provider_resumed_audit_r2_20260726",
+  "generated_at": "2026-07-25T23:37:23.277322Z",
+  "source_commit": "b3d79d6710e5901ee6ed699f10ec9b64bb49b613",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "previous_blocked_audit": {
+    "path": "workspace/evals/m4_provider_blocked_audit_20260725.json",
+    "sha256": "5d9a6799569f9f8c5ccd8e0a780ee792dd25d9d08e76e7b06292f4ace7ea0b64",
+    "goal_was_resumed": true
+  },
+  "previous_resumed_audit": {
+    "path": "workspace/evals/m4_provider_resumed_audit_r1_20260726.json",
+    "sha256": "9ee2623180e6b550a13fc6a22e78bd7a1e5c7bff3249be1a74b68566b0e089e0",
+    "resumed_consecutive_count": 1
+  },
+  "provider": {
+    "name": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash"
+  },
+  "probe": {
+    "attempt_count": 1,
+    "retry_count": 0,
+    "timeout_s": 15.0,
+    "minecraft_started": false,
+    "minecraft_ports_closed_after_probe": true,
+    "gameplay_action_count": 0
+  },
+  "result": {
+    "ok": false,
+    "elapsed_s": 2.469,
+    "error_type": "AuthenticationError",
+    "http_status": 401,
+    "credit_error_proven": true,
+    "response_body_retained": false,
+    "real_planner_response_count": 0
+  },
+  "decision": {
+    "value": "resumed_external_hold_continues",
+    "blocking_condition": "fixed_provider_http_401_before_planner_response",
+    "resumed_consecutive_count": 2,
+    "blocked_threshold": 3,
+    "goal_status_after_audit": "active",
+    "probe_25_authorized": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false
+  },
+  "safety": {
+    "credential_value_retained": false,
+    "previous_blocked_audit_modified": false,
+    "probe_24_evidence_modified": false,
+    "alternate_provider_substitution_used": false
+  }
+}

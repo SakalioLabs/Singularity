@@ -21,7 +21,10 @@
   "properties": {
     "type": {"const": "m4_provider_resumed_audit"},
     "schema_version": {"const": 1},
-    "audit_id": {"const": "m4_provider_resumed_audit_r1_20260726"},
+    "audit_id": {
+      "type": "string",
+      "pattern": "^m4_provider_resumed_audit_r[1-3]_20260726$"
+    },
     "generated_at": {"type": "string", "format": "date-time"},
     "source_commit": {
       "type": "string",
@@ -43,6 +46,26 @@
           "const": "5d9a6799569f9f8c5ccd8e0a780ee792dd25d9d08e76e7b06292f4ace7ea0b64"
         },
         "goal_was_resumed": {"const": true}
+      }
+    },
+    "previous_resumed_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "resumed_consecutive_count"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^workspace/evals/m4_provider_resumed_audit_r[1-2]_20260726\\.json$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "resumed_consecutive_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        }
       }
     },
     "provider": {
@@ -89,7 +112,7 @@
       ],
       "properties": {
         "ok": {"const": false},
-        "elapsed_s": {"const": 3.156},
+        "elapsed_s": {"type": "number", "minimum": 0},
         "error_type": {"const": "AuthenticationError"},
         "http_status": {"const": 401},
         "credit_error_proven": {"const": true},
@@ -115,9 +138,15 @@
         "blocking_condition": {
           "const": "fixed_provider_http_401_before_planner_response"
         },
-        "resumed_consecutive_count": {"const": 1},
+        "resumed_consecutive_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
         "blocked_threshold": {"const": 3},
-        "goal_status_after_audit": {"const": "active"},
+        "goal_status_after_audit": {
+          "enum": ["active", "blocked"]
+        },
         "probe_25_authorized": {"const": false},
         "counts_toward_bm012_success": {"const": false},
         "counts_toward_capability": {"const": false}
