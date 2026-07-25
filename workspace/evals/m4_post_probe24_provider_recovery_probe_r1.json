@@ -1,0 +1,44 @@
+{
+  "type": "m4_post_probe24_provider_recovery_probe",
+  "schema_version": 1,
+  "probe_id": "m4_post_probe24_provider_recovery_probe_r1_20260725",
+  "observed_at": "2026-07-25T16:20:48.298Z",
+  "source_commit": "c8edbcf9005b7c8e7b91dd284a47ba012f5f5f6b",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "provider": {
+    "name": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash"
+  },
+  "request": {
+    "attempt_count": 1,
+    "retry_count": 0,
+    "timeout_s": 15.0,
+    "max_tokens": 8,
+    "minecraft_started": false,
+    "gameplay_action_count": 0
+  },
+  "result": {
+    "ok": false,
+    "elapsed_s": 2.688,
+    "error_type": "AuthenticationError",
+    "http_status": 401,
+    "response_body_retained": false,
+    "provider_error_code_retained": false,
+    "probe24_credit_exhaustion_reconfirmed": false,
+    "recovery_gate_passed": false
+  },
+  "decision": {
+    "value": "provider_recovery_not_proven",
+    "reason": "fixed_provider_returned_http_401_before_a_planner_response",
+    "authorizes_probe_25": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false
+  },
+  "safety": {
+    "credential_value_retained": false,
+    "minecraft_ports_closed_after_probe": true,
+    "probe_24_evidence_modified": false
+  }
+}

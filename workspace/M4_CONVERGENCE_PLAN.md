@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 24 remain ineligible at 0/3. Probe 24 consumed its one-use authorization at `autonomous_start`, but the fixed provider returned 24 single-attempt, zero-retry HTTP 401 credit errors and zero response bytes. No real/schema-valid Planner response or action occurred, so the failed-bound ready-task policy was neither exercised nor rejected. The decision is `infrastructure_ineligible`; Probe 25 is not authorized and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 24 remain ineligible at 0/3. Probe 24 consumed its one-use authorization at `autonomous_start`, but the fixed provider returned 24 single-attempt, zero-retry HTTP 401 credit errors and zero response bytes. No real/schema-valid Planner response or action occurred, so the failed-bound ready-task policy was neither exercised nor rejected. A subsequent no-Minecraft, one-attempt, zero-retry recovery probe against the same fixed endpoint also returned HTTP 401 before a response. Because that probe retained neither the response body nor a provider error code, it proves only that recovery has not occurred, not that Probe 24's precise credit classification was reconfirmed. Probe 25 is not authorized, BM-012 remains 0/3, and BM-013/BM-014 remain sequentially locked.
 
 ## Stone Pickaxe Research Gate
 
@@ -209,6 +209,7 @@ The Probe 23 `torch:4` replay releases the root within one scheduler tick. Repla
 - Validation: six focused ready-task cases, 155 Memory/TaskSystem plus M4 deadline cases, three historical SP-003 identity cases, 1,247 repository non-live cases excluding the user-modified README consistency check, and eight Node suites with 91 internal assertions pass
 - Evidence: original Probe 23 report SHA-256 `2611472346aa6f9e9e7dce26dc602d73568f4405278acae91c1fb59cf9a7b710` remains unchanged; derived audit SHA-256 `b9620e8bb653130eb6b8ab814777b34a66a68525157a6ff0fc6d79c4524d768a` grants no BM-012 or capability credit
 - Authorization: Probe 24 consumed its one-use authorization at autonomous-start monotonic `741556.75`; Probe 25 is not authorized
+- Provider recovery: `workspace/evals/m4_post_probe24_provider_recovery_probe_r1.json` records one fixed-provider request, zero retries, no Minecraft process or gameplay action, HTTP 401, and a fail-closed `provider_recovery_not_proven` decision
 
 ## BM-012 Offline Preflight
 
