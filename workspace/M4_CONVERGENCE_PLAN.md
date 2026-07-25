@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 23 remain ineligible at 0/3. Probe 23 ran exactly once from frozen commit `f528ea17` and consumed its authorization at `autonomous_start`. The failed-dependency reconciliation branch was not exercised: three failed wooden-pickaxe tasks existed when `wooden_pickaxe:1` was machine-observed, but none was a direct dependency of an active-frontier task. No reconciliation event, failed-task reselection, or recovery child occurred. The Agent nevertheless advanced through twelve successful stone digs before a failed bound `Craft torches` ready-task suppressed machine-grounded completion for 23 cycles. The new `m4-failed-bound-ready-task-machine-state-reconciliation-v1` policy closes that exact boundary offline without changing the original evidence or granting success credit. Probe 24 is not authorized, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 24 remain ineligible at 0/3. Probe 24 consumed its one-use authorization at `autonomous_start`, but the fixed provider returned 24 single-attempt, zero-retry HTTP 401 credit errors and zero response bytes. No real/schema-valid Planner response or action occurred, so the failed-bound ready-task policy was neither exercised nor rejected. The decision is `infrastructure_ineligible`; Probe 25 is not authorized and BM-013/BM-014 remain sequentially locked.
 
 ## Stone Pickaxe Research Gate
 
@@ -208,7 +208,7 @@ The Probe 23 `torch:4` replay releases the root within one scheduler tick. Repla
 - Compatibility: generic GoalVerifier, task deadlines, success thresholds, M1, M2, M3, non-M4 TaskSystem scheduling, and live evidence remain unchanged
 - Validation: six focused ready-task cases, 155 Memory/TaskSystem plus M4 deadline cases, three historical SP-003 identity cases, 1,247 repository non-live cases excluding the user-modified README consistency check, and eight Node suites with 91 internal assertions pass
 - Evidence: original Probe 23 report SHA-256 `2611472346aa6f9e9e7dce26dc602d73568f4405278acae91c1fb59cf9a7b710` remains unchanged; derived audit SHA-256 `b9620e8bb653130eb6b8ab814777b34a66a68525157a6ff0fc6d79c4524d768a` grants no BM-012 or capability credit
-- Authorization: exactly one zero-retry Probe 24 is authorized by `workspace/evals/m4_probe24_authorization.json` only after its separate parent-bound commit is pushed; no Probe 25 is authorized
+- Authorization: Probe 24 consumed its one-use authorization at autonomous-start monotonic `741556.75`; Probe 25 is not authorized
 
 ## BM-012 Offline Preflight
 
@@ -532,6 +532,21 @@ The Probe 23 `torch:4` replay releases the root within one scheduler tick. Repla
 - Authorization: consumed by BM-012 Probe 22; Probe 23 was later separately authorized only after the failed-dependency offline gate
 
 ## BM-012 Live Evidence
+
+### Probe 24: Fixed Provider Credit Exhausted Before Any Action
+
+- Episode: `m4_episode_20260725_225534_83b6c4ba`
+- Session: `256378c6-a50`
+- Level: `m4_episode_20260725_225534_83b6c4ba_bm012`
+- Frozen authorization: commit `b815b4d3`, tree `0f9962dc`, exactly one BM-012 episode, zero Planner retries, skills off
+- Preflight: the first fresh-level setup timed out waiting for the full reset response and never reached `autonomous_start`; the second fresh-level preflight passed and consumed the authorization
+- Provider boundary: all 24 Planner calls made one transport attempt with zero retries and returned `AuthenticationError -> HTTPStatusError`, HTTP 401 credit exhaustion, and zero response bytes
+- Planner/actions: zero real calls, zero schema-valid responses, zero executable actions, zero action-verifier events, and zero inventory deltas
+- Goal churn: 14 gather goals ended `empty_plan`; 10 inspection goals completed generically through `world:exploration`; the 24-goal budget ended after 90.125 seconds
+- Intervention: no qualifying failed bound ready task and zero reconciliation events; `m4-failed-bound-ready-task-machine-state-reconciliation-v1` is neither live-validated nor live-rejected
+- Eligibility: 62/74 checks passed, health/food remained 20, lifecycle stayed uninterrupted, terminal inventory remained empty, and BM-012 received no credit
+- Decision: `infrastructure_ineligible` with earliest layer `planner_provider_credit_exhaustion_before_action`; M4 remains `failing`
+- Evidence: report SHA-256 `91d2a85d11be604e1a2dae79513734f536a2ede7fc10527ad14f6715b4736af3`; Probe 25 authorization is false
 
 ### Probe 23: Failed-Dependency Branch Unexercised; Failed Bound Root Blocked Torch Completion
 

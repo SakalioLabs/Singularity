@@ -1,0 +1,297 @@
+{
+  "type": "m4_preflight",
+  "schema_version": 1,
+  "passed": false,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "world_seed": "12345",
+  "fresh_episode": true,
+  "game_mode": "",
+  "difficulty": "",
+  "initial_inventory": {},
+  "initial_player_state": {
+    "health": null,
+    "food": null,
+    "saturation": null
+  },
+  "initial_time_of_day": null,
+  "weather": "",
+  "gamerules": {},
+  "runtime_versions": {
+    "python": "3.12.8",
+    "node": "22.16.0",
+    "mineflayer": "4.37.1",
+    "mineflayer_pathfinder": "2.4.5",
+    "minecraft_data": "3.111.0"
+  },
+  "llm": {
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "temperature": 0,
+    "max_tokens": 4096,
+    "extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    }
+  },
+  "identities": {
+    "agent": "singularity-agent-v1",
+    "goal_generator": "survival-goal-generator-v1",
+    "curriculum": "autonomous-curriculum-v1",
+    "planner": "llm-autonomous-planner-v1",
+    "action_backend": "mineflayer-bridge-v1",
+    "goal_verifier": "m4-survival-machine-verifier-v1",
+    "runtime_interrupt": "m4-survival-interrupt-v1",
+    "skill_runtime_profile": "m4-baseline-learned-skills-off-v1",
+    "player_lifecycle_verifier": "m4-player-lifecycle-verifier-v1"
+  },
+  "runtime_controls": {
+    "skill_execution_mode": "off",
+    "learned_executable_skills_enabled": false,
+    "quarantined_skills_enabled": false,
+    "policy_skills_enabled": false,
+    "skill_memory_context_enabled": false,
+    "memory_persistence_enabled": false,
+    "vision_enabled": false,
+    "visual_action_grounding_enabled": false,
+    "screenshot_capture_enabled": false,
+    "self_evolution_policy_enabled": false,
+    "world_model_curriculum_feedback_enabled": false,
+    "multi_agent_enabled": false,
+    "autocurriculum_enabled": true,
+    "goal_verification_enabled": true,
+    "action_verification_enabled": true,
+    "action_verification_enforced": true
+  },
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+  "player_lifecycle_baseline": {},
+  "episode_id": "m4_episode_20260725_225040_74ec6414",
+  "level_name": "m4_episode_20260725_225040_74ec6414_bm012",
+  "reset_evidence_sha256": "d4ab0fd39cf154d4c5c5d69332af40034c305ca88138084b47189d75840e3f37",
+  "protocol_status_sha256": "a1da2416430b101c43dba931f6d4ba88830cfedd5907cc65c07607105f1194a0",
+  "reset_checks": {},
+  "source_checks": {
+    "status_profile": true,
+    "status_protocol": true,
+    "status_episode": true,
+    "status_level": true,
+    "status_seed": true,
+    "status_server_jar": true,
+    "status_player_lifecycle_supported": true,
+    "status_player_lifecycle_source": true,
+    "reset_profile": false,
+    "reset_protocol": false,
+    "reset_contract": false,
+    "reset_validation": false,
+    "reset_task": false,
+    "reset_episode": false,
+    "reset_level": false,
+    "reset_seed": false,
+    "reset_server_jar": false,
+    "reset_player_lifecycle": false,
+    "status_task_contract_id": true,
+    "status_task_contract_sha256": true,
+    "reset_task_contract_id": false,
+    "reset_task_contract_sha256": false
+  },
+  "validation": {
+    "passed": false,
+    "issues": [
+      "preflight_passed",
+      "game_mode",
+      "difficulty",
+      "initial_player_state",
+      "initial_time",
+      "weather",
+      "gamerules",
+      "runtime_source_binding",
+      "player_lifecycle_baseline"
+    ],
+    "checks": [
+      {
+        "name": "preflight_type",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "preflight_passed",
+        "passed": false,
+        "detail": ""
+      },
+      {
+        "name": "task_id",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "protocol_profile",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "protocol_sha256",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "server_jar_sha256",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "world_seed",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "fresh_episode",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "game_mode",
+        "passed": false,
+        "detail": ""
+      },
+      {
+        "name": "difficulty",
+        "passed": false,
+        "detail": ""
+      },
+      {
+        "name": "empty_inventory",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "initial_player_state",
+        "passed": false,
+        "detail": ""
+      },
+      {
+        "name": "initial_time",
+        "passed": false,
+        "detail": ""
+      },
+      {
+        "name": "weather",
+        "passed": false,
+        "detail": ""
+      },
+      {
+        "name": "gamerules",
+        "passed": false,
+        "detail": ""
+      },
+      {
+        "name": "runtime_versions",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "llm",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "identities",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "baseline_runtime_controls",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "task_contract_integrity",
+        "passed": true,
+        "detail": []
+      },
+      {
+        "name": "task_contract_id",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "task_contract_sha256",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "runtime_source_binding",
+        "passed": false,
+        "detail": {
+          "status_profile": true,
+          "status_protocol": true,
+          "status_episode": true,
+          "status_level": true,
+          "status_seed": true,
+          "status_server_jar": true,
+          "status_player_lifecycle_supported": true,
+          "status_player_lifecycle_source": true,
+          "reset_profile": false,
+          "reset_protocol": false,
+          "reset_contract": false,
+          "reset_validation": false,
+          "reset_task": false,
+          "reset_episode": false,
+          "reset_level": false,
+          "reset_seed": false,
+          "reset_server_jar": false,
+          "reset_player_lifecycle": false,
+          "status_task_contract_id": true,
+          "status_task_contract_sha256": true,
+          "reset_task_contract_id": false,
+          "reset_task_contract_sha256": false
+        }
+      },
+      {
+        "name": "episode_id",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "level_name",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "player_lifecycle_baseline",
+        "passed": false,
+        "detail": [
+          "type",
+          "schema_version",
+          "verifier_id",
+          "source",
+          "profile",
+          "protocol_sha256",
+          "tracker_id",
+          "episode_id",
+          "episode_id_match",
+          "level_name",
+          "baseline_id",
+          "baseline_established",
+          "initial_spawn_observed",
+          "baseline_death_count_total",
+          "baseline_respawn_count_total",
+          "baseline_spawn_count_total",
+          "death_count_total",
+          "respawn_count_total",
+          "spawn_count_total",
+          "death_count",
+          "respawn_count",
+          "spawn_count",
+          "pending_respawn_count",
+          "baseline_observed_at_ms",
+          "baseline_bridge_monotonic_ms"
+        ]
+      }
+    ]
+  }
+}

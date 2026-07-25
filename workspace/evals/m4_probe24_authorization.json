@@ -17,5 +17,9 @@
   "fixed_runtime_limits_required": true,
   "skill_execution_mode": "off",
   "counts_toward_capability_before_independent_verification": false,
-  "consumed": false
+  "consumed": true,
+  "consumed_by_episode": "m4_episode_20260725_225534_83b6c4ba",
+  "consumed_at": "autonomous_start",
+  "consumed_monotonic_s": 741556.75,
+  "next_authorization": false
 }

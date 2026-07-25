@@ -1,0 +1,157 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-25T15:04:43Z",
+  "profile": "m4-fixed-v1",
+  "task_id": "BM-012",
+  "probe_number": 24,
+  "episode_id": "m4_episode_20260725_225534_83b6c4ba",
+  "session_id": "256378c6-a50",
+  "level_name": "m4_episode_20260725_225534_83b6c4ba_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe24_authorization.json",
+    "commit": "b815b4d3264e475f4031495b2aa4aad3f8f91829",
+    "tree": "0f9962dc42676b611c32cd936611daa18f54e496",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_monotonic_s": 741556.75,
+    "probe_25_authorized": false
+  },
+  "preflight_attempts": [
+    {
+      "episode_id": "m4_episode_20260725_225040_74ec6414",
+      "autonomous_start": false,
+      "authorization_consumed": false,
+      "passed": false,
+      "failure": "benchmark_reset_response_timeout",
+      "server_reset_commands_observed": true,
+      "evidence": {
+        "protocol_status_sha256": "de93956972a768d54958fb78189796b86c5588176658d3d6382546eb81f7c989",
+        "reset_sha256": "03bd59a3927ff940095ba94559cee2972d28a291370b7ebddff64d1e09407125",
+        "preflight_sha256": "456433524a1abf0ba7760c83c1a6b4258d96efa6244d5bb68a176ce5f0f44861",
+        "blocker_sha256": "63af6d45ef4c55c0fb8f71c6847fc6f48933bfb11fb1fd2ff5df0096493d868b"
+      }
+    },
+    {
+      "episode_id": "m4_episode_20260725_225534_83b6c4ba",
+      "autonomous_start": true,
+      "authorization_consumed": true,
+      "passed": true
+    }
+  ],
+  "frozen_controls": {
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "max_goals_or_stopped",
+    "elapsed_s": 90.125,
+    "deadline_eligible": true,
+    "goals_attempted": 24,
+    "goals_completed": 10,
+    "goals_failed": 14,
+    "goals_interrupted": 0,
+    "total_cycles": 24,
+    "action_count": 0,
+    "terminal_health": 20,
+    "terminal_food": 20,
+    "terminal_time_of_day": 2076,
+    "terminal_inventory": {}
+  },
+  "planner_failure": {
+    "failure_layer": "planner_provider_credit_exhaustion_before_action",
+    "planner_call_count": 24,
+    "single_attempt_count": 24,
+    "retry_count": 0,
+    "authentication_error_count": 24,
+    "http_status_error_count": 24,
+    "zero_response_byte_count": 24,
+    "real_llm_call_count": 0,
+    "schema_valid_real_call_count": 0,
+    "provider_decision": "insufficient_balance",
+    "first_error_type": "AuthenticationError",
+    "provider_protocol_changed": false
+  },
+  "behavioral_progression": {
+    "gather_goal_count": 14,
+    "gather_empty_plan_count": 14,
+    "exploration_goal_count": 10,
+    "exploration_goal_generic_completion_count": 10,
+    "exploration_completion_rule": "world:exploration",
+    "machine_action_count": 0,
+    "machine_inventory_delta_count": 0
+  },
+  "intervention_measurement": {
+    "policy_id": "m4-failed-bound-ready-task-machine-state-reconciliation-v1",
+    "qualifying_failed_bound_ready_task_count": 0,
+    "reconciliation_event_count": 0,
+    "live_validated": false,
+    "live_rejected": false,
+    "intervention_not_exercised": true
+  },
+  "eligibility": {
+    "eligible": false,
+    "check_count": 74,
+    "pass_count": 62,
+    "issue_count": 12,
+    "issues": [
+      "event:action",
+      "event:terminal_resource_verification",
+      "planner_provider_controls",
+      "action_present",
+      "action_pre_observations",
+      "action_post_observations",
+      "action_verifier",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "result_duration_eligible"
+    ]
+  },
+  "decision": {
+    "value": "infrastructure_ineligible",
+    "reason": "fixed_provider_credit_exhausted_before_any_real_planner_response",
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "bm012_eligible_success_count": 0,
+    "m4_status": "failing",
+    "next_authorization": false
+  },
+  "evidence_paths": {
+    "preflight": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/preflight.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/manifest.json",
+    "session": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/session.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/eligibility.json",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/preparation.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/reset.json",
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/session_256378c6-a50.jsonl",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/session_256378c6-a50_summary.json"
+  },
+  "evidence_sha256": {
+    "preflight": "f911a343ca94064443c1c55182233e523ad680d2001a99e58c2346b43995c17d",
+    "manifest": "4cca8894283fb56a8779b55426052045fe6ef6f88f96a96b1a755186e2594546",
+    "session": "ce1a07b26821f0cc5587c8309c571e394c74db56fc935d7da68e5a681d4ddce7",
+    "result": "84dc3ff83ec0d7d3fcb0a9391716fcf5a65f3307d80f00cdecd78042bad8236d",
+    "eligibility": "b40c9a30fcbf147eaced24751facdfab2dd4115f29b154d86013a75421644dcf",
+    "preparation": "2504a69919c89933f13186915fee185714fa12c0f0231f3364d1dc220d51ea0a",
+    "protocol_status": "e08a6702ee3e59cf28e38eedc30f5a1efe7a8058d0bba41017fe39290f9d3d48",
+    "reset": "a0cf6e9b11897317ebc9b73e67838c222c63468e63d23756e143096a0ee93706",
+    "raw_session_jsonl": "3de2e286a3141966382097ca418811c888e9e98f8eabcd45b192eaf3be58a92d",
+    "session_summary": "0cac8a4d1a8934b7212775f5906b36814b4b6952399060da684afd3b33190593"
+  }
+}

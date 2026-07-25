@@ -1,0 +1,353 @@
+{
+  "type": "m4_resource_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "progress_gate_passed": false,
+  "counts_toward_task_success": false,
+  "episode_id": "m4_episode_20260725_225534_83b6c4ba",
+  "session_id": "256378c6-a50",
+  "level_name": "m4_episode_20260725_225534_83b6c4ba_bm012",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 51.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 3,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 31.0
+    },
+    {
+      "goal": "Gather 6 oak logs for iron-tool progression",
+      "goal_index": 4,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_wood_reserve_below_target;curriculum_retained_fallback",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Gather 6 oak logs for iron-tool progression",
+      "goal_index": 5,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_wood_reserve_below_target;curriculum_retained_fallback",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 6,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 57.0
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 7,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 53.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 8,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 9,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 10,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 49.0
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 11,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 12,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 13,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 14,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 15,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 16,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 17,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 18,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 19,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 20,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 21,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 22,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Inspect nearby birch_log and learn a safe collection route",
+      "goal_index": 23,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:visible_novel_resource",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    },
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 24,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 45.0
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": false,
+    "call_count": 24,
+    "real_call_count": 0,
+    "schema_valid_real_call_count": 0,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "max_call_duration_ms": null,
+    "total_token_usage": 0,
+    "violations": [
+      "real_llm_call_missing",
+      "schema_valid_real_llm_call_missing"
+    ]
+  },
+  "action_count": 0,
+  "successful_action_count": 0,
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 276,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 2056,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 509.813,
+  "first_unrecovered_transition": {
+    "event_type": "empty_plan",
+    "goal": "Gather 6 oak logs for tools and shelter",
+    "detail": {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "cycle": 1,
+      "status": "error",
+      "reasoning": "Planner output rejected before execution: Error code: 401 - {'type': 'error', 'error': {'type': 'CreditsError', 'message': 'Insufficient balance. Manage your billing here: https://opencode.ai/workspace/wrk_01KGS1KAWS0NAXB17CS14292F9/billing'}}"
+    },
+    "monotonic_s": 741608.734
+  },
+  "deadline_eligible": true,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:action",
+    "event:terminal_resource_verification",
+    "planner_provider_controls",
+    "action_present",
+    "action_pre_observations",
+    "action_post_observations",
+    "action_verifier",
+    "resource_terminal_inventory_target",
+    "resource_successful_source_actions",
+    "resource_positive_inventory_delta",
+    "terminal_machine_verification",
+    "result_duration_eligible"
+  ]
+}
