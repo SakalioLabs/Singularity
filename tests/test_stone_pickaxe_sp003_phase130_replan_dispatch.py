@@ -504,6 +504,7 @@ def test_phase130_audit_binds_implementation_and_retained_failure():
     assert audit["counts_toward_capability"] is False
     assert audit["counts_toward_m4"] is False
     evolved_paths = {
+        "src/singularity/core/agent.py",
         "src/singularity/core/planner.py",
         "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
         "tests/test_stone_pickaxe_sp003_phase128_pre_dispatch_reasoning.py",

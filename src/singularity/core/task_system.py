@@ -15,6 +15,9 @@ logger = logging.getLogger("singularity.task")
 FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID = (
     "m4-failed-dependency-machine-state-reconciliation-v1"
 )
+FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID = (
+    "m4-failed-bound-ready-task-machine-state-reconciliation-v1"
+)
 FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_MAX_CANDIDATES = 32
 
 
@@ -212,6 +215,7 @@ class TaskSystem:
         task_id: str,
         *,
         inventory_families: Optional[dict] = None,
+        policy_id: str = FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
     ) -> dict:
         """Return one validated inventory postcondition for reconciliation."""
         task = self.tasks.get(str(task_id or ""))
@@ -289,7 +293,7 @@ class TaskSystem:
             family_members = family["members"]
 
         fingerprint_payload = {
-            "policy_id": FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+            "policy_id": policy_id,
             "task_id": task.id,
             "canonical_item": item,
             "required_count": required_count,
@@ -306,7 +310,7 @@ class TaskSystem:
         ).hexdigest()
         return {
             "schema_version": 1,
-            "policy_id": FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+            "policy_id": policy_id,
             "source_task_id": task.id,
             "canonical_item": item,
             "required_count": required_count,
@@ -355,6 +359,78 @@ class TaskSystem:
                 if dependent.id not in consumers:
                     consumers.append(dependent.id)
 
+        candidates = [
+            self.tasks[task_id]
+            for task_id in dependency_consumers
+            if task_id in self.tasks
+        ]
+        return self._reconcile_terminal_inventory_tasks(
+            candidates,
+            world_state,
+            inventory_families=inventory_families,
+            observation_id=observation_id,
+            state_generation=state_generation,
+            reconciled_at=reconciled_at,
+            policy_id=FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+            event_type="m4_failed_dependency_machine_state_reconciliation",
+            event_id_prefix="m4fdmsr",
+            reconciliation_scope="active_frontier_direct_dependency",
+            candidate_context={
+                task_id: {
+                    "dependent_task_ids": sorted(dependent_ids),
+                }
+                for task_id, dependent_ids in dependency_consumers.items()
+            },
+        )
+
+    def reconcile_failed_bound_ready_task(
+        self,
+        task_id: str,
+        world_state: Optional[dict] = None,
+        *,
+        inventory_families: Optional[dict] = None,
+        observation_id: str = "",
+        state_generation: str = "",
+        reconciled_at: Optional[float] = None,
+        binding_context: Optional[dict] = None,
+    ) -> list[dict]:
+        """Reconcile one explicitly bound terminal ready task from machine state."""
+        task = self.tasks.get(str(task_id or ""))
+        if task is None or task.status not in {TaskStatus.FAILED, TaskStatus.BLOCKED}:
+            return []
+        context = copy.deepcopy(binding_context) if isinstance(binding_context, dict) else {}
+        return self._reconcile_terminal_inventory_tasks(
+            [task],
+            world_state,
+            inventory_families=inventory_families,
+            observation_id=observation_id,
+            state_generation=state_generation,
+            reconciled_at=reconciled_at,
+            policy_id=FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+            event_type="m4_failed_bound_ready_task_machine_state_reconciliation",
+            event_id_prefix="m4fbrtmsr",
+            reconciliation_scope="selected_bound_ready_task",
+            candidate_context={task.id: context},
+        )
+
+    def _reconcile_terminal_inventory_tasks(
+        self,
+        candidates: list[Task],
+        world_state: Optional[dict] = None,
+        *,
+        inventory_families: Optional[dict] = None,
+        observation_id: str = "",
+        state_generation: str = "",
+        reconciled_at: Optional[float] = None,
+        policy_id: str,
+        event_type: str,
+        event_id_prefix: str,
+        reconciliation_scope: str,
+        candidate_context: Optional[dict] = None,
+    ) -> list[dict]:
+        """Complete bounded terminal tasks whose inventory postconditions are proven."""
+        world_state = world_state if isinstance(world_state, dict) else {}
+        candidate_context = candidate_context if isinstance(candidate_context, dict) else {}
         resolved_observation_id, resolved_generation = self._machine_state_identity(
             world_state,
             observation_id=observation_id,
@@ -367,15 +443,13 @@ class TaskSystem:
         if not math.isfinite(timestamp):
             timestamp = time.time()
         reports = []
-        candidates = [
-            self.tasks[task_id]
-            for task_id in dependency_consumers
-            if task_id in self.tasks
-        ]
         for task in sorted(candidates, key=lambda item: (item.created_at, item.id)):
+            if task.status not in {TaskStatus.FAILED, TaskStatus.BLOCKED}:
+                continue
             requirement = self.machine_state_reconciliation_requirement(
                 task.id,
                 inventory_families=inventory_families,
+                policy_id=policy_id,
             )
             if not requirement:
                 continue
@@ -383,7 +457,7 @@ class TaskSystem:
             if proof.get("satisfied") is not True:
                 continue
             fingerprint = str(requirement["requirement_fingerprint"])
-            event_id = "m4fdmsr-" + hashlib.sha256(
+            event_id = f"{event_id_prefix}-" + hashlib.sha256(
                 f"{task.id}:{fingerprint}:{resolved_generation}".encode("utf-8")
             ).hexdigest()[:24]
             metadata = task.metadata if isinstance(task.metadata, dict) else {}
@@ -418,9 +492,10 @@ class TaskSystem:
             )
             audit = {
                 "schema_version": 1,
-                "policy_id": FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+                "policy_id": policy_id,
                 "event_id": event_id,
                 "task_id": task.id,
+                "reconciliation_scope": reconciliation_scope,
                 "previous_status": previous_status,
                 "requirement_fingerprint": fingerprint,
                 "observation_id": resolved_observation_id,
@@ -433,7 +508,7 @@ class TaskSystem:
                 "machine_state_reconciliations": [*copy.deepcopy(prior_audits), audit],
             }
             task.observations.append({
-                "type": "m4_failed_dependency_machine_state_reconciliation",
+                "type": event_type,
                 "event_id": event_id,
                 "requirement_fingerprint": fingerprint,
                 "observation_id": resolved_observation_id,
@@ -448,6 +523,8 @@ class TaskSystem:
             task.result = {
                 "completed_by": "machine_state_reconciliation",
                 "completion_source": "machine_state_reconciliation",
+                "reconciliation_policy_id": policy_id,
+                "reconciliation_scope": reconciliation_scope,
                 "previous_status": previous_status,
                 "original_failure_reason": original_failure_reason,
                 "original_attempts": original_attempts,
@@ -463,13 +540,14 @@ class TaskSystem:
                 "reconciliation_event_id": event_id,
             }
             reports.append({
-                "type": "m4_failed_dependency_machine_state_reconciliation",
+                "type": event_type,
                 "schema_version": 1,
-                "policy_id": FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+                "policy_id": policy_id,
                 "event_id": event_id,
                 "task_id": task.id,
                 "task_title": task.title,
-                "dependent_task_ids": sorted(dependency_consumers.get(task.id, [])),
+                "reconciliation_scope": reconciliation_scope,
+                **copy.deepcopy(candidate_context.get(task.id, {})),
                 "previous_status": previous_status,
                 "completion_source": "machine_state_reconciliation",
                 "original_failure_reason": original_failure_reason,

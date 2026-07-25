@@ -264,6 +264,9 @@ def test_phase132_audit_binds_implementation_and_retained_failure():
     assert audit["counts_toward_capability"] is False
     assert audit["counts_toward_m4"] is False
     evolved_historical_paths = {
+        "src/singularity/core/agent.py": (
+            "3fbca09b5325b28c151d2564167ab87e69342cdcf64a07a07fa886de2bbcbc4c"
+        ),
         "src/singularity/core/planner.py": (
             "e8dc57a077b3d1328e151d9fa42db450ecd7c5816bffa8798246b8fc28b6c2af"
         ),

@@ -36,6 +36,7 @@ from singularity.core.memory import (
 from singularity.core.memory_policy import MemoryLifecyclePolicy, MemoryPolicyDecision
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import (
+    FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID,
     FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
     TaskSystem,
     TaskStatus,
@@ -5083,9 +5084,52 @@ class Agent:
                 observation,
                 inventory_families=M4_MACHINE_STATE_INVENTORY_FAMILIES,
             )
+        failed_bound_task_reports = []
+        binding = getattr(self, "_m4_ready_task_goal_binding", {})
+        binding = binding if isinstance(binding, dict) else {}
+        decision = getattr(self, "_last_autonomous_goal_decision", {})
+        decision = decision if isinstance(decision, dict) else {}
+        bound_task_id = str(binding.get("task_id") or "")
+        bound_task = task_system.tasks.get(bound_task_id) if bound_task_id else None
+        bound_criteria = binding.get("success_criteria")
+        bound_task_criteria = getattr(bound_task, "success_criteria", None)
+        bound_task_reconciliation_eligible = bool(
+            hasattr(task_system, "reconcile_failed_bound_ready_task")
+            and binding.get("schema_version") == 1
+            and binding.get("policy_id") == M4_READY_TASK_GOAL_VERIFIER_POLICY_ID
+            and binding.get("selection_reason") == "ready_task_selected"
+            and decision.get("selection_reason") == "ready_task_selected"
+            and str(binding.get("goal") or "") == str(goal or "")
+            and str(decision.get("goal") or "") == str(goal or "")
+            and bound_task is not None
+            and str(getattr(bound_task, "title", "") or "") == str(goal or "")
+            and isinstance(bound_criteria, dict)
+            and bool(bound_criteria)
+            and bound_task_criteria == bound_criteria
+            and getattr(bound_task, "status", None) in {TaskStatus.FAILED, TaskStatus.BLOCKED}
+        )
+        if bound_task_reconciliation_eligible:
+            failed_bound_task_reports = task_system.reconcile_failed_bound_ready_task(
+                bound_task_id,
+                observation,
+                inventory_families=M4_MACHINE_STATE_INVENTORY_FAMILIES,
+                binding_context={
+                    "bound_goal": str(goal or ""),
+                    "binding_policy_id": M4_READY_TASK_GOAL_VERIFIER_POLICY_ID,
+                    "binding_selection_reason": "ready_task_selected",
+                    "bound_success_criteria": copy.deepcopy(bound_criteria),
+                    "root_plan_id": str(getattr(bound_task, "root_plan_id", "") or ""),
+                    "planner_call_id": str(getattr(bound_task, "planner_call_id", "") or ""),
+                },
+            )
         failed_dependency_completed = [
             task_system.tasks[report["task_id"]]
             for report in failed_dependency_reports
+            if report.get("task_id") in task_system.tasks
+        ]
+        failed_bound_task_completed = [
+            task_system.tasks[report["task_id"]]
+            for report in failed_bound_task_reports
             if report.get("task_id") in task_system.tasks
         ]
         reconciliation_state, inventory_family_grounding = self._m4_task_inventory_family_state(
@@ -5109,6 +5153,7 @@ class Agent:
             task.id: task
             for task in [
                 *failed_dependency_completed,
+                *failed_bound_task_completed,
                 *exact_completed,
                 *family_completed,
             ]
@@ -5141,6 +5186,7 @@ class Agent:
                 )[:20],
                 "completed_task_count": len(completed),
                 "failed_dependency_reconciliation_count": len(failed_dependency_reports),
+                "failed_bound_ready_task_reconciliation_count": len(failed_bound_task_reports),
                 "completed_tasks": [
                     {
                         "task_id": task.id,
@@ -5154,6 +5200,17 @@ class Agent:
             for report in failed_dependency_reports:
                 self.session_logger.log(
                     "m4_failed_dependency_machine_state_reconciliation",
+                    {
+                        **copy.deepcopy(report),
+                        "goal": goal,
+                        "cycle": cycle,
+                        "source": str(source or "machine_observation"),
+                    },
+                )
+        if failed_bound_task_reports and hasattr(getattr(self, "session_logger", None), "log"):
+            for report in failed_bound_task_reports:
+                self.session_logger.log(
+                    "m4_failed_bound_ready_task_machine_state_reconciliation",
                     {
                         **copy.deepcopy(report),
                         "goal": goal,
@@ -8072,7 +8129,19 @@ class Agent:
         task_machine_completed = bool(
             binding_valid
             and task_status == TaskStatus.COMPLETED
-            and machine_completion_source in {"machine_state", "action_result"}
+            and machine_completion_source in {
+                "machine_state",
+                "action_result",
+                "machine_state_reconciliation",
+            }
+            and (
+                machine_completion_source != "machine_state_reconciliation"
+                or result.get("reconciliation_policy_id")
+                in {
+                    FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+                    FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+                }
+            )
         )
         accepted = bool(
             verifier_accepted

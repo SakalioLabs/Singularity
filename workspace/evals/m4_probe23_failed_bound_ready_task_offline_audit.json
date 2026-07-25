@@ -1,0 +1,88 @@
+{
+  "type": "m4_probe23_failed_bound_ready_task_offline_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-25T13:20:49Z",
+  "profile": "m4-fixed-v1",
+  "task_id": "BM-012",
+  "policy_id": "m4-failed-bound-ready-task-machine-state-reconciliation-v1",
+  "base_commit": "de5ba84af7e5d2c4b7aea851c27f59b9c3a49830",
+  "source_evidence": {
+    "path": "workspace/evals/m4_probe23_report.json",
+    "sha256": "2611472346aa6f9e9e7dce26dc602d73568f4405278acae91c1fb59cf9a7b710",
+    "modified": false
+  },
+  "reproduction": {
+    "failure_layer": "m4_ready_task_failed_root_machine_state_disconnect",
+    "bound_task_id": "f3622be3",
+    "bound_task_title": "Craft torches",
+    "failed_event_index": 956,
+    "machine_completion_event_index": 980,
+    "machine_inventory_proof": {
+      "item": "torch",
+      "required_count": 4,
+      "observed_count": 4,
+      "inventory_semantics": "exact"
+    },
+    "suppression_count": 30,
+    "cycles_consumed": 23
+  },
+  "repair_contract": {
+    "scope": "selected_bound_ready_task",
+    "structured_inventory_postcondition_required": true,
+    "binding_identity_required": true,
+    "binding_goal_required": true,
+    "binding_criteria_snapshot_required": true,
+    "terminal_statuses": [
+      "failed",
+      "blocked"
+    ],
+    "completion_source": "machine_state_reconciliation",
+    "max_scheduler_latency_ticks": 1,
+    "failure_history_preserved": true,
+    "idempotent_by_task_fingerprint_state_generation": true,
+    "wrong_item_rejected": true,
+    "insufficient_count_rejected": true,
+    "binding_drift_rejected": true,
+    "non_m4_unchanged": true,
+    "generic_goal_verifier_unchanged": true
+  },
+  "implementation": [
+    {
+      "path": "src/singularity/core/agent.py",
+      "sha256": "b8bef76925afedf30e2d2a3ad7b3ed56672afcb085a2a1cd2635db57ca396137"
+    },
+    {
+      "path": "src/singularity/core/task_system.py",
+      "sha256": "f83c4d5b8f3db98559a4eb2c5b70fc94c25351f6a058ce7a17409e78531c7830"
+    },
+    {
+      "path": "tests/test_m4_deadline.py",
+      "sha256": "708159ae19d3fd607552ea22f92d42ca75748157ccee24100735903be6b8a194"
+    }
+  ],
+  "validation": {
+    "focused_ready_task_cases": "6/6",
+    "memory_and_m4_deadline_cases": "155/155",
+    "historical_sp003_identity_cases": "3/3",
+    "repository_non_live_cases_excluding_user_modified_capability_document_check": "1247/1247",
+    "node_suites": "8/8;91/91",
+    "python_compile": true,
+    "json_schema": true,
+    "json_parse": "1992/1992",
+    "credential_scan": true,
+    "git_diff_check": true
+  },
+  "evidence_discipline": {
+    "live_episode_run": false,
+    "probe_23_report_modified": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "m4_status": "failing",
+    "bm012_eligible_success_count": 0
+  },
+  "authorization": {
+    "probe_23_consumed": true,
+    "probe_24_authorized": false,
+    "next_authorized_episode": null
+  }
+}

@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 23 remain ineligible at 0/3. Probe 23 ran exactly once from frozen commit `f528ea17` and consumed its authorization at `autonomous_start`. The failed-dependency reconciliation branch was not exercised: three failed wooden-pickaxe tasks existed when `wooden_pickaxe:1` was machine-observed, but none was a direct dependency of an active-frontier task. No reconciliation event, failed-task reselection, or recovery child occurred. The Agent nevertheless advanced through twelve successful stone digs before a failed bound `Craft torches` ready-task suppressed machine-grounded completion for 23 cycles. The outcome is `intervention_not_exercised`; next authorization is false and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 23 remain ineligible at 0/3. Probe 23 ran exactly once from frozen commit `f528ea17` and consumed its authorization at `autonomous_start`. The failed-dependency reconciliation branch was not exercised: three failed wooden-pickaxe tasks existed when `wooden_pickaxe:1` was machine-observed, but none was a direct dependency of an active-frontier task. No reconciliation event, failed-task reselection, or recovery child occurred. The Agent nevertheless advanced through twelve successful stone digs before a failed bound `Craft torches` ready-task suppressed machine-grounded completion for 23 cycles. The new `m4-failed-bound-ready-task-machine-state-reconciliation-v1` policy closes that exact boundary offline without changing the original evidence or granting success credit. Probe 24 is not authorized, and BM-013/BM-014 remain sequentially locked.
 
 ## Stone Pickaxe Research Gate
 
@@ -179,6 +179,10 @@ If the state is not satisfied, the terminal task itself is never selected. At mo
 
 The original Probe 22 `infrastructure_ineligible` decision is retained byte-for-byte. `workspace/evals/m4_probe22_derived_audit.json` marks it as a decision-taxonomy limitation and adds the prospective value `intervention_not_exercised_new_blocker`; the annotation explicitly grants no capability upgrade.
 
+The Probe 23 counterfactual now passes under `m4-failed-bound-ready-task-machine-state-reconciliation-v1`. The exact selected task identity, goal, success-criteria snapshot, and ready-task binding must remain unchanged. If that bound task becomes failed or blocked but a fresh machine observation proves its single structured inventory postcondition, TaskSystem completes it through the existing audited reconciliation machinery and the ready-task verification gate accepts only this named policy source. The original failure result, reason, attempts, blockers, and terminal transition remain embedded in the completion result.
+
+The Probe 23 `torch:4` replay releases the root within one scheduler tick. Replayed state generations emit no duplicate audit, while `redstone_torch:4`, `torch:3`, string counts, binding drift, and non-M4 profiles remain rejected. Historical SP-003 audits now resolve the frozen Agent identity from their original commits, so current Agent evolution does not rewrite old evidence. The derived audit at `workspace/evals/m4_probe23_failed_bound_ready_task_offline_audit.json` binds the untouched Probe 23 report and grants no BM-012 or capability credit.
+
 ## BM-012 Failed-Dependency Machine-State Reconciliation Gate
 
 - Policy: `m4-failed-dependency-machine-state-reconciliation-v1`
@@ -191,6 +195,20 @@ The original Probe 22 `infrastructure_ineligible` decision is retained byte-for-
 - Evidence discipline: Probe 21/22 raw artifacts remain immutable; Probe 23 is retained as a new ineligible bundle and grants no capability upgrade
 - Validation: six exact Memory/TaskSystem cases plus one derived-audit schema case, 106 Memory/TaskSystem definitions, 47 M4 deadline definitions, all 751 definitions across 37 non-live Python files, and six Node suites with 52 internal PASS cases; Python compilation, Node syntax, all repository JSON artifacts, capability consistency, credential scan, and repository checks pass
 - Authorization: Probe 23 consumed its one authorization at event 1 / monotonic 132071.343; no retry, Probe 24, or additional episode is authorized
+
+## BM-012 Failed Bound Ready-Task Machine-State Reconciliation Gate
+
+- Policy: `m4-failed-bound-ready-task-machine-state-reconciliation-v1`
+- Exact reproduction: selected ready task `f3622be3` (`Craft torches`) failed at event 956, event 980 machine-created `torch:4`, and 30 later binding reports suppressed completion across 23 cycles
+- Binding invariant: reconciliation requires the same task ID, title, success-criteria snapshot, selection reason, and M4 ready-task binding that selected the root
+- Machine scope: one validated structured inventory postcondition; exact item matching is the default and malformed or insufficient counts fail closed
+- History invariant: previous terminal status, original result/reason, attempts, blockers, and failure transition remain auditable after completion
+- Idempotency: one event per task, policy-specific requirement fingerprint, and state generation; repeated observations do not repeat completion or accounting
+- Release invariant: only the two named machine-state reconciliation policies join existing `machine_state` and `action_result` sources in the ready-task gate
+- Compatibility: generic GoalVerifier, task deadlines, success thresholds, M1, M2, M3, non-M4 TaskSystem scheduling, and live evidence remain unchanged
+- Validation: six focused ready-task cases, 155 Memory/TaskSystem plus M4 deadline cases, three historical SP-003 identity cases, 1,247 repository non-live cases excluding the user-modified README consistency check, and eight Node suites with 91 internal assertions pass
+- Evidence: original Probe 23 report SHA-256 `2611472346aa6f9e9e7dce26dc602d73568f4405278acae91c1fb59cf9a7b710` remains unchanged; derived audit SHA-256 `b9620e8bb653130eb6b8ab814777b34a66a68525157a6ff0fc6d79c4524d768a` grants no BM-012 or capability credit
+- Authorization: Probe 24 remains false pending a separately committed and pushed one-use authorization
 
 ## BM-012 Offline Preflight
 

@@ -154,6 +154,7 @@ def test_phase136_audit_binds_repair_and_retained_phase135_evidence():
     assert audit["counts_toward_capability"] is False
     assert audit["counts_toward_m4"] is False
     evolved_paths = {
+        "src/singularity/core/agent.py",
         "src/singularity/core/planner.py",
         "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
         "tests/test_stone_pickaxe_sp003_phase136_observation_pickup_reconciliation.py",

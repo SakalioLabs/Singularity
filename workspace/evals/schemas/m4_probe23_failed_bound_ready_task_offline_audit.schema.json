@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "m4_probe23_failed_bound_ready_task_offline_audit.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "schema_version",
+    "generated_at",
+    "profile",
+    "task_id",
+    "policy_id",
+    "base_commit",
+    "source_evidence",
+    "reproduction",
+    "repair_contract",
+    "implementation",
+    "validation",
+    "evidence_discipline",
+    "authorization"
+  ],
+  "properties": {
+    "type": {
+      "const": "m4_probe23_failed_bound_ready_task_offline_audit"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "profile": {
+      "const": "m4-fixed-v1"
+    },
+    "task_id": {
+      "const": "BM-012"
+    },
+    "policy_id": {
+      "const": "m4-failed-bound-ready-task-machine-state-reconciliation-v1"
+    },
+    "base_commit": {
+      "$ref": "#/$defs/sha1"
+    },
+    "source_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "modified"
+      ],
+      "properties": {
+        "path": {
+          "const": "workspace/evals/m4_probe23_report.json"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "modified": {
+          "const": false
+        }
+      }
+    },
+    "reproduction": {
+      "type": "object",
+      "required": [
+        "failure_layer",
+        "bound_task_id",
+        "bound_task_title",
+        "failed_event_index",
+        "machine_completion_event_index",
+        "machine_inventory_proof",
+        "suppression_count",
+        "cycles_consumed"
+      ]
+    },
+    "repair_contract": {
+      "type": "object",
+      "required": [
+        "scope",
+        "structured_inventory_postcondition_required",
+        "binding_identity_required",
+        "binding_goal_required",
+        "binding_criteria_snapshot_required",
+        "terminal_statuses",
+        "completion_source",
+        "max_scheduler_latency_ticks",
+        "failure_history_preserved",
+        "idempotent_by_task_fingerprint_state_generation",
+        "wrong_item_rejected",
+        "insufficient_count_rejected",
+        "binding_drift_rejected",
+        "non_m4_unchanged",
+        "generic_goal_verifier_unchanged"
+      ]
+    },
+    "implementation": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object"
+    },
+    "evidence_discipline": {
+      "type": "object",
+      "required": [
+        "live_episode_run",
+        "probe_23_report_modified",
+        "counts_toward_bm012_success",
+        "counts_toward_capability",
+        "m4_status",
+        "bm012_eligible_success_count"
+      ]
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probe_23_consumed",
+        "probe_24_authorized",
+        "next_authorized_episode"
+      ],
+      "properties": {
+        "probe_23_consumed": {
+          "const": true
+        },
+        "probe_24_authorized": {
+          "const": false
+        },
+        "next_authorized_episode": {
+          "type": "null"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

@@ -18,7 +18,11 @@ from singularity.core.config import Config
 from singularity.core.goal_generator import GoalGenerator
 from singularity.core.goal_verifier import GoalVerification
 from singularity.core.planner import Planner
-from singularity.core.task_system import TaskStatus, TaskSystem
+from singularity.core.task_system import (
+    FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+    TaskStatus,
+    TaskSystem,
+)
 from singularity.evaluation.m4_protocol import PROTOCOL
 from singularity.logging.session_logger import SessionLogger
 
@@ -3340,6 +3344,161 @@ def test_m4_ready_task_goal_verifier_allows_exact_machine_reconciliation_only():
     print("PASS: exact bound task machine-state completion releases ready-task root verification")
 
 
+def test_m4_failed_bound_ready_task_replays_probe_23_within_one_tick():
+    clock = FakeClock()
+    goal = "Craft torches"
+    agent = _m4_ready_task_goal_verifier_agent(clock)
+    task = agent.task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"torch": 4}},
+        priority=0,
+        root_plan_id="root-50de86f68e3244e4",
+        planner_call_id="probe-23-event-934",
+    )
+    agent.task_system.update_task(task.id, status=TaskStatus.ACCEPTED)
+    selected = agent._select_autonomous_goal(
+        {"inventory": {"coal": 1, "stick": 1}, "health": 20, "food": 20},
+        "Craft stone pickaxe",
+    )
+    assert selected == goal
+
+    task.attempts = 3
+    task.blockers = ["task deadline elapsed before torch craft result"]
+    task.result = {
+        "success": False,
+        "reason": "task_deadline_elapsed",
+        "event_index": 956,
+    }
+    agent.task_system._set_status(task, TaskStatus.FAILED, "task_deadline_elapsed")
+    failure_transition = copy.deepcopy(task.status_history[-1])
+
+    completed = agent._reconcile_m4_satisfied_tasks(
+        {
+            "observation_id": "probe-23-event-982",
+            "state_generation": "probe-23-torch-generation-1",
+            "inventory": {"torch": 4},
+            "health": 20,
+            "food": 20,
+        },
+        goal,
+        1,
+        source="post_action_machine_observation",
+    )
+    assert [candidate.id for candidate in completed] == [task.id]
+    assert task.status == TaskStatus.COMPLETED
+    assert task.attempts == 3
+    assert task.blockers == ["task deadline elapsed before torch craft result"]
+    assert task.result["completed_by"] == "machine_state_reconciliation"
+    assert task.result["reconciliation_policy_id"] == (
+        FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID
+    )
+    assert task.result["reconciliation_scope"] == "selected_bound_ready_task"
+    assert task.result["previous_status"] == "failed"
+    assert task.result["original_attempts"] == 3
+    assert task.result["original_blockers"] == [
+        "task deadline elapsed before torch craft result"
+    ]
+    assert task.result["original_failure_reason"] == "task_deadline_elapsed"
+    assert task.result["original_failure_result"]["event_index"] == 956
+    assert task.result["original_failure_event"] == failure_transition
+    assert task.result["proof"]["observed_count"] == 4
+    assert task.result["proof"]["required_count"] == 4
+    assert task.result["observation_id"] == "probe-23-event-982"
+    assert task.result["state_generation"] == "probe-23-torch-generation-1"
+
+    allowed, report = agent._gate_m4_ready_task_goal_verification(
+        selected,
+        True,
+        _achieved_goal_verification(goal),
+        {"mode": "autonomous", "phase": "pre_plan", "cycle": 1},
+    )
+    assert allowed is True
+    assert report["decision"] == "allow_bound_task_machine_completion"
+    assert report["machine_completion_source"] == "machine_state_reconciliation"
+
+    repeated = agent._reconcile_m4_satisfied_tasks(
+        {
+            "observation_id": "probe-23-event-982-replay",
+            "state_generation": "probe-23-torch-generation-1",
+            "inventory": {"torch": 4},
+            "health": 20,
+            "food": 20,
+        },
+        goal,
+        2,
+        source="pre_goal_machine_observation",
+    )
+    audits = task.metadata["machine_state_reconciliations"]
+    observations = [
+        item for item in task.observations
+        if isinstance(item, dict)
+        and item.get("type")
+        == "m4_failed_bound_ready_task_machine_state_reconciliation"
+    ]
+    events = [
+        event for event in agent.session_logger.events
+        if event["type"]
+        == "m4_failed_bound_ready_task_machine_state_reconciliation"
+    ]
+    assert repeated == []
+    assert len(audits) == 1
+    assert len(observations) == 1
+    assert len(events) == 1
+    print("PASS: Probe 23 failed bound torch task reconciles within one tick with immutable failure audit")
+
+
+def test_m4_failed_bound_ready_task_reconciliation_fails_closed():
+    clock = FakeClock()
+    goal = "Craft torches"
+    agent = _m4_ready_task_goal_verifier_agent(clock)
+    task = agent.task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"torch": 4}},
+        priority=0,
+    )
+    agent.task_system.update_task(task.id, status=TaskStatus.ACCEPTED)
+    assert agent._select_autonomous_goal(
+        {"inventory": {"coal": 1, "stick": 1}, "health": 20, "food": 20},
+        "Craft stone pickaxe",
+    ) == goal
+    agent.task_system._set_status(task, TaskStatus.FAILED, "task_deadline_elapsed")
+
+    for inventory in (
+        {"redstone_torch": 4},
+        {"torch": 3},
+        {"torch": "4"},
+    ):
+        assert agent._reconcile_m4_satisfied_tasks(
+            {"inventory": inventory, "health": 20, "food": 20},
+            goal,
+            1,
+        ) == []
+        assert task.status == TaskStatus.FAILED
+
+    agent._m4_ready_task_goal_binding["success_criteria"] = {
+        "inventory": {"torch": 3}
+    }
+    assert agent._reconcile_m4_satisfied_tasks(
+        {"inventory": {"torch": 4}, "health": 20, "food": 20},
+        goal,
+        2,
+    ) == []
+    assert task.status == TaskStatus.FAILED
+
+    agent._m4_ready_task_goal_binding["success_criteria"] = {
+        "inventory": {"torch": 4}
+    }
+    agent.config = Config(planner_protocol="m2-fixed-v1")
+    assert agent._reconcile_m4_satisfied_tasks(
+        {"inventory": {"torch": 4}, "health": 20, "food": 20},
+        goal,
+        3,
+    ) == []
+    assert task.status == TaskStatus.FAILED
+    assert not task.metadata.get("machine_state_reconciliations")
+    print("PASS: wrong item, insufficient state, binding drift, and non-M4 controls fail closed")
+
+
 def test_m4_ready_task_goal_verifier_rejects_same_title_task_replacement():
     clock = FakeClock()
     goal = "Mine iron ore"
@@ -3675,6 +3834,8 @@ if __name__ == "__main__":
     test_m4_post_place_machine_observation_fails_closed_for_mismatched_controls()
     test_m4_ready_task_goal_verifier_replays_probe_20_and_keeps_dig_executable()
     test_m4_ready_task_goal_verifier_allows_exact_machine_reconciliation_only()
+    test_m4_failed_bound_ready_task_replays_probe_23_within_one_tick()
+    test_m4_failed_bound_ready_task_reconciliation_fails_closed()
     test_m4_ready_task_goal_verifier_rejects_same_title_task_replacement()
     test_m4_ready_task_goal_verifier_scope_binding_and_deadline_controls_fail_closed()
     test_m4_verifier_return_after_deadline_is_rejected()
