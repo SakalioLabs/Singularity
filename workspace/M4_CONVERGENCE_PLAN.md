@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 30 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 30 completed the empty-hand-to-wooden-pickaxe prefix, then exposed a pre-Planner explosive-hostile horizon gap before cobblestone progression. Policy `m4-preplanner-explosive-hostile-horizon-v1` now adds a strict-M4-only machine-grounded flee check for creepers within 16 blocks before model latency. Probe 31 has one parent-bound authorization from pushed repair commit `79e8465`; zero retries, no advance credit, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 31 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 31 retained the empty-hand-to-wooden-pickaxe and cobblestone prefix with terminal health 20, but it never crafted a stone pickaxe after reaching `cobblestone:3`; the 12-cobblestone root consumed the remaining daytime window and dusk shelter interrupted at event 874. The current offline gate is `m4_stone_pickaxe_progression_goal_granularity_gap`; Probe 32 is not authorized, and BM-013/BM-014 remain sequentially locked.
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
@@ -26,7 +26,20 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - Repair audit: `workspace/evals/m4_probe29_failed_bound_nearby_block_repair_audit.json`
 - Next gate: Probe 30 has one parent-bound authorization from pushed repair commit `6be8a21e`; zero retries and no advance credit
 
-Probe 30 consumed that authorization and remained ineligible. It completed the empty-hand-to-wooden-pickaxe prefix with 20/22 successful actions, then died before cobblestone progression. The earliest retained transition precedes the post-death type error: observation line 334 showed full health and one hostile creeper at distance 12.7 immediately before a 14.938-second Planner call. The legacy hostile radius was 8 blocks and no safety check ran before planning; line 350 then showed health 1.237 after the creeper closed and exploded. Emergency leaf digging, death, and 290 post-death null-health errors are downstream. Policy `m4-preplanner-explosive-hostile-horizon-v1` adds a strict-M4-only pre-Planner check for creepers within 16 blocks and executes the existing machine-grounded flee action before model latency. Non-M4 modes, non-explosive hostiles beyond 8 blocks, and creepers beyond 16 blocks remain unchanged. Probe 31 has one parent-bound authorization from pushed repair commit `79e8465`; zero retries and no advance credit.
+Probe 30 consumed that authorization and remained ineligible. It completed the empty-hand-to-wooden-pickaxe prefix with 20/22 successful actions, then died before cobblestone progression. The earliest retained transition precedes the post-death type error: observation line 334 showed full health and one hostile creeper at distance 12.7 immediately before a 14.938-second Planner call. The legacy hostile radius was 8 blocks and no safety check ran before planning; line 350 then showed health 1.237 after the creeper closed and exploded. Emergency leaf digging, death, and 290 post-death null-health errors are downstream. Policy `m4-preplanner-explosive-hostile-horizon-v1` adds a strict-M4-only pre-Planner check for creepers within 16 blocks and executes the existing machine-grounded flee action before model latency. Non-M4 modes, non-explosive hostiles beyond 8 blocks, and creepers beyond 16 blocks remain unchanged. Probe 31 consumed the repair authorization and did not recur the death gap, but the branch was not exercised because no creeper entered the 16-block horizon.
+
+## Probe 31 Stone-Pickaxe Switch Gap
+
+- Episode: `m4_episode_20260726_170045_375cdbbb`
+- Session: `ff7244ee-0d4`
+- Planner: 43 calls, 42 real, 42 schema-valid real, zero retries
+- Actions: 32 attempted, 30 successful; one recovered navigation miss and one failed shelter build
+- Progress: crafted and placed the table, crafted `wooden_pickaxe:1`, mined up to `cobblestone:11`, terminal health 20 with zero deaths
+- Missing transition: `stone_pickaxe` craft action count was 0 after `cobblestone:3` at event 543 / elapsed 295.82s / time 5651
+- Consequence: the 12-cobblestone root consumed 27 cycles, emitted 14 task-deadline interrupts, and was suspended by dusk shelter at event 874
+- Capability decision: ineligible; BM-012 remains 0/3 and M4 remains failing
+- Evidence: `workspace/evals/m4_probe31_report.json`
+- Next gate: no Probe 32 authorization before the bounded stone-pickaxe progression repair is committed and pushed
 
 ## Stone Pickaxe Research Gate
 
