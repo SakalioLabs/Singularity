@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-26T04:24:02Z",
+  "generated_at": "2026-07-26T04:49:15Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -21,7 +21,7 @@
   "current_gate": {
     "hypothesis": "grok_exact_json_code_fence_response_envelope",
     "policy_id": "m4-exact-json-code-fence-envelope-v1",
-    "status": "probe_26_behavioral_ineligible_offline_repair_complete",
+    "status": "probe_27_authorized_one_use",
     "earliest_blocker": "grok_json_response_envelope_before_schema_validation",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -1170,9 +1170,11 @@
     "bm012_probe_26_max_oak_planks": 24,
     "bm012_probe_26_eligible": false,
     "bm012_json_envelope_offline_gate_passed": true,
-    "bm012_probe_27_authorized": false,
-    "bm012_ready_task_next_authorized_episode": null,
-    "bm012_ready_task_authorized_episode_count": 0
+    "bm012_probe_27_authorized": true,
+    "bm012_probe_27_authorization_path": "workspace/evals/m4_probe27_authorization.json",
+    "bm012_probe_27_authorization_sha256": "6556ac6178bec41a80f5cc289e1b4b977d4c2055406de84608f14e90f59a5209",
+    "bm012_ready_task_next_authorized_episode": "probe_27_one_fresh_bm012_episode",
+    "bm012_ready_task_authorized_episode_count": 1
   },
   "entries": [
     {
