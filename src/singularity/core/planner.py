@@ -2179,6 +2179,19 @@ Plan the steps to achieve this goal."""
                     "source_field": "success_criteria.flags",
                     "source_value": criteria.get("flags"),
                 })
+            equipment = criteria.get("equipment")
+            if isinstance(equipment, dict) and "name" in equipment:
+                value = equipment.get("name")
+                if isinstance(value, str) and value.strip():
+                    candidate_items.append({
+                        "item": value.strip(),
+                        "source_field": "success_criteria.equipment.name",
+                        "source_value": equipment,
+                    })
+                else:
+                    issues.append(
+                        f"subtask[{subtask_index}]:equip_success_criteria_grounding_failed"
+                    )
 
             if not candidate_items:
                 grounded_subtasks.append(grounded_subtask)
@@ -2221,6 +2234,8 @@ Plan the steps to achieve this goal."""
                 grounded_criteria.pop("equipped", None)
             if "success_criteria.flags" in normalized_source_fields:
                 grounded_criteria.pop("flags", None)
+            if "success_criteria.equipment.name" in normalized_source_fields:
+                grounded_criteria.pop("equipment", None)
             grounded_criteria["action"] = {"type": "equip"}
             grounded_criteria["result"] = {"success": True}
             grounded_subtask["success_criteria"] = grounded_criteria

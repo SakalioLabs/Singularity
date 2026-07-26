@@ -23,6 +23,9 @@
   "proxy_max_retries": 0,
   "skill_execution_mode": "off",
   "counts_toward_capability_before_independent_verification": false,
-  "consumed": false,
+  "consumed": true,
+  "consumed_by_episode": "m4_episode_20260726_194031_5db1c9fd",
+  "consumed_at": "autonomous_start",
+  "consumed_monotonic_s": 816245.015,
   "next_authorization": false
 }

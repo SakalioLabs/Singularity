@@ -1747,6 +1747,7 @@ def test_m4_planner_grounds_probe33_equip_criteria_aliases_to_action_result():
     cases = [
         ("equipment_has", {"equipment_has": "wooden_pickaxe"}),
         ("equipment_contains", {"equipment_contains": "wooden_pickaxe"}),
+        ("equipment_name", {"equipment": {"name": "wooden_pickaxe"}}),
         ("equipped", {"equipped": "wooden_pickaxe"}),
         ("equipped_flag", {"flags": ["wooden_pickaxe_equipped"]}),
     ]
@@ -1861,10 +1862,12 @@ def test_m4_equip_success_criteria_grounding_fails_closed_for_unbound_aliases():
     controls = [
         fixture(criteria={"equipment_has": "wooden_pickaxe"}, action_item="stone_pickaxe"),
         fixture(criteria={"equipment_contains": "wooden_pickaxe"}, action_item="stone_pickaxe"),
+        fixture(criteria={"equipment": {"name": "wooden_pickaxe"}}, action_item="stone_pickaxe"),
         fixture(criteria={"equipped": "wooden_pickaxe"}, preconditions={"inventory": {}}),
         fixture(criteria={"flags": ["wooden_pickaxe_equipped"]}, action_item="stone_pickaxe"),
         fixture(criteria={"equipment_has": ""}),
         fixture(criteria={"equipment_contains": ""}),
+        fixture(criteria={"equipment": {"name": ""}}),
         {
             "status": "planning",
             "subtasks": [{
@@ -1884,7 +1887,7 @@ def test_m4_equip_success_criteria_grounding_fails_closed_for_unbound_aliases():
             }],
         },
     ]
-    for plan in controls[:6]:
+    for plan in controls[:8]:
         unchanged, report = Planner._ground_m4_equip_success_criteria(plan)
         assert report["passed"] is False
         assert report["issues"] == [
@@ -1892,7 +1895,7 @@ def test_m4_equip_success_criteria_grounding_fails_closed_for_unbound_aliases():
         ]
         assert unchanged["subtasks"][0]["success_criteria"] == plan["subtasks"][0]["success_criteria"]
 
-    unchanged, report = Planner._ground_m4_equip_success_criteria(controls[6])
+    unchanged, report = Planner._ground_m4_equip_success_criteria(controls[8])
     assert report["passed"] is False
     assert report["issues"] == [
         "subtask[0]:equip_precondition_grounding_failed"
