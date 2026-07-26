@@ -560,3 +560,21 @@ The material below is retained as historical context and is not active work whil
 - No Minecraft process started. One strict JSON health request timed out and a
   subsequent minimal request returned HTTP 401 for the locally stored credential.
   Probe 25 remains unauthorized and no M4 credit is granted.
+
+### M4 Grok 4.5 Provider Health V2
+
+- Provider revision `m4-grok-4.5-openai-compatible-v2` keeps the strict
+  `m4-fixed-v1` world, reset, task, deadline, and machine-state contracts.
+- Active protocol SHA-256 is
+  `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`;
+  BM-012 contract SHA-256 is
+  `dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee`.
+- Grok emits provider-owned reasoning even when thinking is disabled. The v2
+  policy permits at most 65536 bytes but never consumes or retains that content;
+  only its byte count is recorded. The predecessor OpenCode replay remains bound
+  to its original zero-byte rule.
+- The local proxy and Python client are both configured for zero retries. One
+  formal real-provider request returned schema-valid JSON with `finish_reason`
+  `stop`, 113 reasoning bytes, 306 total tokens, and 2936 ms duration.
+- No Minecraft process started. Probe 25 remains unauthorized until a separate
+  one-use authorization commit is synchronized.

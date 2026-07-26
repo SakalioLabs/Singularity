@@ -1562,6 +1562,20 @@ The `bounded_shelter_partial_failure_atomicity` hypothesis passed live in Probe 
 - The migration health gate is blocked by HTTP 401 from the replacement endpoint.
   No live episode may start until a zero-retry strict JSON request passes.
 
+### Grok 4.5 Provider Revision V2
+
+- Active revision: `m4-grok-4.5-openai-compatible-v2`.
+- Protocol SHA-256:
+  `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`.
+- BM-012 contract SHA-256:
+  `dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee`.
+- Provider reasoning is bounded to 65536 bytes, is not consumed as Planner
+  output, and is not retained in evidence. The response content must still be a
+  schema-valid JSON object with stop finish reason.
+- Client retries and local proxy retries are both zero.
+- The formal no-Minecraft health request passed in 2936 ms. A separate,
+  parent-bound one-use authorization is required before Probe 25.
+
 - One live episode per round.
 - One root-cause hypothesis per round.
 - At most one principal subsystem change per round.

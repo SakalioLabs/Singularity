@@ -1,0 +1,53 @@
+{
+  "type": "m4_provider_health_audit",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-26T03:43:52Z",
+  "policy_id": "m4-grok-4.5-openai-compatible-v2",
+  "profile": "m4-fixed-v1",
+  "task_id": "BM-012",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "bm012_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+  "provider": {
+    "type": "openai_compatible",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "runtime_modalities": [
+      "text"
+    ]
+  },
+  "request": {
+    "request_sha256": "352f73b051fb101d57ee52917c439b665c60c539b53800f3b02cc7d9e62d27d7",
+    "temperature": 0.0,
+    "max_tokens": 256,
+    "response_format": {
+      "type": "json_object"
+    },
+    "extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "client_max_retries": 0,
+    "proxy_max_retries": 0,
+    "timeout_s": 90
+  },
+  "response": {
+    "response_sha256": "7c3765a97c03dc70c0d6d292c051275d8e8a696e8f33d1aea163689f6e75c140",
+    "schema_valid": true,
+    "finish_reason": "stop",
+    "reasoning_content_byte_count": 113,
+    "reasoning_content_max_bytes": 65536,
+    "reasoning_content_consumed": false,
+    "reasoning_content_retained": false,
+    "prompt_tokens": 241,
+    "completion_tokens": 65,
+    "total_tokens": 306,
+    "duration_ms": 2936
+  },
+  "credential_retained": false,
+  "response_body_retained": false,
+  "minecraft_started": false,
+  "live_episode_authorized": false,
+  "counts_toward_m4": false,
+  "passed": true
+}

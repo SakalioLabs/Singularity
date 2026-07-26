@@ -207,7 +207,7 @@ def protocol_integrity_report() -> dict:
         if llm != _SUPERSEDED_LLM:
             issues.append("predecessor_planner_mismatch")
     else:
-        if PROTOCOL.get("provider_revision") != "m4-grok-4.5-openai-compatible-v1":
+        if PROTOCOL.get("provider_revision") != "m4-grok-4.5-openai-compatible-v2":
             issues.append("provider_revision_mismatch")
         if llm.get("model") != "grok-4.5":
             issues.append("planner_model_mismatch")
@@ -215,6 +215,12 @@ def protocol_integrity_report() -> dict:
             issues.append("provider_modalities_mismatch")
         if llm.get("runtime_modalities") != ["text"]:
             issues.append("runtime_modalities_mismatch")
+        if llm.get("reasoning_content_policy") != {
+            "max_bytes": 65536,
+            "consumed": False,
+            "retained": False,
+        }:
+            issues.append("reasoning_content_policy_mismatch")
     if PROTOCOL.get("game_mode") != "survival":
         issues.append("survival_mode_required")
     if PROTOCOL.get("difficulty") == "peaceful":
@@ -854,7 +860,14 @@ def planner_provider_controls_report(events: list[dict]) -> dict:
     total_tokens = 0
     expected_extra_body = contract["required_extra_body"]
     expected_finish_reason = str(contract["finish_reason"])
-    reasoning_limit = int(contract["reasoning_content_max_bytes"])
+    reasoning_policy = (
+        PROTOCOL.get("llm", {}).get("reasoning_content_policy", {})
+        if isinstance(PROTOCOL.get("llm", {}).get("reasoning_content_policy"), dict)
+        else {}
+    )
+    reasoning_limit = int(
+        reasoning_policy.get("max_bytes", contract["reasoning_content_max_bytes"])
+    )
 
     if contract.get("real_llm_call_required") is True and not real_calls:
         violations.append("real_llm_call_missing")
@@ -887,6 +900,8 @@ def planner_provider_controls_report(events: list[dict]) -> dict:
         "expected_extra_body": expected_extra_body,
         "expected_finish_reason": expected_finish_reason,
         "reasoning_content_max_bytes": reasoning_limit,
+        "reasoning_content_consumed": reasoning_policy.get("consumed", False),
+        "reasoning_content_retained": reasoning_policy.get("retained", False),
         "max_call_duration_ms": round(max(durations), 3) if durations else None,
         "total_token_usage": total_tokens,
         "violations": violations,

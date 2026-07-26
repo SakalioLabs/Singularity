@@ -247,11 +247,16 @@ def test_m4_protocol_integrity_and_scope():
     report = protocol_integrity_report()
     assert report["passed"], report
     assert PROTOCOL["profile"] == "m4-fixed-v1"
-    assert PROTOCOL["provider_revision"] == "m4-grok-4.5-openai-compatible-v1"
+    assert PROTOCOL["provider_revision"] == "m4-grok-4.5-openai-compatible-v2"
     assert PROTOCOL["llm"]["base_url"] == "http://192.168.3.27:8317/v1"
     assert PROTOCOL["llm"]["model"] == "grok-4.5"
     assert PROTOCOL["llm"]["provider_modalities"] == ["text", "image"]
     assert PROTOCOL["llm"]["runtime_modalities"] == ["text"]
+    assert PROTOCOL["llm"]["reasoning_content_policy"] == {
+        "max_bytes": 65536,
+        "consumed": False,
+        "retained": False,
+    }
     assert PROTOCOL["difficulty"] == "normal"
     assert PROTOCOL["gamerules"]["doDaylightCycle"] is True
     assert PROTOCOL["gamerules"]["doMobSpawning"] is True
@@ -462,7 +467,7 @@ def test_bm011_rejects_unpinned_planner_provider_controls():
     planner_call["data"]["provider_metadata"].update({
         "extra_body": {},
         "finish_reason": "length",
-        "reasoning_content_byte_count": 64,
+        "reasoning_content_byte_count": 65537,
     })
     report = evaluate_bm011_episode(events, _result(events), _preflight(), _manifest())
     assert not report["eligible"]
@@ -472,6 +477,20 @@ def test_bm011_rejects_unpinned_planner_provider_controls():
     assert "m4-fixture-planner-01:finish_reason_mismatch" in violations
     assert "m4-fixture-planner-01:reasoning_content_exceeded" in violations
     print("PASS: BM-011 gate rejects unpinned Planner provider controls")
+
+
+def test_bm011_accepts_bounded_unconsumed_grok_reasoning_metadata():
+    events = _events()
+    planner_call = next(event for event in events if event["type"] == "llm_planner_call")
+    planner_call["data"]["provider_metadata"]["reasoning_content_byte_count"] = 113
+    report = evaluate_bm011_episode(events, _result(events), _preflight(), _manifest())
+    controls = report["evidence"]["planner_provider_controls"]
+    assert report["eligible"] is True
+    assert controls["passed"] is True
+    assert controls["reasoning_content_max_bytes"] == 65536
+    assert controls["reasoning_content_consumed"] is False
+    assert controls["reasoning_content_retained"] is False
+    print("PASS: BM-011 accepts bounded Grok reasoning metadata without consuming it")
 
 
 def test_bm011_rejects_missing_or_unordered_monotonic_event_time():
@@ -530,6 +549,7 @@ if __name__ == "__main__":
     test_bm011_rejects_active_reset_and_time_command()
     test_bm011_rejects_deadline_overrun_and_post_deadline_action()
     test_bm011_rejects_unpinned_planner_provider_controls()
+    test_bm011_accepts_bounded_unconsumed_grok_reasoning_metadata()
     test_bm011_rejects_missing_or_unordered_monotonic_event_time()
     test_bm011_rejects_scripted_goal_and_quarantined_skill()
     print("\nM4 protocol tests PASSED")
