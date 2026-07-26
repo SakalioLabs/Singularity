@@ -10,7 +10,7 @@
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 41 remain retained ineligible history, and Probe 38 is the first independently eligible BM-012 success, so the target is now 1/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 used the Grok 4.5 OpenAI-compatible endpoint, completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop, mined eight machine-proven iron-ore source blocks, ended with `raw_iron:8`, terminal health 20, zero deaths, and 172.469 seconds of deadline margin. Probe 39 used the same endpoint and exposed an occupied-target station-placement replan gap, now repaired offline. Probe 40 used the same endpoint and again completed the full empty-hand-to-stone-pickaxe loop, but failed after `stone_pickaxe:1` because the 8-block observation window did not surface the fixed-seed iron cluster and raw-iron search digs downgraded the held tool to `wooden_pickaxe`. Probe 41 used the same endpoint, but a coal/torch curriculum detour preempted the exact BM-012 toolchain before cobblestone, so a new fallback-lock repair is pending push. BM-012 still needs two more independent eligible successes before repeat verification, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 42 remain retained ineligible history, and Probe 38 is the first independently eligible BM-012 success, so the target is now 1/3. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 39 exposed an occupied-target station-placement replan gap, now repaired offline. Probe 40 again completed the full empty-hand-to-stone-pickaxe loop, but failed after `stone_pickaxe:1` because the old observation window did not surface the fixed-seed iron cluster and raw-iron search digs downgraded the held tool to `wooden_pickaxe`. Probe 41 showed the coal/torch curriculum detour before cobblestone; that fallback-lock repair was pushed and Probe 42 consumed the resulting authorization. Probe 42 proved the detour did not recur and reached `wooden_pickaxe:1` plus `cobblestone:1`, but two planner timeouts and 21 slow Grok calls exhausted the 600-second budget before three cobblestone or stone-pickaxe crafting. A strict BM-012 machine-step repair is now pending push. BM-012 still needs two more independent eligible successes before repeat verification, and BM-013/BM-014 remain sequentially locked.
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
@@ -196,7 +196,24 @@ Probe 30 consumed that authorization and remained ineligible. It completed the e
 - Evidence: `workspace/evals/m4_probe41_report.json`
 - Offline repair: `m4-bm012-toolchain-progression-fallback-lock-v1`
 - Repair behavior: strict BM-012 now preserves exact post-log toolchain fallback goals before ready-task recovery and Curriculum override, covering table, wooden-pickaxe, cobblestone, stone-pickaxe, and raw-iron fallback prefixes. Urgent survival fallbacks, non-M4 modes, protocol identity, task contract, deadline policy, and success threshold remain unchanged
-- Next gate: no Probe 42 authorization before this evidence and repair commit is pushed
+- Next gate: Probe 42 consumed one-use authorization from commit `83fea47b` and found a planner-latency toolchain budget gap after the fallback lock prevented the coal/torch detour
+
+## Probe 42 Toolchain Planner-Latency Budget Gap
+
+- Episode: `m4_episode_20260726_224415_434033de`
+- Session: `3019c425-820`
+- Provider/API: `grok-4.5` through `http://192.168.3.27:8317/v1`, provider modalities `text,image`, runtime modalities `text`
+- Planner: 23 calls, 21 real, 21 schema-valid real, two APITimeout failures, zero retries, 109614 tokens, maximum real-call duration 40218 ms
+- Actions: 19 attempted, 19 successful; 19/19 ActionVerifier decisions accepted
+- Progress: gathered logs, crafted planks, crafted and placed the table, crafted `wooden_pickaxe:1`, equipped it, moved to stone, and dug one successful `stone` block into terminal `cobblestone:1`
+- Missing transition: no third cobblestone, no `stone_pickaxe` craft, no iron approach, no iron dig, and terminal `raw_iron` remained 0
+- New blocker: after line 477's successful stone dig, line 483 timed out on the next cobblestone plan, line 488 recovered transport once, line 494 returned another valid stone-dig plan after about 39 seconds, line 501 dusk interrupt changed the goal to shelter, line 513 timed out again, and line 515 hit the absolute episode deadline
+- Prior repair review: Probe 41's toolchain detour did not recur; no coal/torch goal was selected before wooden-pickaxe and cobblestone progression
+- Capability decision: ineligible; BM-012 remains 1/3 and M4 remains partial
+- Evidence: `workspace/evals/m4_probe42_report.json`
+- Offline repair: `m4-bm012-toolchain-machine-step-plan-v1`
+- Repair behavior: strict BM-012 now emits one machine-state action per observation for the exact table, wooden-pickaxe, cobblestone, stone-pickaxe, and raw-iron fallback goals when required inventory, nearby block, held item, or bounded resource-scan proof is present. The LLM remains available for non-deterministic planning; non-M4 modes, protocol identity, task contract, deadline policy, and success threshold remain unchanged
+- Next gate: no Probe 43 authorization before this evidence and machine-step repair commit is pushed
 
 ## Stone Pickaxe Research Gate
 

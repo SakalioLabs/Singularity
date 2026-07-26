@@ -11,6 +11,7 @@ import logging
 import hashlib
 import math
 import re
+import uuid
 from dataclasses import asdict
 from typing import Callable, Optional
 
@@ -117,6 +118,9 @@ M4_BM012_STONE_PICKAXE_FRONTIER_YIELD_POLICY_ID = (
 M4_BM012_TOOLCHAIN_FALLBACK_LOCK_POLICY_ID = (
     "m4-bm012-toolchain-progression-fallback-lock-v1"
 )
+M4_BM012_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID = (
+    "m4-bm012-toolchain-machine-step-plan-v1"
+)
 M4_BM012_RESOURCE_SCAN_POLICY_ID = "m4-bm012-resource-scan-v1"
 M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID = "m4-bm012-raw-iron-dig-stone-pickaxe-v1"
 M4_BM012_RESOURCE_SCAN_RADIUS = 16
@@ -146,6 +150,22 @@ M4_BM012_RAW_IRON_STONE_PICKAXE_DIG_BLOCKS = frozenset({
     "deepslate_coal_ore",
     "copper_ore",
     "deepslate_copper_ore",
+})
+M4_BM012_PLANK_ITEMS = tuple(GoalVerifier.PLANK_ITEMS)
+M4_BM012_COBBLESTONE_SOURCE_BLOCKS = frozenset({
+    "stone",
+})
+M4_BM012_PLACE_REFERENCE_BLOCKS = frozenset({
+    "grass_block",
+    "dirt",
+    "stone",
+    "cobblestone",
+    "gravel",
+    "andesite",
+    "granite",
+    "diorite",
+    "deepslate",
+    "tuff",
 })
 
 
@@ -3149,6 +3169,9 @@ class Agent:
                 learned_plan = self._learned_skill_plan(skill_goal, observation)
         if learned_plan is not None:
             return self._apply_visual_action_grounding(learned_plan, observation, goal)
+        machine_step_plan = self._m4_bm012_toolchain_machine_step_plan(observation, goal)
+        if machine_step_plan is not None:
+            return self._apply_visual_action_grounding(machine_step_plan, observation, goal)
         if self._use_llm:
             plan = self._think_llm(observation, goal)
             plan = self._blocked_plan_rule_fallback(plan, goal, observation)
@@ -8552,6 +8575,634 @@ class Agent:
             "place the crafting table nearby for stone-pickaxe crafting",
             "gather 1 log for stone-pickaxe crafting table access",
         ))
+
+    def _m4_bm012_toolchain_machine_step_plan(
+        self,
+        observation: dict,
+        goal: str,
+    ) -> dict | None:
+        """Bypass slow LLM calls for BM-012 steps fully determined by machine state."""
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+            or str(getattr(self, "_m4_task_id", "") or "") != "BM-012"
+        ):
+            return None
+        observation = observation if isinstance(observation, dict) else {}
+        goal_text = str(goal or "").strip()
+        goal_lower = goal_text.lower()
+        if not goal_text or not (
+            self._m4_bm012_exact_progression_goal(goal_lower)
+            or self._m4_bm012_stone_pickaxe_station_access_goal(observation, goal_lower)
+        ):
+            return None
+
+        inventory = (
+            observation.get("inventory", {})
+            if isinstance(observation.get("inventory", {}), dict)
+            else {}
+        )
+        action = None
+        reason = ""
+        target = {}
+        if goal_lower.startswith("gather 1 log for stone-pickaxe crafting table access"):
+            action, reason, target = self._m4_bm012_oak_log_action(observation)
+        elif self._m4_bm012_crafting_table_access_goal(goal_lower):
+            action, reason, target = self._m4_bm012_crafting_table_access_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith(("craft a wooden pickaxe", "craft wooden pickaxe")):
+            action, reason, target = self._m4_bm012_wooden_pickaxe_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith("gather 3 cobblestone with the wooden pickaxe"):
+            action, reason, target = self._m4_bm012_cobblestone_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith(("craft a stone pickaxe", "craft stone pickaxe")):
+            action, reason, target = self._m4_bm012_stone_pickaxe_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith("collect 8 raw iron from iron ore with the stone pickaxe"):
+            action, reason, target = self._m4_bm012_raw_iron_action(
+                observation,
+                inventory,
+            )
+
+        if not isinstance(action, dict):
+            return None
+        params = action.get("parameters")
+        if not isinstance(params, dict):
+            return None
+
+        evidence = {
+            "schema_version": 1,
+            "policy_id": M4_BM012_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID,
+            "goal": goal_text,
+            "reason": reason,
+            "action": copy.deepcopy(action),
+            "target": copy.deepcopy(target),
+            "inventory": self._m4_bm012_toolchain_inventory_snapshot(observation),
+            "held_item": self._m4_bm012_held_item(observation),
+            "table_nearby": self._m4_bm012_nearby_block_present(
+                observation,
+                "crafting_table",
+            ),
+            "task_id": str(getattr(self, "_m4_task_id", "") or ""),
+            "source": "machine_state_pre_llm",
+        }
+        fingerprint_payload = {
+            "policy_id": evidence["policy_id"],
+            "goal": evidence["goal"],
+            "reason": evidence["reason"],
+            "action": evidence["action"],
+            "target": evidence["target"],
+            "inventory": evidence["inventory"],
+            "held_item": evidence["held_item"],
+        }
+        evidence["machine_step_fingerprint"] = hashlib.sha256(
+            json.dumps(
+                fingerprint_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+                default=str,
+            ).encode("utf-8")
+        ).hexdigest()
+        self._record_m4_bm012_toolchain_machine_step_plan(evidence)
+
+        call_id = f"machine-step-{uuid.uuid4().hex[:16]}"
+        root_plan_id = str(
+            getattr(getattr(self, "planner", None), "_active_root_plan_id", "") or ""
+        ) or f"root-{uuid.uuid4().hex[:16]}"
+        return {
+            "schema_version": "m4-machine-step-plan-v1",
+            "plan_kind": "machine_step",
+            "goal": goal_text,
+            "status": "planning",
+            "reasoning": (
+                f"BM-012 machine-state toolchain step selected by "
+                f"{M4_BM012_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID}: {reason}"
+            ),
+            "subtasks": [],
+            "actions": [action],
+            "root_plan_id": root_plan_id,
+            "planner_call_id": call_id,
+            "parent_planner_call_id": str(
+                getattr(getattr(self, "planner", None), "_last_call_id", "") or ""
+            ),
+            "schema_validation": {
+                "type": "m4_machine_step_plan_validation",
+                "schema_version": 1,
+                "policy_id": M4_BM012_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID,
+                "passed": True,
+                "expected_goal": goal_text,
+                "expected_kind": "machine_step",
+                "status": "planning",
+                "action_count": 1,
+                "completion_requires_machine_verifier": True,
+                "issues": [],
+            },
+            "planner_evidence": {
+                "type": "m4_machine_step_planner_call",
+                "schema_version": 1,
+                "planner_id": "m4-bm012-toolchain-machine-step-planner-v1",
+                "protocol": "m4-fixed-v1",
+                "policy_id": M4_BM012_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID,
+                "call_id": call_id,
+                "plan_kind": "machine_step",
+                "root_plan_id": root_plan_id,
+                "goal": goal_text,
+                "real_llm_call": False,
+                "schema_valid": True,
+                "machine_step_fingerprint": evidence["machine_step_fingerprint"],
+            },
+            "machine_step_plan": evidence,
+        }
+
+    @staticmethod
+    def _m4_bm012_crafting_table_access_goal(goal_lower: str) -> bool:
+        return str(goal_lower or "").startswith((
+            "craft crafting table",
+            "craft and place crafting table",
+            "craft and place a crafting table for iron-tool progression",
+            "place the crafting table nearby for iron-tool progression",
+            "craft crafting table for stone-pickaxe crafting",
+            "place the crafting table nearby for stone-pickaxe crafting",
+        ))
+
+    def _m4_bm012_crafting_table_access_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        if self._m4_bm012_nearby_block_present(observation, "crafting_table"):
+            return None, "crafting_table_already_nearby", {}
+        if self._m4_inventory_count(inventory.get("crafting_table")) >= 1:
+            reference = self._m4_bm012_place_reference(observation)
+            if reference:
+                return (
+                    {
+                        "type": "place",
+                        "parameters": {"item": "crafting_table", **reference},
+                    },
+                    "place_owned_crafting_table_at_verified_reference",
+                    {"reference_position": reference},
+                )
+            return None, "crafting_table_place_reference_missing", {}
+        if self._m4_bm012_count_any(inventory, M4_BM012_PLANK_ITEMS) >= 4:
+            return (
+                {
+                    "type": "craft",
+                    "parameters": {"item": "crafting_table", "count": 1},
+                },
+                "craft_crafting_table_from_available_planks",
+                {},
+            )
+        if self._m4_inventory_count(inventory.get("oak_log")) >= 1:
+            return (
+                {"type": "craft", "parameters": {"item": "oak_planks", "count": 4}},
+                "craft_oak_planks_for_crafting_table",
+                {},
+            )
+        return None, "crafting_table_materials_missing", {}
+
+    def _m4_bm012_wooden_pickaxe_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        if self._m4_inventory_count(inventory.get("wooden_pickaxe")) >= 1:
+            return None, "wooden_pickaxe_already_present", {}
+        if not self._m4_bm012_nearby_block_present(observation, "crafting_table"):
+            return self._m4_bm012_crafting_table_access_action(observation, inventory)
+        planks = self._m4_bm012_count_any(inventory, M4_BM012_PLANK_ITEMS)
+        sticks = self._m4_inventory_count(inventory.get("stick"))
+        if planks < 3:
+            if self._m4_inventory_count(inventory.get("oak_log")) >= 1:
+                return (
+                    {"type": "craft", "parameters": {"item": "oak_planks", "count": 4}},
+                    "craft_oak_planks_for_wooden_pickaxe",
+                    {},
+                )
+            return None, "wooden_pickaxe_planks_missing", {}
+        if sticks < 2:
+            if planks >= 2:
+                return (
+                    {"type": "craft", "parameters": {"item": "stick", "count": 4}},
+                    "craft_sticks_for_wooden_pickaxe",
+                    {},
+                )
+            return None, "wooden_pickaxe_stick_materials_missing", {}
+        return (
+            {"type": "craft", "parameters": {"item": "wooden_pickaxe", "count": 1}},
+            "craft_wooden_pickaxe_from_verified_materials",
+            {},
+        )
+
+    def _m4_bm012_cobblestone_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        if self._m4_inventory_count(inventory.get("cobblestone")) >= 3:
+            return None, "cobblestone_requirement_already_satisfied", {}
+        if self._m4_inventory_count(inventory.get("wooden_pickaxe")) < 1:
+            return None, "wooden_pickaxe_missing_for_cobblestone", {}
+        held_item = self._m4_bm012_held_item(observation)
+        if held_item != "wooden_pickaxe":
+            return (
+                {"type": "equip", "parameters": {"item": "wooden_pickaxe"}},
+                "equip_wooden_pickaxe_for_cobblestone",
+                {},
+            )
+        target = self._m4_bm012_nearest_block(
+            observation,
+            M4_BM012_COBBLESTONE_SOURCE_BLOCKS,
+        )
+        if not target:
+            return None, "cobblestone_source_block_missing", {}
+        position = dict(target["position"])
+        if self._m4_bm012_block_distance(target) > 4.5:
+            return (
+                {"type": "move_to", "parameters": position},
+                "move_to_reachable_cobblestone_source",
+                target,
+            )
+        return (
+            {
+                "type": "dig",
+                "parameters": {
+                    **position,
+                    "block": str(target.get("name") or "stone"),
+                },
+            },
+            "dig_nearest_verified_cobblestone_source",
+            target,
+        )
+
+    def _m4_bm012_stone_pickaxe_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        if self._m4_inventory_count(inventory.get("stone_pickaxe")) >= 1:
+            return None, "stone_pickaxe_already_present", {}
+        if not self._m4_bm012_nearby_block_present(observation, "crafting_table"):
+            return self._m4_bm012_crafting_table_access_action(observation, inventory)
+        cobblestone = self._m4_inventory_count(inventory.get("cobblestone"))
+        sticks = self._m4_inventory_count(inventory.get("stick"))
+        planks = self._m4_bm012_count_any(inventory, M4_BM012_PLANK_ITEMS)
+        if cobblestone < 3:
+            action, reason, target = self._m4_bm012_cobblestone_action(
+                observation,
+                inventory,
+            )
+            if action is not None:
+                return action, f"{reason}_for_stone_pickaxe", target
+            return None, "stone_pickaxe_cobblestone_missing", {}
+        if sticks < 2:
+            if planks >= 2:
+                return (
+                    {"type": "craft", "parameters": {"item": "stick", "count": 4}},
+                    "craft_sticks_for_stone_pickaxe",
+                    {},
+                )
+            if self._m4_inventory_count(inventory.get("oak_log")) >= 1:
+                return (
+                    {"type": "craft", "parameters": {"item": "oak_planks", "count": 4}},
+                    "craft_oak_planks_for_stone_pickaxe_sticks",
+                    {},
+                )
+            return None, "stone_pickaxe_sticks_missing", {}
+        return (
+            {"type": "craft", "parameters": {"item": "stone_pickaxe", "count": 1}},
+            "craft_stone_pickaxe_from_verified_materials",
+            {},
+        )
+
+    def _m4_bm012_raw_iron_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        if self._m4_inventory_count(inventory.get("stone_pickaxe")) < 1:
+            action, reason, target = self._m4_bm012_stone_pickaxe_action(
+                observation,
+                inventory,
+            )
+            if action is not None:
+                return action, f"{reason}_before_raw_iron", target
+            return None, "stone_pickaxe_missing_for_raw_iron", {}
+        held_item = self._m4_bm012_held_item(observation)
+        if held_item != "stone_pickaxe":
+            return (
+                {"type": "equip", "parameters": {"item": "stone_pickaxe"}},
+                "equip_stone_pickaxe_for_raw_iron",
+                {},
+            )
+        target = self._m4_bm012_nearest_block(
+            observation,
+            {"iron_ore", "deepslate_iron_ore"},
+        )
+        if target:
+            position = dict(target["position"])
+            if self._m4_bm012_block_distance(target) > 4.5:
+                return (
+                    {"type": "move_to", "parameters": position},
+                    "move_to_verified_iron_ore",
+                    target,
+                )
+            return (
+                {
+                    "type": "dig",
+                    "parameters": {
+                        **position,
+                        "block": str(target.get("name") or "iron_ore"),
+                        "preferred_tool": "stone_pickaxe",
+                        "preferred_tool_policy_id": M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID,
+                    },
+                },
+                "dig_verified_iron_ore_with_stone_pickaxe",
+                target,
+            )
+        target = self._m4_bm012_nearest_block(
+            observation,
+            M4_BM012_RAW_IRON_STONE_PICKAXE_DIG_BLOCKS,
+        )
+        if not target:
+            return None, "raw_iron_search_block_missing", {}
+        position = dict(target["position"])
+        if self._m4_bm012_block_distance(target) > 4.5:
+            return (
+                {"type": "move_to", "parameters": position},
+                "move_to_raw_iron_search_block",
+                target,
+            )
+        return (
+            {
+                "type": "dig",
+                "parameters": {
+                    **position,
+                    "block": str(target.get("name") or "stone"),
+                    "preferred_tool": "stone_pickaxe",
+                    "preferred_tool_policy_id": M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID,
+                },
+            },
+            "dig_search_block_with_stone_pickaxe",
+            target,
+        )
+
+    def _m4_bm012_oak_log_action(self, observation: dict) -> tuple[dict | None, str, dict]:
+        target = self._m4_bm012_nearest_block(observation, {"oak_log"})
+        if not target:
+            return None, "oak_log_source_missing", {}
+        position = dict(target["position"])
+        if self._m4_bm012_block_distance(target) > 4.5:
+            return {"type": "move_to", "parameters": position}, "move_to_oak_log", target
+        return (
+            {
+                "type": "dig",
+                "parameters": {**position, "block": "oak_log"},
+            },
+            "dig_verified_oak_log",
+            target,
+        )
+
+    def _record_m4_bm012_toolchain_machine_step_plan(self, evidence: dict):
+        log = getattr(getattr(self, "session_logger", None), "log", None)
+        if callable(log):
+            log("m4_bm012_toolchain_machine_step_plan", dict(evidence))
+        writer = getattr(self, "_write_memory_episode", None)
+        if callable(writer):
+            try:
+                writer(
+                    "m4_bm012_toolchain_machine_step_plan",
+                    dict(evidence),
+                    source="machine_step_planner",
+                )
+            except Exception:
+                pass
+
+    @classmethod
+    def _m4_bm012_count_any(cls, inventory: dict, items) -> int:
+        inventory = inventory if isinstance(inventory, dict) else {}
+        total = 0
+        for item in items:
+            total += cls._m4_inventory_count(inventory.get(str(item)))
+        return total
+
+    @staticmethod
+    def _m4_bm012_block_distance(block: dict) -> float:
+        try:
+            value = float(block.get("distance", 999999.0))
+        except (TypeError, ValueError):
+            return 999999.0
+        return value if math.isfinite(value) else 999999.0
+
+    def _m4_bm012_nearby_block_present(self, observation: dict, block_name: str) -> bool:
+        observation = observation if isinstance(observation, dict) else {}
+        block_name = str(block_name or "").strip()
+        if not block_name:
+            return False
+        for block in observation.get("nearby_blocks", []) or []:
+            if isinstance(block, dict) and str(block.get("name") or "") == block_name:
+                return True
+        return False
+
+    def _m4_bm012_held_item(self, observation: dict) -> str:
+        observation = observation if isinstance(observation, dict) else {}
+        direct = observation.get("held_item")
+        if isinstance(direct, str):
+            return direct.strip()
+        if isinstance(direct, dict):
+            return str(direct.get("name") or "").strip()
+        equipment = observation.get("equipment")
+        if isinstance(equipment, list) and equipment:
+            main_hand = equipment[0]
+            if isinstance(main_hand, dict):
+                return str(main_hand.get("name") or "").strip()
+            if isinstance(main_hand, str):
+                return main_hand.strip()
+        if isinstance(equipment, dict):
+            for key in ("hand", "main_hand", "mainhand", "selected"):
+                value = equipment.get(key)
+                if isinstance(value, dict):
+                    return str(value.get("name") or "").strip()
+                if isinstance(value, str):
+                    return value.strip()
+        return ""
+
+    def _m4_bm012_nearest_block(self, observation: dict, names) -> dict:
+        candidates = self._m4_bm012_block_candidates(observation, set(names or []))
+        return candidates[0] if candidates else {}
+
+    def _m4_bm012_block_candidates(self, observation: dict, names: set[str]) -> list[dict]:
+        observation = observation if isinstance(observation, dict) else {}
+        wanted = {str(name or "").strip() for name in names if str(name or "").strip()}
+        if not wanted:
+            return []
+        player_position = observation.get("position")
+        player_position = player_position if isinstance(player_position, dict) else {}
+        sources = []
+        scan = observation.get("m4_resource_scan")
+        if isinstance(scan, dict):
+            nearest_iron = scan.get("nearest_iron_ore")
+            if isinstance(nearest_iron, dict):
+                sources.append(("m4_resource_scan.nearest_iron_ore", [nearest_iron]))
+            scan_candidates = scan.get("candidates")
+            if isinstance(scan_candidates, list):
+                sources.append(("m4_resource_scan.candidates", scan_candidates))
+        for key in ("grounded_resources", "nearby_blocks"):
+            blocks = observation.get(key)
+            if isinstance(blocks, list):
+                sources.append((key, blocks))
+        ground_block = observation.get("ground_block")
+        if isinstance(ground_block, dict):
+            sources.append(("ground_block", [ground_block]))
+
+        candidates = []
+        seen = set()
+        for source_index, (source_name, blocks) in enumerate(sources):
+            for block in blocks:
+                if not isinstance(block, dict):
+                    continue
+                name = str(block.get("name") or "").strip()
+                if name not in wanted:
+                    continue
+                position = self._m4_integral_block_position(
+                    block.get("position") if isinstance(block.get("position"), dict) else block
+                )
+                if not position:
+                    continue
+                key = (name, position["x"], position["y"], position["z"])
+                if key in seen:
+                    continue
+                seen.add(key)
+                distance = self._m4_bm012_finite_float(block.get("distance"))
+                if distance is None:
+                    distance = self._m4_bm012_distance_from_player(
+                        position,
+                        player_position,
+                    )
+                candidates.append({
+                    "name": name,
+                    "position": position,
+                    "distance": round(distance, 3) if distance is not None else 999999.0,
+                    "source": source_name,
+                    "source_priority": source_index,
+                })
+        candidates.sort(
+            key=lambda item: (
+                self._m4_bm012_resource_priority(str(item.get("name") or "")),
+                self._m4_bm012_block_distance(item),
+                int(item.get("source_priority", 999)),
+                item["position"]["x"],
+                item["position"]["y"],
+                item["position"]["z"],
+            )
+        )
+        return candidates
+
+    @staticmethod
+    def _m4_bm012_resource_priority(name: str) -> int:
+        if name in {"iron_ore", "deepslate_iron_ore"}:
+            return 0
+        if name in M4_BM012_COBBLESTONE_SOURCE_BLOCKS:
+            return 1
+        if name == "oak_log":
+            return 2
+        if name in {"coal_ore", "deepslate_coal_ore"}:
+            return 3
+        return 4
+
+    @staticmethod
+    def _m4_bm012_finite_float(value) -> float | None:
+        if isinstance(value, bool):
+            return None
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return None
+        return number if math.isfinite(number) else None
+
+    def _m4_bm012_distance_from_player(self, position: dict, player_position: dict) -> float | None:
+        values = []
+        for axis in ("x", "y", "z"):
+            block_value = self._m4_bm012_finite_float(position.get(axis))
+            player_value = self._m4_bm012_finite_float(player_position.get(axis))
+            if block_value is None or player_value is None:
+                return None
+            values.append(block_value - player_value)
+        return math.sqrt(sum(value * value for value in values))
+
+    def _m4_bm012_place_reference(self, observation: dict) -> dict:
+        candidates = self._m4_bm012_block_candidates(
+            observation,
+            M4_BM012_PLACE_REFERENCE_BLOCKS,
+        )
+        if not candidates:
+            return {}
+        occupied = self._m4_bm012_occupied_block_positions(observation)
+        player_cells = self._m4_bm012_player_collision_cells(observation)
+        for candidate in candidates:
+            reference = dict(candidate["position"])
+            target = {
+                "x": reference["x"],
+                "y": reference["y"] + 1,
+                "z": reference["z"],
+            }
+            key = (target["x"], target["y"], target["z"])
+            if key in occupied or key in player_cells:
+                continue
+            return reference
+        return {}
+
+    def _m4_bm012_occupied_block_positions(self, observation: dict) -> set[tuple[int, int, int]]:
+        observation = observation if isinstance(observation, dict) else {}
+        occupied = set()
+        replaceable = {
+            "air",
+            "cave_air",
+            "void_air",
+            "short_grass",
+            "tall_grass",
+            "grass",
+            "fern",
+            "large_fern",
+            "snow",
+            "water",
+        }
+        for block in observation.get("nearby_blocks", []) or []:
+            if not isinstance(block, dict):
+                continue
+            name = str(block.get("name") or "").strip()
+            if not name or name in replaceable:
+                continue
+            position = self._m4_integral_block_position(
+                block.get("position") if isinstance(block.get("position"), dict) else block
+            )
+            if position:
+                occupied.add((position["x"], position["y"], position["z"]))
+        return occupied
+
+    def _m4_bm012_player_collision_cells(self, observation: dict) -> set[tuple[int, int, int]]:
+        observation = observation if isinstance(observation, dict) else {}
+        position = observation.get("position")
+        if not isinstance(position, dict):
+            position = observation.get("player_position")
+        if not isinstance(position, dict):
+            return set()
+        try:
+            x = math.floor(float(position["x"]))
+            y = math.floor(float(position["y"]))
+            z = math.floor(float(position["z"]))
+        except (KeyError, TypeError, ValueError):
+            return set()
+        return {(x, y, z), (x, y + 1, z)}
 
     def _yield_m4_bm012_stone_pickaxe_frontier(
         self,

@@ -4490,6 +4490,175 @@ def test_m4_bm012_raw_iron_dig_prefers_stone_pickaxe_without_touching_controls()
     assert control is action
 
 
+def _bm012_machine_step_agent(clock=None):
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent._m4_task_id = "BM-012"
+    agent.session_logger = RuntimeSessionLogger(clock or FakeClock())
+    agent._episode_deadline_monotonic = None
+    agent._use_llm = True
+    agent._learned_skill_plan = lambda *args, **kwargs: None
+    agent._apply_visual_action_grounding = lambda plan, *args, **kwargs: plan
+
+    def fail_llm(*args, **kwargs):
+        raise AssertionError("BM-012 machine step should bypass LLM planning")
+
+    agent._think_llm = fail_llm
+    return agent
+
+
+def test_m4_bm012_machine_step_plan_bypasses_llm_for_probe42_cobblestone_tail():
+    agent = _bm012_machine_step_agent()
+    observation = {
+        "inventory": {"wooden_pickaxe": 1, "cobblestone": 1},
+        "equipment": [{"slot": 0, "name": "wooden_pickaxe", "count": 1}],
+        "position": {"x": 111.5, "y": 136, "z": -27.4},
+        "nearby_blocks": [
+            {"name": "crafting_table", "position": {"x": 108, "y": 136, "z": -28}},
+            {"name": "stone", "position": {"x": 114, "y": 133, "z": -29}, "distance": 4.35},
+        ],
+    }
+
+    plan = agent._think(
+        observation,
+        override_goal="Gather 3 cobblestone with the wooden pickaxe",
+    )
+
+    assert plan["planner_evidence"]["real_llm_call"] is False
+    assert plan["planner_evidence"]["policy_id"] == (
+        "m4-bm012-toolchain-machine-step-plan-v1"
+    )
+    assert plan["actions"] == [
+        {
+            "type": "dig",
+            "parameters": {"x": 114, "y": 133, "z": -29, "block": "stone"},
+        }
+    ]
+    event = next(
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_bm012_toolchain_machine_step_plan"
+    )
+    assert event["data"]["reason"] == "dig_nearest_verified_cobblestone_source"
+    assert event["data"]["inventory"]["wooden_pickaxe"] == 1
+
+
+def test_m4_bm012_machine_step_plan_crafts_stone_pickaxe_from_verified_state():
+    agent = _bm012_machine_step_agent()
+    observation = {
+        "inventory": {
+            "wooden_pickaxe": 1,
+            "cobblestone": 3,
+            "stick": 2,
+        },
+        "equipment": [{"slot": 0, "name": "wooden_pickaxe", "count": 1}],
+        "position": {"x": 111.5, "y": 136, "z": -27.4},
+        "nearby_blocks": [
+            {"name": "crafting_table", "position": {"x": 108, "y": 136, "z": -28}},
+        ],
+    }
+
+    plan = agent._think(
+        observation,
+        override_goal="Craft a stone pickaxe for mining iron ore",
+    )
+
+    action = plan["actions"][0]
+    assert action == {
+        "type": "craft",
+        "parameters": {"item": "stone_pickaxe", "count": 1},
+    }
+    assert ActionVerifier().verify(action, observation).status == "accept"
+    assert plan["machine_step_plan"]["reason"] == (
+        "craft_stone_pickaxe_from_verified_materials"
+    )
+
+
+def test_m4_bm012_machine_step_plan_uses_resource_scan_for_raw_iron():
+    agent = _bm012_machine_step_agent()
+    observation = {
+        "inventory": {"stone_pickaxe": 1},
+        "equipment": [{"slot": 0, "name": "stone_pickaxe", "count": 1}],
+        "position": {"x": 108, "y": 129, "z": -38},
+        "nearby_blocks": [
+            {"name": "stone", "position": {"x": 108, "y": 129, "z": -39}, "distance": 1.0},
+        ],
+        "m4_resource_scan": {
+            "policy_id": "m4-bm012-resource-scan-v1",
+            "nearest_iron_ore": {
+                "name": "iron_ore",
+                "position": {"x": 108, "y": 129, "z": -40},
+                "distance": 2.0,
+            },
+            "candidates": [],
+        },
+    }
+
+    plan = agent._think(
+        observation,
+        override_goal="Collect 8 raw iron from iron ore with the stone pickaxe",
+    )
+
+    action = plan["actions"][0]
+    assert action == {
+        "type": "dig",
+        "parameters": {
+            "x": 108,
+            "y": 129,
+            "z": -40,
+            "block": "iron_ore",
+            "preferred_tool": "stone_pickaxe",
+            "preferred_tool_policy_id": "m4-bm012-raw-iron-dig-stone-pickaxe-v1",
+        },
+    }
+    assert plan["machine_step_plan"]["target"]["source"] == (
+        "m4_resource_scan.nearest_iron_ore"
+    )
+
+
+def test_m4_bm012_machine_step_plan_fails_closed_outside_scope_or_state():
+    agent = _bm012_machine_step_agent()
+    insufficient = {
+        "inventory": {"wooden_pickaxe": 1},
+        "equipment": [{"slot": 0, "name": "wooden_pickaxe", "count": 1}],
+        "nearby_blocks": [],
+    }
+    assert agent._m4_bm012_toolchain_machine_step_plan(
+        insufficient,
+        "Gather 3 cobblestone with the wooden pickaxe",
+    ) is None
+    wrong_stone_family = {
+        "inventory": {"wooden_pickaxe": 1},
+        "equipment": [{"slot": 0, "name": "wooden_pickaxe", "count": 1}],
+        "position": {"x": 0, "y": 64, "z": 0},
+        "nearby_blocks": [
+            {"name": "andesite", "position": {"x": 1, "y": 64, "z": 0}, "distance": 1},
+        ],
+    }
+    assert agent._m4_bm012_toolchain_machine_step_plan(
+        wrong_stone_family,
+        "Gather 3 cobblestone with the wooden pickaxe",
+    ) is None
+
+    non_m4 = _bm012_machine_step_agent()
+    non_m4.config = Config(planner_protocol="m2-fixed-v1")
+    assert non_m4._m4_bm012_toolchain_machine_step_plan(
+        {
+            "inventory": {"oak_log": 1},
+            "nearby_blocks": [],
+        },
+        "Craft and place a crafting table for iron-tool progression",
+    ) is None
+
+    dark_oak_only = _bm012_machine_step_agent()
+    assert dark_oak_only._m4_bm012_toolchain_machine_step_plan(
+        {
+            "inventory": {"dark_oak_log": 1},
+            "nearby_blocks": [],
+        },
+        "Craft and place a crafting table for iron-tool progression",
+    ) is None
+
+
 def test_m4_planner_prompt_surfaces_resource_scan_and_tool_rule():
     planner = Planner(None, TaskSystem(), protocol="m4-fixed-v1")
     planner._expected_plan_kind = "continuation"
@@ -4579,5 +4748,9 @@ if __name__ == "__main__":
     test_m4_bm012_select_autonomous_goal_preserves_toolchain_before_ready_tasks()
     test_m4_bm012_resource_scan_exposes_bounded_iron_candidates()
     test_m4_bm012_raw_iron_dig_prefers_stone_pickaxe_without_touching_controls()
+    test_m4_bm012_machine_step_plan_bypasses_llm_for_probe42_cobblestone_tail()
+    test_m4_bm012_machine_step_plan_crafts_stone_pickaxe_from_verified_state()
+    test_m4_bm012_machine_step_plan_uses_resource_scan_for_raw_iron()
+    test_m4_bm012_machine_step_plan_fails_closed_outside_scope_or_state()
     test_m4_planner_prompt_surfaces_resource_scan_and_tool_rule()
     print("\nM4 deadline runtime tests PASSED")
