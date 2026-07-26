@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "m4_provider_recovery_probe.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "schema_version",
+    "policy_id",
+    "generated_at",
+    "source_commit",
+    "profile",
+    "protocol_sha256",
+    "provider",
+    "request",
+    "result",
+    "decision",
+    "safety"
+  ],
+  "properties": {
+    "type": {"const": "m4_provider_recovery_probe"},
+    "schema_version": {"const": 1},
+    "policy_id": {"const": "m4-fixed-provider-recovery-probe-v1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "profile": {"const": "m4-fixed-v1"},
+    "protocol_sha256": {
+      "const": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "base_url", "model"],
+      "properties": {
+        "name": {"const": "openai"},
+        "base_url": {"const": "https://opencode.ai/zen/go/v1"},
+        "model": {"const": "deepseek-v4-flash"}
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_count",
+        "automatic_retry_count",
+        "client_timeout_s",
+        "supervisor_timeout_s",
+        "minecraft_started",
+        "gameplay_action_count"
+      ],
+      "properties": {
+        "attempt_count": {"const": 1},
+        "automatic_retry_count": {"const": 0},
+        "client_timeout_s": {"const": 15.0},
+        "supervisor_timeout_s": {"const": 25.0},
+        "minecraft_started": {"const": false},
+        "gameplay_action_count": {"const": 0}
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "provider_result_observed",
+        "recovered",
+        "elapsed_s",
+        "error_type",
+        "http_status",
+        "credit_error",
+        "response_nonempty",
+        "response_sha256",
+        "response_body_retained",
+        "supervisor_terminated_worker"
+      ],
+      "properties": {
+        "classification": {
+          "enum": [
+            "provider_recovered",
+            "fixed_provider_unavailable",
+            "probe_indeterminate"
+          ]
+        },
+        "provider_result_observed": {"type": "boolean"},
+        "recovered": {"type": "boolean"},
+        "elapsed_s": {"type": "number", "minimum": 0},
+        "error_type": {
+          "type": ["string", "null"]
+        },
+        "http_status": {
+          "type": ["integer", "null"],
+          "minimum": 100,
+          "maximum": 599
+        },
+        "credit_error": {"type": "boolean"},
+        "response_nonempty": {"type": "boolean"},
+        "response_sha256": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+          ]
+        },
+        "response_body_retained": {"const": false},
+        "supervisor_terminated_worker": {"type": "boolean"}
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "recovery_gate_passed",
+        "probe_25_authorized",
+        "counts_toward_bm012_success",
+        "counts_toward_capability"
+      ],
+      "properties": {
+        "value": {
+          "enum": [
+            "provider_recovered_probe25_still_requires_authorization",
+            "hold_probe25_fixed_provider_unavailable",
+            "hold_probe25_provider_probe_indeterminate"
+          ]
+        },
+        "recovery_gate_passed": {"type": "boolean"},
+        "probe_25_authorized": {"const": false},
+        "counts_toward_bm012_success": {"const": false},
+        "counts_toward_capability": {"const": false}
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "credential_value_retained",
+        "worker_stderr_retained",
+        "output_is_exclusive",
+        "output_is_atomic"
+      ],
+      "properties": {
+        "credential_value_retained": {"const": false},
+        "worker_stderr_retained": {"const": false},
+        "output_is_exclusive": {"const": true},
+        "output_is_atomic": {"const": true}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "properties": {
+              "classification": {"const": "provider_recovered"}
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "properties": {
+              "provider_result_observed": {"const": true},
+              "recovered": {"const": true},
+              "response_nonempty": {"const": true},
+              "supervisor_terminated_worker": {"const": false}
+            }
+          },
+          "decision": {
+            "properties": {
+              "value": {
+                "const": "provider_recovered_probe25_still_requires_authorization"
+              },
+              "recovery_gate_passed": {"const": true}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "properties": {
+              "classification": {"const": "probe_indeterminate"}
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "properties": {
+              "provider_result_observed": {"const": false},
+              "recovered": {"const": false},
+              "response_nonempty": {"const": false}
+            }
+          },
+          "decision": {
+            "properties": {
+              "value": {"const": "hold_probe25_provider_probe_indeterminate"},
+              "recovery_gate_passed": {"const": false}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

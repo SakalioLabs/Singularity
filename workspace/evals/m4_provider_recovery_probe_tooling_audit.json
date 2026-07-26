@@ -1,0 +1,57 @@
+{
+  "type": "m4_provider_recovery_probe_tooling_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-25T23:55:05.667538Z",
+  "base_commit": "85b2c34cae1b6081cfd196570e375f30bdef5535",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "policy_id": "m4-fixed-provider-recovery-probe-v1",
+  "root_cause": {
+    "source_path": "workspace/evals/m4_provider_resumed_probe_indeterminate_20260726.json",
+    "source_sha256": "41978abf9eec1197f7f642d056cd745b946ae2aa7546af1acb8c2b325edef03a",
+    "failure": "outer_command_timeout_lost_provider_result",
+    "source_modified": false
+  },
+  "implementation": {
+    "script_path": "scripts/m4_provider_recovery_probe.py",
+    "script_sha256": "87495c9ae5196187227171960243854ff3b92d414f6243da6915350301e3ebde",
+    "schema_path": "workspace/evals/schemas/m4_provider_recovery_probe.schema.json",
+    "schema_sha256": "4c569c8cc1cedcf03a1528be43057d1937b936e4566f9d5ebb5e043cb42ea769",
+    "worker_process_isolated": true,
+    "supervisor_timeout_s": 25,
+    "client_timeout_s": 15,
+    "attempt_count": 1,
+    "automatic_retry_count": 0,
+    "timeout_evidence_written": true,
+    "output_atomic": true,
+    "output_exclusive": true,
+    "credential_value_retained": false,
+    "response_body_retained": false
+  },
+  "validation": {
+    "focused_test_count": 7,
+    "focused_test_pass_count": 7,
+    "cases": [
+      "provider_recovered",
+      "credit_error_http401",
+      "supervisor_timeout",
+      "invalid_worker_output",
+      "atomic_exclusive_output",
+      "invalid_path_and_source_commit",
+      "tooling_audit_hash_binding"
+    ],
+    "credential_absent_worker_process_smoke_passed": true,
+    "python_compile_passed": true,
+    "schema_json_passed": true,
+    "diff_check_passed": true
+  },
+  "decision": {
+    "value": "offline_tooling_ready_for_commit_and_push",
+    "live_provider_request_run": false,
+    "minecraft_started": false,
+    "probe_25_authorized": false,
+    "changes_blocked_threshold_count": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false
+  }
+}
