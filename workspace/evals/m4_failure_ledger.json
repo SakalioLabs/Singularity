@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-26T15:17:47Z",
+  "generated_at": "2026-07-26T15:41:51Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -21,7 +21,7 @@
   "current_gate": {
     "hypothesis": "bm012_planner_latency_toolchain_budget_gap",
     "policy_id": "m4-bm012-toolchain-machine-step-plan-v1",
-    "status": "probe_42_failed_machine_step_repair_offline_validated_pending_push",
+    "status": "probe_43_authorized_pending_run",
     "earliest_blocker": "m4_bm012_planner_latency_toolchain_budget_gap",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -267,7 +267,12 @@
       "agent": "07719f2c853e8b4568a9aa9323fd098c7c2d14ac73a15f249b73d9a8b5989bab",
       "m4_deadline_tests": "8ee66b06de83c814a8f5f83ccf4fd1f2adabcc6a44746bc56ae4b6e535171cf2"
     },
-    "bm012_probe_43_authorized": false,
+    "bm012_probe_43_authorized": true,
+    "bm012_probe_43_authorization_path": "workspace/evals/m4_probe43_authorization.json",
+    "bm012_probe_43_authorization_parent_commit": "9b5cfe9bd22429e5f78bd45b865efb3bfcbc19cd",
+    "bm012_probe_43_authorization_policy_id": "m4-bm012-toolchain-machine-step-plan-v1",
+    "bm012_probe_43_authorization_one_use": true,
+    "bm012_probe_43_authorization_maximum_retry_count": 0,
     "bm012_purpose_phrase_offline_gate_passed": true,
     "bm012_purpose_phrase_focused_test_count": 57,
     "bm012_purpose_phrase_live_validated": true,
