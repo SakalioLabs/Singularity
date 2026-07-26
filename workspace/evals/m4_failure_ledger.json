@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-26T05:46:33Z",
+  "generated_at": "2026-07-26T05:52:43Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -21,7 +21,7 @@
   "current_gate": {
     "hypothesis": "generic_cobblestone_overcollection_and_dusk_diversion",
     "policy_id": "m4-bm012-bounded-dusk-iron-continuation-v1",
-    "status": "probe_28_iron_window_offline_repair_complete",
+    "status": "probe_29_authorized_one_use",
     "earliest_blocker": "night_safety_diversion_before_iron_progression",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -1211,9 +1211,11 @@
     "bm012_exact_eight_iron_frontier_preserved": true,
     "bm012_dusk_iron_continuation_bounded": true,
     "bm012_night_shelter_interrupt_preserved": true,
-    "bm012_probe_29_authorized": false,
-    "bm012_ready_task_next_authorized_episode": null,
-    "bm012_ready_task_authorized_episode_count": 0
+    "bm012_probe_29_authorized": true,
+    "bm012_probe_29_authorization_path": "workspace/evals/m4_probe29_authorization.json",
+    "bm012_probe_29_authorization_sha256": "2784d0e7912e53c79baed3209978022705a80e7f25157d574a083efa3b73415a",
+    "bm012_ready_task_next_authorized_episode": "probe_29_one_fresh_bm012_episode",
+    "bm012_ready_task_authorized_episode_count": 1
   },
   "entries": [
     {
