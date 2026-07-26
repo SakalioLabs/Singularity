@@ -5,12 +5,12 @@
 - Protocol: `m4-fixed-v1`
 - Protocol SHA-256: `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`
 - Current target: BM-012 Get 8 iron resources
-- Current-target eligible successes: 1/3
+- Current-target eligible successes: 2/3
 - Completed target: BM-011 Survive the first night, `repeat_verified` at 3/3
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, and Probe 38 is the first independently eligible BM-012 success, so the target is now 1/3. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 39 exposed an occupied-target station-placement replan gap, now repaired offline. Probe 40 again completed the full empty-hand-to-stone-pickaxe loop, but failed after `stone_pickaxe:1` because the old observation window did not surface the fixed-seed iron cluster and raw-iron search digs downgraded the held tool to `wooden_pickaxe`. Probe 41 showed the coal/torch curriculum detour before cobblestone; that fallback-lock repair was pushed and Probe 42 consumed the resulting authorization. Probe 42 proved the detour did not recur and reached `wooden_pickaxe:1` plus `cobblestone:1`, but two planner timeouts and 21 slow Grok calls exhausted the 600-second budget before three cobblestone or stone-pickaxe crafting. Probe 43 proved the machine-step repair cut Planner pressure, but repeated a failed crafting-table placement reference until deadline. Probe 44 exercised that place-feedback repair and did not repeat the same reference, but exposed `m4_bm012_machine_step_place_candidate_drift_gap`: table-place candidates drifted across 167 references into occupied stone, coal-ore, and dirt targets, never placing the table before deadline. The strict BM-012 candidate-bound repair is pushed, and Probe 45 has one-use zero-retry authorization pending run. BM-012 still needs two more independent eligible successes before repeat verification, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, and Probes 38 and 45 are independently eligible BM-012 successes, so the target is now 2/3. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 39 exposed an occupied-target station-placement replan gap, now repaired offline. Probe 40 again completed the full empty-hand-to-stone-pickaxe loop, but failed after `stone_pickaxe:1` because the old observation window did not surface the fixed-seed iron cluster and raw-iron search digs downgraded the held tool to `wooden_pickaxe`. Probe 41 showed the coal/torch curriculum detour before cobblestone; that fallback-lock repair was pushed and Probe 42 consumed the resulting authorization. Probe 42 proved the detour did not recur and reached `wooden_pickaxe:1` plus `cobblestone:1`, but two planner timeouts and 21 slow Grok calls exhausted the 600-second budget before three cobblestone or stone-pickaxe crafting. Probe 43 proved the machine-step repair cut Planner pressure, but repeated a failed crafting-table placement reference until deadline. Probe 44 exercised that place-feedback repair and did not repeat the same reference, but exposed `m4_bm012_machine_step_place_candidate_drift_gap`: table-place candidates drifted across 167 references into occupied stone, coal-ore, and dirt targets, never placing the table before deadline. Probe 45 live-validated the candidate-bound repair and completed BM-012 in 256.391 seconds. BM-012 still needs one more independent eligible success before repeat verification, and BM-013/BM-014 remain sequentially locked.
 
 ## Probe 44 Machine-Step Place Candidate Drift Gap
 
@@ -24,6 +24,17 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - New blocker: 237 failed `place crafting_table` attempts used 167 unique references with a maximum repeat of three; occupied target errors were `stone:201`, `coal_ore:16`, and `dirt:5`, plus 15 `blockUpdate` timeouts
 - Offline repair: `m4-bm012-machine-step-place-candidate-bound-v1` limits table-place references to current nearby/visible/ground candidates, excludes resource-scan and grounded-resource wall candidates, enforces a six-block player-distance bound, sorts distance before block priority, rejects known failed target cells, and records the new policy ID on future machine-step place evidence
 - Validation: `tests/test_m4_deadline.py` has focused near-ground and far-feedback-drift cases; `tests/test_m4_probe44_report.py` binds the retained evidence and report
+
+## Probe 45 Candidate-Bound Success
+
+- Episode: `m4_episode_20260727_010123_3a9ca67f`
+- Session: `418f37be-637`
+- Authorization: Probe 45 consumed `workspace/evals/m4_probe45_authorization.json` exactly once at `autonomous_start` line 2 / monotonic `835493.234`; zero retries and no Probe 46 authorization
+- Result: eligible BM-012 success, `terminal_task_verified`, `256.391s`, `343.609s` deadline margin
+- Progression: table placement succeeded at JSONL line 201, wooden pickaxe at line 257, first stone dig at line 290, stone pickaxe at line 491, first raw-iron dig at line 563, terminal resource verification at line 651
+- Machine evidence: 34 machine-step plans, including `place_candidate_bound_policy_id=m4-bm012-machine-step-place-candidate-bound-v1` on the first machine table-place step
+- Resource proof: eight successful `iron_ore` source digs produced terminal `raw_iron:8`; health and hunger remained 20, bot stayed connected, zero deaths and respawns
+- Decision: counts toward BM-012 repeat verification, moving BM-012 to 2/3; grants no full M4 capability credit until BM-012 reaches 3/3 and later BM-013/BM-014 gates pass
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 

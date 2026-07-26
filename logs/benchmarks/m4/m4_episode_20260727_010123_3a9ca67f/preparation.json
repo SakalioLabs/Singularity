@@ -1,0 +1,248 @@
+{
+  "type": "m4_resource_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+  "readiness": "eligible",
+  "decision": "count_bm012_success",
+  "progress_gate_passed": true,
+  "counts_toward_task_success": true,
+  "episode_id": "m4_episode_20260727_010123_3a9ca67f",
+  "session_id": "418f37be-637",
+  "level_name": "m4_episode_20260727_010123_3a9ca67f_bm012",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 61.0
+    },
+    {
+      "goal": "Craft and place a crafting table for iron-tool progression",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft a wooden pickaxe for stone acquisition",
+      "goal_index": 3,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_wooden_pickaxe_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Gather 3 cobblestone with the wooden pickaxe",
+      "goal_index": 4,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_cobblestone_below_stone_pickaxe_requirement",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 5,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Place the crafting table nearby for stone-pickaxe crafting",
+      "goal_index": 6,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_unplaced",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft a stone pickaxe for mining iron ore",
+      "goal_index": 7,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_ready_to_craft",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Collect 8 raw iron from iron ore with the stone pickaxe",
+      "goal_index": 8,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_ready_for_iron",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 7,
+    "real_call_count": 7,
+    "schema_valid_real_call_count": 7,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 65536,
+    "reasoning_content_consumed": false,
+    "reasoning_content_retained": false,
+    "max_call_duration_ms": 11859.0,
+    "total_token_usage": 31417,
+    "violations": []
+  },
+  "action_count": 41,
+  "successful_action_count": 34,
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 8,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [
+      "raw_iron"
+    ],
+    "terminal_target_passed": true,
+    "positive_inventory_delta": {
+      "raw_iron": 8,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": true,
+    "successful_source_action_count": 8,
+    "successful_source_actions": [
+      {
+        "event_index": 562,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 133,
+          "z": -38
+        }
+      },
+      {
+        "event_index": 574,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 134,
+          "z": -38
+        }
+      },
+      {
+        "event_index": 586,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 133,
+          "z": -39
+        }
+      },
+      {
+        "event_index": 598,
+        "block": "iron_ore",
+        "position": {
+          "x": 119,
+          "y": 133,
+          "z": -39
+        }
+      },
+      {
+        "event_index": 610,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 134,
+          "z": -39
+        }
+      },
+      {
+        "event_index": 622,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 133,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 634,
+        "block": "iron_ore",
+        "position": {
+          "x": 119,
+          "y": 133,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 646,
+        "block": "iron_ore",
+        "position": {
+          "x": 119,
+          "y": 132,
+          "z": -40
+        }
+      }
+    ]
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 135,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 120.49999999999964,
+      "y": 133,
+      "z": -38.466486605018744
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "oak_log": 2,
+      "dirt": 4,
+      "cobblestone": 26,
+      "oak_planks": 3,
+      "coal": 1,
+      "raw_iron": 8
+    },
+    "time_of_day": 5255,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 343.531,
+  "first_unrecovered_transition": {},
+  "deadline_eligible": true,
+  "evidence_eligible": true,
+  "eligibility_issues": []
+}

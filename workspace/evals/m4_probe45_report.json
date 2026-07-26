@@ -1,0 +1,313 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T17:09:25Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 45,
+  "episode_id": "m4_episode_20260727_010123_3a9ca67f",
+  "session_id": "418f37be-637",
+  "level_name": "m4_episode_20260727_010123_3a9ca67f_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe45_authorization.json",
+    "commit": "380c77db3120a3b2d00479b074b57de97195189f",
+    "tree": "05a397860dc3cf85239ad07139c3279cb8e4cabf",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_at_utc": "2026-07-26T17:01:49.260891Z",
+    "consumed_monotonic_s": 835493.234,
+    "consumed_event_line": 2,
+    "probe_46_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/session_418f37be-637.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/session_418f37be-637_summary.json",
+    "session_json": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/session.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/reset.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "e4bd92ff5bf4e46360eaabfbd828d8b967f8ae94f204b5c84df4ce3e4976f47d",
+    "preparation": "8c531067ecefe4df22c32fcac4dd63b2d45246c82ba77bf9fb5d77fb30dd3d53",
+    "result": "7fda410690ef320d6dcca7afe6c1061abb96ca9a90d285327d1201cbe75ce525",
+    "eligibility": "e82fa42dbf7195ebaa98937b59d541884cdc7e604c3c0ae387e6cfec9f7718b8",
+    "manifest": "b3d9cad9bb85820bae288e4d83f313ae5f091cf2d370b0cfdc5863a7a8eba7f0",
+    "preflight": "3a4033accfc6809e8c51d310f8e63c444b8eb9d5ccb26825f43c321d65d91bcb",
+    "session_summary": "29a4773a9c6dc4db9be497a4c4ea7d9e2646a7976a277b36a90517114daeb16a",
+    "session_json": "e941574624d35f21508b0a70c81808ed73283b677f01a88e127d4df2d5c94d3c",
+    "protocol_status": "f1de67f739eac832ba61426913865e9bfcb86f7943a06b31425089738f0f23e4",
+    "reset": "d8dd5da6720fab668ead639131bbf42e27c420de43cef9840630e6a9899760fb"
+  },
+  "episode_result": {
+    "completed": true,
+    "termination_reason": "terminal_task_verified",
+    "elapsed_s": 256.391,
+    "episode_duration_s": 256.469,
+    "session_duration_s": 259.27,
+    "deadline_eligible": true,
+    "deadline_margin_s": 343.609,
+    "goals_completed": 8,
+    "goals_failed": 0,
+    "goals_interrupted": 0,
+    "total_cycles": 41,
+    "planner_call_count": 7,
+    "real_planner_call_count": 7,
+    "schema_valid_real_planner_call_count": 7,
+    "schema_invalid_real_planner_call_count": 0,
+    "schema_invalid_nonreal_call_count": 0,
+    "planner_timeout_call_count": 0,
+    "transport_error_call_count": 0,
+    "planner_total_token_usage": 31417,
+    "planner_max_call_duration_ms": 11859,
+    "machine_step_plan_count": 34,
+    "post_place_machine_observation_count": 8,
+    "failure_reflection_suppressed_count": 7,
+    "action_count": 41,
+    "successful_action_count": 34,
+    "failed_action_count": 7,
+    "action_verifier_accept_count": 41,
+    "action_verifier_reject_count": 0,
+    "action_type_counts": {
+      "move_to": 3,
+      "dig": 17,
+      "craft": 9,
+      "place": 8,
+      "equip": 4
+    },
+    "action_success_by_type": {
+      "craft": {
+        "attempted": 9,
+        "successful": 9
+      },
+      "dig": {
+        "attempted": 17,
+        "successful": 17
+      },
+      "equip": {
+        "attempted": 4,
+        "successful": 4
+      },
+      "move_to": {
+        "attempted": 3,
+        "successful": 2
+      },
+      "place": {
+        "attempted": 8,
+        "successful": 2
+      }
+    },
+    "session_event_count": 657,
+    "eligibility_event_count": 656,
+    "memory_write_count": 246,
+    "memory_read_count": 42,
+    "goal_verification_count": 8,
+    "goal_verification_accepted_count": 8,
+    "terminal_inventory": {
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "oak_log": 2,
+      "dirt": 4,
+      "cobblestone": 26,
+      "oak_planks": 3,
+      "coal": 1,
+      "raw_iron": 8
+    },
+    "terminal_health": 20,
+    "terminal_food": 20,
+    "terminal_bot_connected": true,
+    "maximum_inventory": {
+      "oak_log": 6,
+      "oak_planks": 7,
+      "crafting_table": 1,
+      "stick": 4,
+      "wooden_pickaxe": 1,
+      "dirt": 4,
+      "cobblestone": 26,
+      "stone_pickaxe": 1,
+      "coal": 1,
+      "raw_iron": 8
+    }
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_placed": true,
+    "crafting_table_to_wooden_pickaxe": true,
+    "wooden_pickaxe_equipped": true,
+    "wooden_pickaxe_to_positive_cobblestone": true,
+    "wooden_pickaxe_to_three_cobblestone": true,
+    "cobblestone_to_stone_pickaxe": true,
+    "full_stone_pickaxe_loop_completed": true,
+    "stone_pickaxe_to_raw_iron": true,
+    "raw_iron_to_eight": true,
+    "terminal_resource_verification_passed": true,
+    "first_action_lines": {
+      "oak_log_dig": 50,
+      "oak_planks_craft": 175,
+      "crafting_table_craft": 187,
+      "crafting_table_place_success": 201,
+      "wooden_pickaxe_craft": 257,
+      "wooden_pickaxe_equip": 277,
+      "stone_dig": 290,
+      "stone_pickaxe_craft": 491,
+      "raw_iron_dig": 563,
+      "terminal_resource_verification": 651
+    }
+  },
+  "resource_acquisition": {
+    "successful_source_action_count": 8,
+    "terminal_target_passed": true,
+    "positive_inventory_delta_passed": true,
+    "positive_inventory_delta": {
+      "raw_iron": 8,
+      "iron_ore": 0
+    },
+    "successful_source_actions": [
+      {
+        "event_index": 562,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 133,
+          "z": -38
+        }
+      },
+      {
+        "event_index": 574,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 134,
+          "z": -38
+        }
+      },
+      {
+        "event_index": 586,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 133,
+          "z": -39
+        }
+      },
+      {
+        "event_index": 598,
+        "block": "iron_ore",
+        "position": {
+          "x": 119,
+          "y": 133,
+          "z": -39
+        }
+      },
+      {
+        "event_index": 610,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 134,
+          "z": -39
+        }
+      },
+      {
+        "event_index": 622,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 133,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 634,
+        "block": "iron_ore",
+        "position": {
+          "x": 119,
+          "y": 133,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 646,
+        "block": "iron_ore",
+        "position": {
+          "x": 119,
+          "y": 132,
+          "z": -40
+        }
+      }
+    ]
+  },
+  "intervention_review": {
+    "policy_id": "m4-bm012-machine-step-place-candidate-bound-v1",
+    "candidate_bound_repair_live_exercised": true,
+    "probe_44_candidate_drift_recurred": false,
+    "machine_step_place_policy_field_present": true,
+    "first_place_machine_step_line": 191,
+    "first_place_reference": {
+      "reference_position": {
+        "x": 112,
+        "y": 135,
+        "z": -28
+      }
+    },
+    "yield_result": "intervention_exercised_success",
+    "full_stone_pickaxe_loop_completed": true
+  },
+  "recovered_noise": {
+    "failed_action_count": 7,
+    "failed_place_count": 6,
+    "failed_move_to_count": 1,
+    "terminal_success_despite_failures": true
+  },
+  "eligibility": {
+    "eligible": true,
+    "success": true,
+    "progress_gate_passed": true,
+    "counts_toward_bm012_success": true,
+    "counts_toward_capability": false,
+    "check_count": 74,
+    "pass_count": 74,
+    "issue_count": 0,
+    "issues": []
+  },
+  "decision": {
+    "counts_toward_bm012_success": true,
+    "counts_toward_capability": false,
+    "bm012_success_count_after": 2,
+    "required_success_count": 3,
+    "remaining_success_count": 1,
+    "next_live_probe_locked_until_evidence_commit": true,
+    "probe_46_authorized": false
+  }
+}

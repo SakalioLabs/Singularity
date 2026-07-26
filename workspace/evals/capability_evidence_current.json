@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-26T16:45:38.000000+00:00",
+  "generated_at": "2026-07-26T17:10:03.000000+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -85,6 +85,7 @@
       "logs/benchmarks/m4/m4_episode_20260726_224415_434033de/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260726_234401_47c150da/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/eligibility.json",
       "logs/benchmarks/m1_benchmark_20260710_174239.json",
       "logs/benchmarks/m1_benchmark_20260710_174806.json",
       "logs/benchmarks/m1_benchmark_20260710_175231.json",
@@ -6267,6 +6268,48 @@
       "roles": [
         "benchmark_source_session"
       ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/eligibility.json",
+      "session_id": "418f37be-637",
+      "session_ids": [
+        "418f37be-637"
+      ],
+      "content_sha256": "e82fa42dbf7195ebaa98937b59d541884cdc7e604c3c0ae387e6cfec9f7718b8",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/session.json",
+      "session_id": "418f37be-637",
+      "session_ids": [
+        "418f37be-637"
+      ],
+      "content_sha256": "e941574624d35f21508b0a70c81808ed73283b677f01a88e127d4df2d5c94d3c",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
     }
   ],
   "runtime_evidence": {},
@@ -7474,7 +7517,7 @@
       "declared": {
         "name": "Autonomous Survival",
         "status": "Partial (partial)",
-        "progress": "BM-011 repeatverified 3/3; BM-012 Probe 38 success 1/3 plus Probe 44 retained failure and Probe 45 authorization pending run; BM-013..014 notrun"
+        "progress": "BM-011 repeatverified 3/3; BM-012 Probe 38 and Probe 45 successes 2/3 plus forty-three retained failures; BM-013..014 notrun"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -7551,8 +7594,8 @@
         {
           "task_id": "BM-012",
           "status": "live_observed",
-          "attempts": 44,
-          "successes": 1,
+          "attempts": 45,
+          "successes": 2,
           "failures": 43,
           "ineligible_successes": 0,
           "ineligibility_reasons": [],
@@ -7578,7 +7621,8 @@
             "5f33e80d-10a:logs/benchmarks/m4/m4_episode_20260714_032037_563a7040/session.json",
             "4593446f-4ff:logs/benchmarks/m4/m4_episode_20260714_043836_18afe612/session.json",
             "1f007d99-08f:logs/benchmarks/m4/m4_episode_20260714_061205_a52cd5f7/session.json",
-            "2138ef81-fe5:logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/session.json"
+            "2138ef81-fe5:logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/session.json",
+            "418f37be-637:logs/benchmarks/m4/m4_episode_20260727_010123_3a9ca67f/session.json"
           ]
         },
         {
@@ -7609,7 +7653,7 @@
       "required_live_execution_count": 0,
       "live_observed_execution_count": 0,
       "missing_evidence": [
-        "BM-012:needs_2_more_successes",
+        "BM-012:needs_1_more_success",
         "BM-013:needs_3_more_successes",
         "BM-014:needs_3_more_successes"
       ]
