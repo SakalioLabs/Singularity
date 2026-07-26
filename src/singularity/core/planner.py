@@ -2159,7 +2159,7 @@ Plan the steps to achieve this goal."""
             equip_subtask_count += 1
 
             candidate_items: list[dict] = []
-            for key in ("equipment_has", "equipped"):
+            for key in ("equipment_has", "equipment_contains", "equipped"):
                 if key not in criteria:
                     continue
                 value = criteria.get(key)
@@ -2215,6 +2215,8 @@ Plan the steps to achieve this goal."""
             grounded_criteria = dict(criteria)
             if "success_criteria.equipment_has" in normalized_source_fields:
                 grounded_criteria.pop("equipment_has", None)
+            if "success_criteria.equipment_contains" in normalized_source_fields:
+                grounded_criteria.pop("equipment_contains", None)
             if "success_criteria.equipped" in normalized_source_fields:
                 grounded_criteria.pop("equipped", None)
             if "success_criteria.flags" in normalized_source_fields:
