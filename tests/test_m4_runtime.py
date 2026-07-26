@@ -3,6 +3,7 @@
 import copy
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -511,6 +512,21 @@ def test_m4_preparation_reports_planner_that_consumes_dusk_budget():
     print("PASS: G2 reports a Planner call that consumes the fixed pre-dusk budget")
 
 
+def test_m4_launcher_validates_candidate_credentials_before_minecraft_start():
+    source = (
+        Path(__file__).resolve().parent.parent / "scripts" / "m4-runtime.ps1"
+    ).read_text(encoding="utf-8")
+    assert 'foreach ($scope in @("Process", "User", "Machine"))' in source
+    assert "[System.Collections.Generic.HashSet[string]]::new" in source
+    assert '([string]$BaseUrl).TrimEnd("/") + "/models"' in source
+    assert "-TimeoutSec 10" in source
+    assert "no configured LLM credential passed provider preflight" in source
+    assert source.index("$apiKey = Get-ConfiguredApiKey") < source.index(
+        "$serverProcess = Start-Process"
+    )
+    print("PASS: M4 launcher rejects stale credentials before Minecraft startup")
+
+
 if __name__ == "__main__":
     test_m4_runtime_builds_valid_preflight_and_manifest()
     test_bm012_runtime_binds_task_contract_and_daylight_reset()
@@ -519,4 +535,5 @@ if __name__ == "__main__":
     test_m4_preparation_skips_recovered_action_failure()
     test_m4_first_unrecovered_skips_transport_error_after_valid_replan()
     test_m4_preparation_reports_planner_that_consumes_dusk_budget()
+    test_m4_launcher_validates_candidate_credentials_before_minecraft_start()
     print("\nM4 runtime evidence tests PASSED")

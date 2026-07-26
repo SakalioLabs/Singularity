@@ -1578,6 +1578,14 @@ The `bounded_shelter_partial_failure_atomicity` hypothesis passed live in Probe 
 - Probe 25 authorization is parent-bound to health commit `385d851` and permits
   one fresh fixed-limit BM-012 episode. It is consumed at `autonomous_start`;
   no retry or second episode is authorized.
+- Probe 25 is retained as an ineligible infrastructure failure: 24/24 zero-retry
+  Planner calls used a stale Process credential and returned HTTP 401 before any
+  action. The valid User credential was never considered because the launcher
+  returned the first nonempty value.
+- `m4-provider-credential-preflight-v1` tests each unique configured credential
+  against the pinned `/models` endpoint before Minecraft startup and selects the
+  first healthy candidate. If none pass, startup fails closed without consuming
+  a live episode. Probe 26 requires a new authorization-only commit.
 
 - One live episode per round.
 - One root-cause hypothesis per round.

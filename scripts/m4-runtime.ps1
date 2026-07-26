@@ -119,10 +119,31 @@ function Set-ServerPropertyValue {
 }
 
 function Get-ConfiguredApiKey {
+    param([string]$BaseUrl)
+    $seen = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::Ordinal
+    )
     foreach ($name in @("SINGULARITY_LLM_API_KEY", "OPENAI_API_KEY")) {
         foreach ($scope in @("Process", "User", "Machine")) {
             $value = [Environment]::GetEnvironmentVariable($name, $scope)
-            if (-not [string]::IsNullOrWhiteSpace($value)) { return $value }
+            if ([string]::IsNullOrWhiteSpace($value) -or -not $seen.Add($value)) {
+                continue
+            }
+            $modelsUrl = ([string]$BaseUrl).TrimEnd("/") + "/models"
+            try {
+                $response = Invoke-WebRequest `
+                    -Uri $modelsUrl `
+                    -Headers @{ Authorization = "Bearer $value" } `
+                    -Method Get `
+                    -TimeoutSec 10 `
+                    -UseBasicParsing
+                if ([int]$response.StatusCode -eq 200) {
+                    return $value
+                }
+            }
+            catch {
+                continue
+            }
         }
     }
     return ""
@@ -172,9 +193,9 @@ try {
     if (-not ($operators | Where-Object { $_.name -eq $Username })) {
         throw "M4 runtime blocked: $Username is not an operator."
     }
-    $apiKey = Get-ConfiguredApiKey
+    $apiKey = Get-ConfiguredApiKey -BaseUrl ([string]$protocol.llm.base_url)
     if ([string]::IsNullOrWhiteSpace($apiKey)) {
-        throw "M4 runtime blocked: LLM credential is missing."
+        throw "M4 runtime blocked: no configured LLM credential passed provider preflight."
     }
     foreach ($suffix in @("", "_nether", "_the_end")) {
         $worldPath = Join-Path $serverRoot ($levelName + $suffix)

@@ -1,0 +1,132 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T03:57:24Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 25,
+  "episode_id": "m4_episode_20260726_115303_5694249f",
+  "session_id": "212c704d-4b6",
+  "level_name": "m4_episode_20260726_115303_5694249f_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe25_authorization.json",
+    "commit": "c0627d377f46bcdb1d454558dbd7e9e1de810c41",
+    "tree": "fcc526d3c0250fb54913513e80c4894256d9523d",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_monotonic_s": 788240.281,
+    "probe_26_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "max_goals_or_stopped",
+    "elapsed_s": 57.734,
+    "deadline_eligible": true,
+    "goals_attempted": 24,
+    "goals_completed": 10,
+    "goals_failed": 14,
+    "total_cycles": 24,
+    "action_count": 0,
+    "terminal_health": 20,
+    "terminal_food": 20,
+    "terminal_time_of_day": 1599,
+    "terminal_inventory": {}
+  },
+  "planner_failure": {
+    "failure_layer": "stale_process_credential_selected_before_valid_user_credential",
+    "planner_call_count": 24,
+    "single_attempt_count": 24,
+    "retry_count": 0,
+    "authentication_error_count": 24,
+    "http_status_error_count": 24,
+    "real_llm_call_count": 0,
+    "schema_valid_real_call_count": 0,
+    "first_error_type": "AuthenticationError",
+    "http_status": 401,
+    "provider_health_before_episode": true,
+    "selected_runtime_credential_health": false
+  },
+  "runtime_repair": {
+    "policy_id": "m4-provider-credential-preflight-v1",
+    "candidate_scopes": [
+      "Process",
+      "User",
+      "Machine"
+    ],
+    "deduplicates_candidates": true,
+    "provider_models_preflight": true,
+    "preflight_timeout_s": 10,
+    "runs_before_minecraft_start": true,
+    "credential_values_retained": false
+  },
+  "eligibility": {
+    "eligible": false,
+    "check_count": 74,
+    "pass_count": 62,
+    "issue_count": 12,
+    "issues": [
+      "event:action",
+      "event:terminal_resource_verification",
+      "planner_provider_controls",
+      "action_present",
+      "action_pre_observations",
+      "action_post_observations",
+      "action_verifier",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "result_duration_eligible"
+    ]
+  },
+  "decision": {
+    "value": "infrastructure_ineligible",
+    "reason": "stale_process_credential_selected_before_any_real_planner_response",
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "bm012_eligible_success_count": 0,
+    "m4_status": "failing",
+    "next_authorization": false
+  },
+  "evidence_paths": {
+    "preflight": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/preflight.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/manifest.json",
+    "session": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/session.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/eligibility.json",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/preparation.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/reset.json",
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/session_212c704d-4b6.jsonl",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/session_212c704d-4b6_summary.json"
+  },
+  "evidence_sha256": {
+    "preflight": "8ca152ea4e4cb598c5ccbe23f286c698385eaa4a88294ee5797fb4c9e2bc4a0d",
+    "manifest": "f425e38a349b7054180e8dc9a8cdffb63226605707d526d3d72b34ad3f1826c9",
+    "session": "d1dca66bd93d2d8ad680d4d4d62a9063fb07e62011d6b29bf64f5a6a572c4497",
+    "result": "34456078f222289ae848484b8ee937d85958594b848dfdd52b9dff30d68209fe",
+    "eligibility": "a0fcbd55db40a5dffc5bb62564aaad2eeaa2ba389b1f8e0a5c71bce61ee83ff8",
+    "preparation": "4811f4f19b3d3b12f7694b0b570aa808bb9932d0f7c2e997f12a1796fd657897",
+    "protocol_status": "da63cb610ca7d52614df67d185ee6e10df6fe4f9f20f5e73d6ae6d6dedf81273",
+    "reset": "9175e359c0b752cccf9dbae976cbb282644b7c0eafb9f4aab4a12e0d11cb4075",
+    "raw_session_jsonl": "427e38fbfc733e4a3af341b613824a5f578913fb08f1c101d30d917e666eb66b",
+    "session_summary": "2dd2419ab0fd49206e65690b14446edc7f6bed0fdc62e6e41b6f26935072ec0d"
+  }
+}

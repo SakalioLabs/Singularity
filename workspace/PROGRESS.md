@@ -582,3 +582,12 @@ The material below is retained as historical context and is not active work whil
   health commit. It permits exactly one fresh BM-012 episode with fixed limits,
   skill execution off, and zero client/proxy retries; it grants no M4 credit
   before independent verification.
+- Probe 25 consumed that authorization on episode
+  `m4_episode_20260726_115303_5694249f`. Preflight and all fixed controls passed,
+  but the launcher selected an invalid stale Process credential before the valid
+  User credential. All 24 single-attempt Planner calls returned HTTP 401, no
+  action ran, inventory remained empty, and the episode is infrastructure
+  ineligible with zero BM-012 credit.
+- `m4-provider-credential-preflight-v1` now deduplicates configured Process,
+  User, and Machine candidates and requires one candidate to pass the pinned
+  provider `/models` endpoint before Paper starts. Probe 26 is not authorized.

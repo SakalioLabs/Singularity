@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-26T03:50:10Z",
+  "generated_at": "2026-07-26T03:57:24Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -17,12 +17,12 @@
       "required_success_count": 3
     }
   ],
-  "live_episode_count_under_current_protocol": 0,
+  "live_episode_count_under_current_protocol": 1,
   "current_gate": {
-    "hypothesis": "grok_provider_contract_validated_before_live_episode",
-    "policy_id": "m4-grok-4.5-openai-compatible-v2",
-    "status": "probe_25_authorized_one_use",
-    "earliest_blocker": null,
+    "hypothesis": "stale_process_credential_selected_before_valid_user_credential",
+    "policy_id": "m4-provider-credential-preflight-v1",
+    "status": "probe_25_ineligible_offline_repair_complete",
+    "earliest_blocker": "runtime_selected_stale_process_credential_before_planner_response",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
@@ -32,7 +32,7 @@
     "m4_shelter_python_case_count": 18,
     "m4_node_case_count": 12,
     "offline_atomicity_gate_passed": true,
-    "live_episode_count_under_current_protocol": 0,
+    "live_episode_count_under_current_protocol": 1,
     "latest_accepted_episode": "m4_episode_20260713_055737_6d976e6d",
     "latest_episode": "m4_episode_20260725_225534_83b6c4ba",
     "live_atomicity_recovery_passed": true,
@@ -1145,11 +1145,20 @@
     "bm012_grok_proxy_max_retries": 0,
     "bm012_grok_reasoning_content_policy": "bounded_not_consumed_not_retained",
     "bm012_grok_minecraft_started": false,
-    "bm012_probe_25_authorized": true,
+    "bm012_probe_25_authorized": false,
     "bm012_probe_25_authorization_path": "workspace/evals/m4_probe25_authorization.json",
-    "bm012_probe_25_authorization_sha256": "7260a9a3abfcf8e18a0026acd1c09730feb907f0ea011825d969b4216a2dc267",
-    "bm012_ready_task_next_authorized_episode": "probe_25_one_fresh_bm012_episode",
-    "bm012_ready_task_authorized_episode_count": 1
+    "bm012_probe_25_authorization_sha256": "7b262612f705fc31a588879bd28476e6eec0855b4c1d84d91c25a4aec8bef9d9",
+    "bm012_probe_25_report_path": "workspace/evals/m4_probe25_report.json",
+    "bm012_probe_25_report_sha256": "4899f786edcf4d37c06b015972ee82f26dea2542b488d8bcd5b2e35b321e8de8",
+    "bm012_probe_25_episode_id": "m4_episode_20260726_115303_5694249f",
+    "bm012_probe_25_planner_call_count": 24,
+    "bm012_probe_25_authentication_error_count": 24,
+    "bm012_probe_25_action_count": 0,
+    "bm012_probe_25_eligible": false,
+    "bm012_provider_credential_preflight_offline_gate_passed": true,
+    "bm012_probe_26_authorized": false,
+    "bm012_ready_task_next_authorized_episode": null,
+    "bm012_ready_task_authorized_episode_count": 0
   },
   "entries": [
     {
