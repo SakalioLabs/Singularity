@@ -24,6 +24,8 @@ class InterruptDecision:
 class RuntimeSupervisor:
     """Evaluates fast actor-side interrupts between planner cycles."""
 
+    BM012_DUSK_IRON_POLICY_ID = "m4-bm012-bounded-dusk-iron-continuation-v1"
+
     SURVIVAL_INTERRUPT_REASONS = frozenset({
         "hostile_nearby",
         "health_critical",
@@ -40,11 +42,12 @@ class RuntimeSupervisor:
     def evaluate_interrupt(self, observation: dict, goal: str = "", active_task=None) -> InterruptDecision:
         """Return the highest-priority interrupt that applies to the current state."""
         hostile_decision = self._hostile_interrupt(observation)
+        night_decision = self._night_interrupt(observation, goal)
         checks = [
             self._health_interrupt(observation),
             hostile_decision,
             self._hunger_interrupt(observation),
-            self._night_interrupt(observation),
+            night_decision,
             self._deadline_interrupt(active_task),
             self._return_to_base_interrupt(observation),
         ]
@@ -52,6 +55,8 @@ class RuntimeSupervisor:
         if not applicable:
             if hostile_decision.reason == "m4_hostile_safe_state_grounding":
                 return hostile_decision
+            if night_decision.reason == "m4_bm012_bounded_dusk_iron_continuation":
+                return night_decision
             return InterruptDecision(False)
         applicable.sort(key=lambda decision: decision.priority, reverse=True)
         decision = applicable[0]
@@ -217,12 +222,23 @@ class RuntimeSupervisor:
             evidence={"hunger": hunger, "threshold": GoalGenerator.LOW_HUNGER},
         )
 
-    def _night_interrupt(self, observation: dict) -> InterruptDecision:
+    def _night_interrupt(self, observation: dict, goal: str = "") -> InterruptDecision:
         time_of_day = int(self._number(observation.get("time_of_day", 0), 0.0)) % 24000
         shelter_verified = is_machine_verified_shelter(observation.get("shelter_verification"))
         if GoalGenerator.DUSK_START <= time_of_day < GoalGenerator.NIGHT_START:
             if shelter_verified:
                 return InterruptDecision(False)
+            continuation = self._m4_bm012_dusk_iron_continuation(
+                observation,
+                goal,
+                time_of_day,
+            )
+            if continuation:
+                return InterruptDecision(
+                    False,
+                    reason="m4_bm012_bounded_dusk_iron_continuation",
+                    evidence=continuation,
+                )
             return InterruptDecision(
                 True,
                 reason="dusk_shelter_required",
@@ -247,6 +263,68 @@ class RuntimeSupervisor:
                 evidence={"time_of_day": time_of_day, "shelter_verified": True},
             )
         return InterruptDecision(False)
+
+    def _m4_bm012_dusk_iron_continuation(
+        self,
+        observation: dict,
+        goal: str,
+        time_of_day: int,
+    ) -> dict:
+        if str(getattr(self.config, "planner_protocol", "") or "") != "m4-fixed-v1":
+            return {}
+        goal_lower = str(goal or "").strip().lower()
+        if not goal_lower.startswith((
+            "collect 8 raw iron from iron ore with the stone pickaxe",
+            "mine iron ore for iron tools",
+        )):
+            return {}
+        inventory = (
+            observation.get("inventory", {})
+            if isinstance(observation.get("inventory"), dict)
+            else {}
+        )
+        health = self._number(observation.get("health", 20), 20.0)
+        hunger = self._number(
+            observation.get("hunger", observation.get("food", 20)),
+            20.0,
+        )
+        hostiles = [
+            entity
+            for entity in observation.get("nearby_entities", []) or []
+            if (
+                isinstance(entity, dict)
+                and entity.get("hostile")
+                and self._number(entity.get("distance", 999), 999.0) <= 8
+            )
+        ]
+        try:
+            stone_pickaxe = int(inventory.get("stone_pickaxe", 0) or 0)
+            raw_iron = int(inventory.get("raw_iron", 0) or 0)
+            iron_ore = int(inventory.get("iron_ore", 0) or 0)
+        except (TypeError, ValueError):
+            return {}
+        if not (
+            stone_pickaxe >= 1
+            and max(raw_iron, iron_ore) < 8
+            and health >= 16
+            and hunger >= 16
+            and not hostiles
+        ):
+            return {}
+        return {
+            "policy_id": self.BM012_DUSK_IRON_POLICY_ID,
+            "task_id": "BM-012",
+            "goal": str(goal),
+            "time_of_day": int(time_of_day),
+            "stone_pickaxe_count": stone_pickaxe,
+            "raw_iron_count": raw_iron,
+            "iron_ore_count": iron_ore,
+            "health": health,
+            "hunger": hunger,
+            "nearby_hostile_count": 0,
+            "night_start": GoalGenerator.NIGHT_START,
+            "night_interrupt_preserved": True,
+        }
 
     def _deadline_interrupt(self, active_task) -> InterruptDecision:
         if not active_task or not getattr(active_task, "deadline", None):

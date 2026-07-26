@@ -247,6 +247,53 @@ def test_agent_autonomous_selector_uses_curriculum_when_no_ready_task():
     print("PASS: Agent autonomous selector uses curriculum when no task is ready")
 
 
+def test_m4_bm012_selector_preserves_exact_three_cobblestone_frontier():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.config = Config(
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        planner_protocol="m4-fixed-v1",
+    )
+    agent._m4_task_id = "BM-012"
+    agent.task_system = TaskSystem()
+    agent.curriculum = CurriculumManager()
+    agent.memory = MemorySystem(agent.config.memory_dir, persist=False)
+    agent.skill_library = SkillLibrary(agent.config.skill_dir, persist=False)
+
+    fallback = "Gather 3 cobblestone with the wooden pickaxe"
+    goal = agent._select_autonomous_goal(
+        {
+            "health": 20,
+            "hunger": 20,
+            "time_of_day": 5000,
+            "inventory": {"wooden_pickaxe": 1},
+            "nearby_entities": [],
+            "nearby_blocks": [{"name": "stone"}],
+        },
+        fallback,
+    )
+
+    assert goal == fallback
+    assert goal != "Mine 12 cobblestone for stone tools and furnace"
+
+    iron_fallback = "Collect 8 raw iron from iron ore with the stone pickaxe"
+    iron_goal = agent._select_autonomous_goal(
+        {
+            "health": 20,
+            "hunger": 20,
+            "time_of_day": 11000,
+            "inventory": {"stone_pickaxe": 1},
+            "nearby_entities": [],
+            "nearby_blocks": [],
+        },
+        iron_fallback,
+    )
+    assert iron_goal == iron_fallback
+    assert iron_goal != "Mine iron ore for iron tools"
+    print("PASS: strict BM-012 preserves exact cobblestone and iron frontiers")
+
+
 def test_coach_policy_biases_curriculum_candidates_without_mutating_inputs():
     candidates = [
         CurriculumGoalCandidate(

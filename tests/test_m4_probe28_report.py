@@ -6,6 +6,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = ROOT / "workspace" / "evals" / "m4_probe28_report.json"
 AUTHORIZATION_PATH = ROOT / "workspace" / "evals" / "m4_probe28_authorization.json"
+REPAIR_AUDIT_PATH = (
+    ROOT / "workspace" / "evals" / "m4_probe28_iron_window_repair_audit.json"
+)
 
 
 def _sha256(path: Path) -> str:
@@ -65,3 +68,30 @@ def test_m4_probe28_report_binds_complete_stone_pickaxe_loop_without_iron_credit
     assert report["goal_summary"]["goal_verification_unknown_count"] == 0
     assert report["decision"]["counts_toward_bm012_success"] is False
     assert report["decision"]["counts_toward_capability"] is False
+
+
+def test_m4_probe28_iron_window_repair_is_bounded_and_source_bound():
+    report = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
+    audit = json.loads(REPAIR_AUDIT_PATH.read_text(encoding="utf-8"))
+    runtime_source = (
+        ROOT / "src" / "singularity" / "core" / "runtime.py"
+    ).read_text(encoding="utf-8")
+    agent_source = (
+        ROOT / "src" / "singularity" / "core" / "agent.py"
+    ).read_text(encoding="utf-8")
+
+    assert audit["source_probe_number"] == report["probe_number"] == 28
+    assert audit["source_episode_id"] == report["episode_id"]
+    assert audit["source_probe_report_sha256"] == _sha256(REPORT_PATH)
+    assert audit["policy_id"] == "m4-bm012-bounded-dusk-iron-continuation-v1"
+    assert audit["repair"]["preserve_exact_bm012_cobblestone_goal"] is True
+    assert audit["repair"]["generic_twelve_cobblestone_override_rejected"] is True
+    assert audit["repair"]["dusk_iron_continuation_enabled"] is True
+    assert audit["repair"]["night_iron_continuation_enabled"] is False
+    assert all(audit["fail_closed_boundaries"].values())
+    assert audit["verification"]["probe_29_authorized"] is False
+    assert audit["verification"]["counts_toward_bm012_success"] is False
+    assert audit["verification"]["counts_toward_capability"] is False
+    assert audit["policy_id"] in runtime_source
+    assert "gather 3 cobblestone with the wooden pickaxe" in agent_source
+    assert "collect 8 raw iron from iron ore with the stone pickaxe" in agent_source

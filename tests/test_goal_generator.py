@@ -28,6 +28,25 @@ def test_night_preparation():
     assert "shelter" in goal.lower() or "craft" in goal.lower()
     print(f"PASS: Dusk -> {goal}")
 
+def test_bm012_dusk_continues_iron_only_before_true_night():
+    safe_dusk = {
+        "time_of_day": 11000,
+        "health": 20,
+        "hunger": 20,
+        "inventory": {"stone_pickaxe": 1},
+        "nearby_entities": [],
+    }
+    goal = gg.next_goal(safe_dusk, task_id="BM-012")
+    assert goal == "Collect 8 raw iron from iron ore with the stone pickaxe"
+    assert gg.last_decision["selection_reason"] == "bm012_bounded_dusk_iron_continuation"
+
+    night = gg.next_goal(dict(safe_dusk, time_of_day=12000), task_id="BM-012")
+    assert night == "Reach or build emergency verified shelter immediately"
+
+    legacy = gg.next_goal(safe_dusk)
+    assert legacy == "Build verified shelter before nightfall"
+    print("PASS: BM-012 uses only the bounded dusk window for iron progression")
+
 def test_night_indoors():
     obs = {
         "time_of_day": 15000,

@@ -1,0 +1,54 @@
+{
+  "type": "m4_offline_repair_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T05:46:33Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "source_probe_number": 28,
+  "source_episode_id": "m4_episode_20260726_132127_03a86405",
+  "source_probe_report_path": "workspace/evals/m4_probe28_report.json",
+  "source_probe_report_sha256": "13e9fdb64d0f0d223660ae0e771c1d05a3ff6868fb77f96d989b47396511f8e6",
+  "parent_commit": "544a7e40f0c932d0a1db2e199a354a28b7adf87c",
+  "parent_tree": "ad1303b985487e04b94e56e5976ee6005c6c88e2",
+  "policy_id": "m4-bm012-bounded-dusk-iron-continuation-v1",
+  "root_cause": {
+    "generic_cobblestone_target": 12,
+    "bm012_required_cobblestone_for_stone_pickaxe": 3,
+    "stone_pickaxe_machine_verified": true,
+    "iron_resource_count": 0,
+    "dusk_shelter_diversion_observed": true,
+    "episode_deadline_reached": true
+  },
+  "repair": {
+    "preserve_exact_bm012_cobblestone_goal": true,
+    "preserve_exact_bm012_iron_goal": true,
+    "generic_twelve_cobblestone_override_rejected": true,
+    "dusk_iron_continuation_enabled": true,
+    "night_iron_continuation_enabled": false,
+    "maximum_iron_target": 8,
+    "stone_pickaxe_required": true,
+    "minimum_health": 16,
+    "minimum_hunger": 16,
+    "nearby_hostile_max_distance": 8,
+    "nearby_hostile_required_count": 0
+  },
+  "fail_closed_boundaries": {
+    "critical_health_interrupt_preserved": true,
+    "hunger_interrupt_preserved": true,
+    "hostile_interrupt_preserved": true,
+    "night_shelter_interrupt_preserved": true,
+    "legacy_protocol_unchanged": true,
+    "non_bm012_goal_generation_unchanged": true,
+    "task_contract_unchanged": true,
+    "protocol_sha256_unchanged": true
+  },
+  "verification": {
+    "focused_test_count": 235,
+    "focused_tests_passed": true,
+    "probe_28_evidence_immutable": true,
+    "probe_29_authorized": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false
+  }
+}

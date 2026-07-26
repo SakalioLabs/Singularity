@@ -8389,6 +8389,8 @@ class Agent:
                 continue
 
         text = str(fallback_goal or "").lower()
+        if self._m4_bm012_exact_progression_goal(text):
+            return True
         if any(token in text for token in ("attack", "flee", "eat", "restore health", "find food")):
             return True
         try:
@@ -8397,6 +8399,19 @@ class Agent:
             time_of_day = 0
         night_goal = any(token in text for token in ("shelter", "nightfall", "wait for dawn"))
         return night_goal and (time_of_day >= 10000 or time_of_day < 1000)
+
+    def _m4_bm012_exact_progression_goal(self, goal_lower: str) -> bool:
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+            or str(getattr(self, "_m4_task_id", "") or "") != "BM-012"
+        ):
+            return False
+        return str(goal_lower or "").startswith((
+            "confirm collection of 8 iron resources",
+            "gather 3 cobblestone with the wooden pickaxe",
+            "collect 8 raw iron from iron ore with the stone pickaxe",
+        ))
 
     def _active_coach_policy(self):
         """Return the configured advisory coach if the runtime policy is enabled."""

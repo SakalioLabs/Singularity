@@ -303,6 +303,56 @@ def test_m4_runtime_interrupt_priority_matrix_and_grounded_actions():
     print("PASS: G4 priority matrix covers hostile, health, hunger, dusk, and night")
 
 
+def test_m4_bm012_dusk_iron_continuation_is_bounded_and_fails_closed():
+    supervisor = RuntimeSupervisor(Config(planner_protocol="m4-fixed-v1"))
+    goal = "Collect 8 raw iron from iron ore with the stone pickaxe"
+    safe_dusk = {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {"stone_pickaxe": 1},
+        "nearby_entities": [],
+        "time_of_day": 11000,
+    }
+
+    continuation = supervisor.evaluate_interrupt(safe_dusk, goal=goal)
+    assert continuation.should_interrupt is False
+    assert continuation.reason == "m4_bm012_bounded_dusk_iron_continuation"
+    assert continuation.evidence["policy_id"] == (
+        "m4-bm012-bounded-dusk-iron-continuation-v1"
+    )
+    assert continuation.evidence["night_interrupt_preserved"] is True
+
+    hostile = {
+        "type": "zombie",
+        "hostile": True,
+        "distance": 4,
+        "position": {"x": 4, "y": 64, "z": 0},
+    }
+    rejected = (
+        dict(safe_dusk, health=15),
+        dict(safe_dusk, hunger=15),
+        dict(safe_dusk, inventory={}),
+        dict(safe_dusk, nearby_entities=[hostile]),
+    )
+    for observation in rejected:
+        decision = supervisor.evaluate_interrupt(observation, goal=goal)
+        assert decision.should_interrupt is True
+        assert decision.reason in {
+            "dusk_shelter_required",
+            "hostile_nearby",
+        }
+
+    night = supervisor.evaluate_interrupt(
+        dict(safe_dusk, time_of_day=12000),
+        goal=goal,
+    )
+    assert night.should_interrupt is True
+    assert night.reason == "night_shelter_required"
+    legacy = RuntimeSupervisor(Config()).evaluate_interrupt(safe_dusk, goal=goal)
+    assert legacy.reason == "dusk_shelter_required"
+    print("PASS: BM-012 dusk continuation preserves all safety boundaries")
+
+
 def test_m4_probe_13_verified_shelter_suppresses_outward_hostile_flee():
     supervisor = RuntimeSupervisor(Config(planner_protocol="m4-fixed-v1"))
     observation = probe_13_verified_shelter_hostile_state()

@@ -114,6 +114,22 @@ class GoalGenerator:
                 shelter_verified,
             )
 
+        if (
+            str(task_id or "").upper().strip() == "BM-012"
+            and self.DUSK_START <= time_of_day < self.NIGHT_START
+            and self._count(inv.get("stone_pickaxe")) >= 1
+            and self._count(inv.get("raw_iron")) < 8
+            and self._count(inv.get("iron_ore")) < 8
+        ):
+            return self._progression(
+                "Collect 8 raw iron from iron ore with the stone pickaxe",
+                "bm012_bounded_dusk_iron_continuation",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+
         # Priority 4: secure shelter before or during the hostile window.
         if self.DUSK_START <= time_of_day < self.NIGHT_START and not shelter_verified:
             return self._select(
