@@ -1,0 +1,200 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T11:23:35Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 34,
+  "episode_id": "m4_episode_20260726_185244_6c97bbff",
+  "session_id": "a2a086e2-dbf",
+  "level_name": "m4_episode_20260726_185244_6c97bbff_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe34_authorization.json",
+    "commit": "efa4226a44b7e72618bb7f92e46453a7d7f25710",
+    "tree": "6ce83c52ec45ecd9735665d885c7a81927ce8476",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_monotonic_s": 813372.75,
+    "probe_35_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/session_a2a086e2-dbf.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/session_a2a086e2-dbf_summary.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "dbc73b4321d6a34fb99c09a9628a68f4ed1a9e349c02af8f90105ae2f40aa127",
+    "preparation": "02a77fb3abb16be4be8bbfa7821db6458054095821f85a5344d0163340dfbfd0",
+    "result": "1561a5671a5824ac60969500f9fb36af3660e6a5babc816d78c45bb5918fad2b",
+    "eligibility": "abf8378d966a8055e028688d6cb5b62cb081c03438dd6118c88cedee5b2f3bb7",
+    "manifest": "aadd059a99fe2649cb1a009c0136117ae7225849f55670ed0efa5c4bb24cd445",
+    "preflight": "57489a2d01a287eb43c916479d18bd96cf6cbfcf10bcb24f070d6fe684d2784f",
+    "session_summary": "084cfbedc46e41e7c6ff21f36ad98c8521d1a61b0131dd8735f5697c9ea57a6b"
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "max_goals_or_stopped",
+    "elapsed_s": 226.39,
+    "session_duration_s": 229.17,
+    "deadline_eligible": true,
+    "goals_completed": 5,
+    "goals_interrupted": 19,
+    "planner_call_count": 16,
+    "real_planner_call_count": 16,
+    "schema_valid_real_planner_call_count": 16,
+    "schema_invalid_real_planner_call_count": 0,
+    "schema_invalid_nonreal_call_count": 0,
+    "transport_error_call_count": 0,
+    "action_count": 18,
+    "successful_action_count": 18,
+    "failed_action_count": 0,
+    "maximum_inventory": {
+      "oak_log": 6,
+      "oak_planks": 8,
+      "crafting_table": 1,
+      "stick": 4,
+      "wooden_pickaxe": 1,
+      "cobblestone": 3,
+      "stone_pickaxe": 0,
+      "coal": 0,
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "oak_sapling": 1,
+      "wooden_pickaxe": 1,
+      "oak_log": 3,
+      "stick": 3,
+      "dirt": 3,
+      "oak_planks": 3,
+      "cobblestone": 3
+    },
+    "terminal_health": 20,
+    "terminal_hunger": 20,
+    "terminal_time_of_day": 4658,
+    "death_count": 0,
+    "respawn_count": 0
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_placed": true,
+    "crafting_table_to_wooden_pickaxe": true,
+    "wooden_pickaxe_equipped": true,
+    "wooden_pickaxe_to_three_cobblestone": true,
+    "equip_success_criteria_grounding_exercised": true,
+    "station_access_intervention_exercised": true,
+    "station_access_goal_reached": true,
+    "cobblestone_to_stone_pickaxe": false,
+    "stone_pickaxe_to_iron": false,
+    "full_stone_pickaxe_loop_completed": false
+  },
+  "intervention_review": {
+    "probe_33_equip_success_criteria_grounding_live_exercised": true,
+    "equip_grounding_event_line": 334,
+    "equip_grounding_source_field": "success_criteria.equipped",
+    "probe_32_station_access_repair_live_exercised": true,
+    "station_access_auto_goal_line": 414,
+    "station_access_selected_goal": "Craft crafting table for stone-pickaxe crafting",
+    "station_access_selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+    "yield_result": "intervention_exercised_new_blocker",
+    "maximum_cobblestone_observed": 3,
+    "probe_32_detached_station_blocker_recurred": false,
+    "health_preserved": true,
+    "terminal_health": 20
+  },
+  "principal_blocker": {
+    "failure_layer": "m4_station_access_goal_frontier_yield_self_interrupt",
+    "first_station_access_goal_line": 414,
+    "first_frontier_yield_line": 419,
+    "first_interrupt_line": 421,
+    "frontier_yield_policy_id": "m4-bm012-stone-pickaxe-frontier-yield-v1",
+    "frontier_yield_fingerprint": "13a94f5b8fb8076b0e44d42bfbbebfff44488a2583477e808e218fa4a7c06fdf",
+    "termination_reason": "runtime_interrupt:bm012_stone_pickaxe_frontier_ready",
+    "interrupted_goal": "Craft crafting table for stone-pickaxe crafting",
+    "recommended_goal": "Craft crafting table for stone-pickaxe crafting",
+    "repeated_station_goal_count": 19,
+    "station_goal_indices": [
+      6,
+      24
+    ],
+    "station_goal_action_count": 0,
+    "station_goal_planner_call_count": 0,
+    "last_successful_stone_dig_line": 407,
+    "actions_after_last_successful_stone_dig": 0,
+    "planner_calls_after_first_station_access_goal": 0,
+    "terminal_cobblestone": 3,
+    "terminal_stone_pickaxe": 0,
+    "terminal_iron_resource_count": 0,
+    "recovered": false
+  },
+  "offline_repair": {
+    "policy_id": "m4-bm012-station-access-frontier-yield-bypass-v1",
+    "scope": "strict_m4_bm012_only",
+    "implemented_after_probe": true,
+    "preserves_station_access_goals": [
+      "Craft crafting table for stone-pickaxe crafting",
+      "Place the crafting table nearby for stone-pickaxe crafting",
+      "Gather 1 log for stone-pickaxe crafting table access"
+    ],
+    "stale_non_station_frontier_yield_preserved": true,
+    "source_sha256": {
+      "agent": "b9e336feeb9339899b8df0e17c759d95da42f28b563ecd19b5188e9eb4019e92",
+      "curriculum_tests": "51a9c3f389923b50d1a345baf5bce4bcc78fcfc5ef30df89ef1dc98376c93898",
+      "planner": "2e73e3e827972dc95ffa6280a7320837e9d5eda87b14e3bb5841ba9e30f45fbb",
+      "goal_generator": "845c1706f8eec862930c1cf4d25ef9aa62477c523102473a22c6cfa6ce802d81"
+    },
+    "validated_offline": true,
+    "probe_35_authorized": false
+  },
+  "eligibility": {
+    "eligible": false,
+    "progress_gate_passed": true,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "issues": [
+      "event:terminal_resource_verification",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "result_duration_eligible"
+    ]
+  },
+  "decision": {
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "bm012_success_count_after": 0,
+    "next_live_probe_locked_until_offline_repair_commit": true
+  }
+}

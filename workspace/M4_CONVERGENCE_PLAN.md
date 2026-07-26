@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 33 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 32 live-validated the empty-hand-to-wooden-pickaxe-to-three-cobblestone prefix and exercised the Probe 31 stone-pickaxe frontier yield, but it still never crafted `stone_pickaxe`. The station-access repair was then committed and Probe 33 consumed its one-use authorization. Probe 33 did not reach `cobblestone:3`, so station-access behavior was not exercised; instead Grok repeatedly emitted virtual equip criteria such as `equipment_has`, `equipped`, and `wooden_pickaxe_equipped`, leaving ready-task completion suppressed despite machine evidence that the wooden pickaxe was already held. The current offline repair is `m4-equip-success-criteria-grounding-v1`, implemented and locally validated but not live-validated. Probe 34 is not authorized until this repair is committed and pushed, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 34 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 34 live-validated the equip success-criteria repair and the station-access repair: the run completed the empty-hand-to-logs-to-crafting-table-to-wooden-pickaxe-to-`cobblestone:3` prefix with 18/18 successful actions, 16/16 real schema-valid planner calls, zero transport errors, terminal health 20, and zero deaths. It still did not craft `stone_pickaxe`. The new blocker is a runtime self-interrupt: the station-access goal `Craft crafting table for stone-pickaxe crafting` was selected 19 times, but `m4-bm012-stone-pickaxe-frontier-yield-v1` interrupted that same station-access goal before any planner call or action. The current offline repair is `m4-bm012-station-access-frontier-yield-bypass-v1`, implemented and locally validated but not live-validated. Probe 35 is not authorized until this repair is committed and pushed, and BM-013/BM-014 remain sequentially locked.
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
@@ -73,7 +73,22 @@ Probe 30 consumed that authorization and remained ineligible. It completed the e
 - Evidence: `workspace/evals/m4_probe33_report.json`
 - Offline repair: `m4-equip-success-criteria-grounding-v1`
 - Repair behavior: strict-M4 Planner grounds equip success criteria to `{"action":{"type":"equip"},"result":{"success":true}}`, removes dependent virtual equipped flags only when backed by a grounded equip dependency, and fails closed for unbound aliases
-- Next gate: no Probe 34 authorization before the bounded equip-grounding repair is committed and pushed
+- Next gate: Probe 34 consumed its one-use authorization from commit `efa4226`; the equip-grounding branch was exercised and the run reached the station-access boundary
+
+## Probe 34 Station-Access Frontier-Yield Self-Interrupt
+
+- Episode: `m4_episode_20260726_185244_6c97bbff`
+- Session: `a2a086e2-dbf`
+- Planner: 16 calls, all real, all schema-valid, zero retries and zero transport errors
+- Actions: 18 attempted, 18 successful
+- Progress: crafted and placed the table, crafted and equipped `wooden_pickaxe:1`, mined exactly to `cobblestone:3`, terminal health 20 with zero deaths
+- Live interventions: `m4-equip-success-criteria-grounding-v1` normalized `success_criteria.equipped` at event line 334; `m4-bm012-stone-pickaxe-station-access-v1` selected `Craft crafting table for stone-pickaxe crafting` at line 414
+- New blocker: `m4-bm012-stone-pickaxe-frontier-yield-v1` treated that station-access repair goal as a stale frontier and interrupted it at line 421; the same goal repeated through indices 6..24 with zero planner calls and zero actions
+- Capability decision: ineligible; BM-012 remains 0/3 and M4 remains failing
+- Evidence: `workspace/evals/m4_probe34_report.json`
+- Offline repair: `m4-bm012-station-access-frontier-yield-bypass-v1`
+- Repair behavior: strict BM-012 frontier-yield now preserves station-access repair goals while keeping stale non-station stone-pickaxe frontier yield behavior intact
+- Next gate: no Probe 35 authorization before this bounded repair is committed and pushed
 
 ## Stone Pickaxe Research Gate
 
@@ -96,7 +111,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_33_equip_grounding_repair_offline_passed |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_34_station_frontier_yield_bypass_offline_passed |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 

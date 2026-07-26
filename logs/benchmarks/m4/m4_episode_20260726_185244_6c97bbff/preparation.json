@@ -1,0 +1,326 @@
+{
+  "type": "m4_resource_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "progress_gate_passed": true,
+  "counts_toward_task_success": false,
+  "episode_id": "m4_episode_20260726_185244_6c97bbff",
+  "session_id": "a2a086e2-dbf",
+  "level_name": "m4_episode_20260726_185244_6c97bbff_bm012",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 61.0
+    },
+    {
+      "goal": "Craft crafting table",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:unlock_crafting_grid",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 55.0
+    },
+    {
+      "goal": "Place crafting table for tool progression",
+      "goal_index": 3,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:bm012_crafting_table_unplaced",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 66.0
+    },
+    {
+      "goal": "Craft wooden pickaxe",
+      "goal_index": 4,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:unlock_stone_mining",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 59.0
+    },
+    {
+      "goal": "Gather 3 cobblestone with the wooden pickaxe",
+      "goal_index": 5,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_cobblestone_below_stone_pickaxe_requirement",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 6,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 7,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 8,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 9,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 10,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 11,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 12,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 13,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 14,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 15,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 16,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 17,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 18,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 19,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 20,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 21,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 22,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 23,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table for stone-pickaxe crafting",
+      "goal_index": 24,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_stone_pickaxe_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 16,
+    "real_call_count": 16,
+    "schema_valid_real_call_count": 16,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 65536,
+    "reasoning_content_consumed": false,
+    "reasoning_content_retained": false,
+    "max_call_duration_ms": 16655.0,
+    "total_token_usage": 65563,
+    "violations": []
+  },
+  "action_count": 18,
+  "successful_action_count": 18,
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 138,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 93.4963110830449,
+      "y": 131,
+      "z": -35.55900885934095
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "oak_sapling": 1,
+      "wooden_pickaxe": 1,
+      "oak_log": 3,
+      "stick": 3,
+      "dirt": 3,
+      "oak_planks": 3,
+      "cobblestone": 3
+    },
+    "time_of_day": 4658,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 373.563,
+  "first_unrecovered_transition": {},
+  "deadline_eligible": true,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_resource_verification",
+    "resource_terminal_inventory_target",
+    "resource_successful_source_actions",
+    "resource_positive_inventory_delta",
+    "terminal_machine_verification",
+    "result_duration_eligible"
+  ]
+}

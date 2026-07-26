@@ -352,6 +352,50 @@ def test_m4_bm012_goal_generator_repairs_detached_crafting_station_frontier():
     print("PASS: strict BM-012 restores crafting-station access before stone-pickaxe crafting")
 
 
+def test_m4_bm012_frontier_yield_preserves_station_access_goals():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.config = Config(
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        planner_protocol="m4-fixed-v1",
+    )
+    agent._m4_task_id = "BM-012"
+    observation = {
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 4658,
+        "inventory": {
+            "oak_log": 3,
+            "oak_planks": 3,
+            "stick": 3,
+            "wooden_pickaxe": 1,
+            "cobblestone": 3,
+        },
+        "nearby_entities": [],
+        "nearby_blocks": [{"name": "stone"}, {"name": "coal_ore"}],
+    }
+
+    station_goals = [
+        "Craft crafting table for stone-pickaxe crafting",
+        "Place the crafting table nearby for stone-pickaxe crafting",
+        "Gather 1 log for stone-pickaxe crafting table access",
+    ]
+    for goal in station_goals:
+        assert agent._m4_bm012_stone_pickaxe_frontier_ready(observation, goal) is False
+        assert agent._yield_m4_bm012_stone_pickaxe_frontier(
+            observation,
+            goal,
+            {"phase": "pre_planner"},
+        ) is False
+
+    assert agent._m4_bm012_stone_pickaxe_frontier_ready(
+        observation,
+        "Mine 12 cobblestone for stone tools and furnace",
+    ) is True
+    print("PASS: strict BM-012 station-access goals bypass stale frontier yield")
+
+
 def test_m4_bm012_selector_preserves_stone_pickaxe_frontier_over_stale_tasks():
     tmpdir = tempfile.mkdtemp()
     agent = object.__new__(Agent)
@@ -520,6 +564,7 @@ if __name__ == "__main__":
     test_m4_bm012_selector_preserves_exact_three_cobblestone_frontier()
     test_m4_bm012_goal_generator_closes_wood_to_stone_pickaxe_frontier()
     test_m4_bm012_goal_generator_repairs_detached_crafting_station_frontier()
+    test_m4_bm012_frontier_yield_preserves_station_access_goals()
     test_m4_bm012_selector_preserves_stone_pickaxe_frontier_over_stale_tasks()
     test_m4_bm012_selector_preserves_detached_station_frontier_over_coal()
     test_coach_policy_biases_curriculum_candidates_without_mutating_inputs()

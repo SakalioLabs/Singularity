@@ -8574,6 +8574,8 @@ class Agent:
         goal_lower = str(goal or "").strip().lower()
         if self._m4_bm012_exact_progression_goal(goal_lower):
             return False
+        if self._m4_bm012_stone_pickaxe_station_access_goal(observation, goal_lower):
+            return False
         if any(
             token in goal_lower
             for token in (
