@@ -7517,7 +7517,7 @@
       "declared": {
         "name": "Autonomous Survival",
         "status": "Partial (partial)",
-        "progress": "BM-011 repeatverified 3/3; BM-012 Probe 38 and Probe 45 successes 2/3 plus forty-three retained failures; BM-013..014 notrun"
+        "progress": "BM-011 repeatverified 3/3; BM-012 Probe 38 and Probe 45 successes 2/3 plus Probe 46 authorization pending run and forty-three retained failures; BM-013..014 notrun"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
