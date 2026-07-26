@@ -745,6 +745,7 @@ M4 FIXED OUTPUT CONTRACT:
 - Example placement success_criteria: {"nearby_block_present":"crafting_table"}.
 - A dig action must use top-level finite x, y, and z parameters and may use top-level block; never use block_name, position, target, or block_position aliases.
 - Example: {"type":"dig","parameters":{"x":103,"y":139,"z":-30,"block":"oak_log"}}.
+- For the BM-012 raw-iron goal, treat m4_resource_scan as machine-observed resource evidence. If nearest_iron_ore is present, navigate to its exact position and dig that exact iron_ore/deepslate_iron_ore. If the hand already holds stone_pickaxe, do not equip stone_pickaxe again; while searching by digging stone-like blocks for iron, keep stone_pickaxe as the dig preferred tool instead of downgrading to wooden_pickaxe.
 - A craft action must use item and may use a positive integer count; never use recipe as an alias.
 - Example: {"type":"craft","parameters":{"item":"oak_planks","count":4}}.
 - A place action must use item plus top-level finite x, y, and z reference-block coordinates; never use block as an alias.
@@ -1104,9 +1105,21 @@ Choose only the next grounded action and return contract-valid compact JSON now.
             }
             observed_state = dict(world_state)
             observed_state["shelter_verification"] = compact_shelter
+            resource_scan = (
+                observed_state.get("m4_resource_scan", {})
+                if isinstance(observed_state.get("m4_resource_scan", {}), dict)
+                else {}
+            )
+            compact_resource_scan = {
+                "policy_id": resource_scan.get("policy_id", ""),
+                "radius": resource_scan.get("radius", 0),
+                "nearest_iron_ore": resource_scan.get("nearest_iron_ore"),
+                "candidates": list(resource_scan.get("candidates", []) or [])[:8],
+            }
             return f"""Exact autonomous goal: {goal}
 Plan kind: {self._expected_plan_kind}
 Current shelter machine state: {json.dumps(compact_shelter, sort_keys=True, default=str)}
+Current M4 resource scan: {json.dumps(compact_resource_scan, sort_keys=True, default=str)}
 Current observed machine state: {json.dumps(observed_state, sort_keys=True, default=str)[:3000]}
 Planner context: {memory_context[:1000] if memory_context else 'none'}
 Honor exact item identifiers. Return a contract-valid JSON plan now."""

@@ -1,0 +1,313 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T14:00:54Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 40,
+  "episode_id": "m4_episode_20260726_212750_8fd2d156",
+  "session_id": "09915fdd-1a7",
+  "level_name": "m4_episode_20260726_212750_8fd2d156_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe40_authorization.json",
+    "commit": "f72d34c92baf7615d9b210ef31f1fb3f8226eeb8",
+    "tree": "b71118c23aca30662f7be0f20f57578ec8f8d328",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_monotonic_s": 822676.39,
+    "probe_41_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/session_09915fdd-1a7.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/session_09915fdd-1a7_summary.json",
+    "session_json": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/session.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260726_212750_8fd2d156/reset.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "1e1f67dbd003993199133bcf07718964bc3645b5cbef6e49f84c3a3f89284b88",
+    "preparation": "87b6c97465c5c7f857277c3443fabc30feb1bec9ccece2655731b412dcbe043f",
+    "result": "ac6fd4c16d85f8e93a64275530e3d25bd38d7824c70ed963da28685e911ae44f",
+    "eligibility": "d55d3f911f92fb4597f1f9db61d1ddd0a5b7ce75a7446086a0b5923b53fc57dc",
+    "manifest": "290315fad1030e104aa6eab37f59b45095c7b85a115cb5b4ed61311cdd174aac",
+    "preflight": "4e969b083b46282a5989b06bf95e26b37aee19665077475518cb03b8d5df99bc",
+    "session_summary": "037846526d6890a00c86e28f6a8a742f99175d36650c4b664c6c82db43faf391",
+    "session_json": "109bddc48f724e6f7bbcd9572f0ace1020a9473b49df1a455d5a2006a936cb26",
+    "protocol_status": "054ce0fc835a9418e62bdea42a6c4fd0d1b370a0fbc74da043c1151772aad800",
+    "reset": "bd30fa815022df8766df281f32f3154be9805ed2194ecd9634a109ca9fb22b1e"
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 600.016,
+    "episode_duration_s": 600.047,
+    "session_duration_s": 601.95,
+    "deadline_eligible": false,
+    "goals_completed": 8,
+    "goals_failed": 2,
+    "goals_interrupted": 0,
+    "total_cycles": 34,
+    "planner_call_count": 34,
+    "real_planner_call_count": 33,
+    "schema_valid_real_planner_call_count": 32,
+    "schema_invalid_real_planner_call_count": 1,
+    "schema_invalid_nonreal_call_count": 1,
+    "planner_timeout_call_count": 1,
+    "transport_error_call_count": 1,
+    "planner_total_token_usage": 139593,
+    "planner_max_call_duration_ms": 27532.0,
+    "action_count": 37,
+    "successful_action_count": 37,
+    "failed_action_count": 0,
+    "action_verifier_accept_count": 37,
+    "action_verifier_reject_count": 0,
+    "action_type_counts": {
+      "move_to": 3,
+      "dig": 14,
+      "craft": 8,
+      "place": 2,
+      "equip": 10
+    },
+    "session_event_count": 829,
+    "eligibility_event_count": 828,
+    "memory_write_count": 248,
+    "memory_read_count": 37,
+    "goal_verification_count": 8,
+    "goal_verification_accepted_count": 8,
+    "maximum_inventory": {
+      "oak_log": 6,
+      "oak_planks": 8,
+      "crafting_table": 1,
+      "stick": 4,
+      "wooden_pickaxe": 1,
+      "cobblestone": 5,
+      "stone_pickaxe": 1,
+      "dirt": 3
+    },
+    "terminal_inventory": {
+      "oak_planks": 3,
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "cobblestone": 5,
+      "oak_log": 2,
+      "dirt": 3
+    },
+    "terminal_health": 20,
+    "terminal_hunger": 20,
+    "terminal_time_of_day": 12023,
+    "death_count": 0,
+    "respawn_count": 0,
+    "bot_connected": true
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_placed": true,
+    "crafting_table_to_wooden_pickaxe": true,
+    "wooden_pickaxe_equipped": true,
+    "wooden_pickaxe_to_three_cobblestone": true,
+    "station_access_goal_completed": true,
+    "station_access_table_crafted": true,
+    "station_access_table_placed": true,
+    "cobblestone_to_stone_pickaxe": true,
+    "full_stone_pickaxe_loop_completed": true,
+    "stone_pickaxe_to_raw_iron": false,
+    "raw_iron_to_eight": false,
+    "terminal_resource_verification_passed": false,
+    "first_action_lines": {
+      "oak_log_dig": 50,
+      "oak_planks_craft": 188,
+      "crafting_table_craft": 207,
+      "crafting_table_place": 240,
+      "wooden_pickaxe_craft": 324,
+      "wooden_pickaxe_equip": 353,
+      "stone_dig": 370,
+      "second_crafting_table_craft": 459,
+      "second_crafting_table_place": 488,
+      "stone_pickaxe_craft": 514,
+      "stone_pickaxe_equip": 543,
+      "terminal_resource_verification": null
+    }
+  },
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "principal_blocker": {
+    "failure_layer": "m4_bm012_raw_iron_resource_scan_gap",
+    "secondary_failure_layer": "m4_bm012_raw_iron_dig_tool_downgrade_loop",
+    "stone_pickaxe_craft_action_line": 514,
+    "first_raw_iron_goal_plan_line": 530,
+    "first_search_dig_line": 552,
+    "first_search_dig_target": {
+      "x": 113,
+      "y": 131,
+      "z": -29
+    },
+    "first_search_dig_actual_block": "stone",
+    "first_search_dig_pre_held_item": "stone_pickaxe",
+    "first_search_dig_post_held_item": "wooden_pickaxe",
+    "first_search_dig_selected_tool": "wooden_pickaxe",
+    "resource_scan_radius_before_repair": 8,
+    "probe38_nearest_success_iron_position": {
+      "x": 108,
+      "y": 129,
+      "z": -40
+    },
+    "probe40_initial_raw_iron_position": {
+      "x": 113.58067633836961,
+      "y": 132,
+      "z": -28.501420509757416
+    },
+    "distance_to_probe38_iron_cluster": 13.129,
+    "old_observation_saw_iron_ore": false,
+    "new_resource_scan_radius": 16,
+    "equip_action_count_after_stone_pickaxe": 9,
+    "stone_search_dig_count_after_stone_pickaxe": 5,
+    "raw_iron_dig_action_count": 0,
+    "schema_invalid_raw_iron_plan_line": 787,
+    "timeout_raw_iron_plan_line": 822,
+    "deadline_interrupt_line": 812,
+    "episode_deadline_exceeded_line": 823,
+    "terminal_raw_iron": 0,
+    "terminal_stone_pickaxe": 1,
+    "recovered": false
+  },
+  "intervention_review": {
+    "probe_38_bm012_success_repeated": false,
+    "yield_result": "intervention_not_exercised_new_blocker",
+    "prior_success_path_reached_stone_pickaxe": true,
+    "prior_failure_recurred": false,
+    "occupied_target_replan_repair_exercised": true,
+    "resource_scan_gap_observed": true,
+    "tool_downgrade_loop_observed": true,
+    "health_preserved": true,
+    "terminal_health": 20
+  },
+  "offline_repair": {
+    "policy_id": "m4-bm012-resource-scan-and-stone-pickaxe-dig-preference-v1",
+    "extends_policy_ids": [
+      "m4-bm012-resource-scan-v1",
+      "m4-bm012-raw-iron-dig-stone-pickaxe-v1",
+      "m4-dig-required-tool-equip-v1"
+    ],
+    "scope": "strict_m4_bm012_observation_planner_context_and_backend_tool_selection",
+    "implemented_after_probe": true,
+    "bounded_resource_scan_radius": 16,
+    "resource_scan_source": "machine_nearby_blocks_radius_16",
+    "resource_scan_candidate_limit": 12,
+    "grounded_resource_limit": 16,
+    "resource_scan_filtered_names": [
+      "iron_ore",
+      "deepslate_iron_ore",
+      "coal_ore",
+      "deepslate_coal_ore",
+      "oak_log",
+      "birch_log",
+      "spruce_log",
+      "jungle_log",
+      "acacia_log",
+      "dark_oak_log",
+      "mangrove_log"
+    ],
+    "preferred_tool_for_raw_iron_search_digs": "stone_pickaxe",
+    "preferred_tool_policy_id": "m4-bm012-raw-iron-dig-stone-pickaxe-v1",
+    "backend_preferred_tool_selection_fail_closed": true,
+    "planner_prompt_surfaces_resource_scan": true,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "deadline_policy_changed": false,
+    "success_threshold_changed": false,
+    "source_sha256": {
+      "agent": "39a0cdde0f74c7e978af887e59385e145b3129f796f0ba40bde851b737597de1",
+      "planner": "82e7ac272db3d17f497a856a8c4d94ec6b4c91666c7f9b8dcc4a470fd6325c10",
+      "action_controller": "43496c5f45ec7acbaad0cc3fb99c262d8f49f004963f753d9d832abbd15b0abe",
+      "bot_bridge": "cb40b88cfbee823d406793fcc8004719e128850e00c7ac7fcc0314fd6653843d",
+      "bot_server": "289644dae146133bb2f49e2bae27d23276cd9aa64ebe5c8ca2e63957819a69f9",
+      "sp004_bot_server": "d16cece856adaae85439ae7e1eb55a873b4c66daef168a095b5e13d22788a48d",
+      "m4_deadline_tests": "ed47ecfdb64a9b1e7ce84f524e4391ac3285691f84ccf341106a4e338138fae8",
+      "bot_bridge_tests": "4bb77dd2dfae625e789aa3dd8a262103d553645f6acb8e79909e879be6168c83",
+      "bot_server_tests": "05d495364d461723ff86ac0b42274fbb1703bd8b2a59d5a02bb4aa22dd1ed923"
+    },
+    "validated_offline": true,
+    "focused_test_files": [
+      "tests/test_m4_deadline.py",
+      "tests/test_bot_bridge.py",
+      "tests/test_bot_server_benchmark_reset.js"
+    ],
+    "probe_41_authorized": false
+  },
+  "eligibility": {
+    "eligible": false,
+    "success": false,
+    "progress_gate_passed": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "issues": [
+      "event:terminal_resource_verification",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "episode_within_deadline",
+      "result_duration_eligible",
+      "no_post_deadline_execution"
+    ]
+  },
+  "decision": {
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "bm012_success_count_after": 1,
+    "required_success_count": 3,
+    "remaining_success_count": 2,
+    "next_live_probe_locked_until_offline_repair_commit": true,
+    "probe_41_authorized": false
+  }
+}

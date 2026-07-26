@@ -156,6 +156,8 @@ def test_m4_dig_forwards_explicit_pickup_and_tool_equip_postconditions():
         timeout_ms=60000,
         require_pickup=True,
         require_tool_equip=True,
+        preferred_tool="stone_pickaxe",
+        preferred_tool_policy_id="m4-bm012-raw-iron-dig-stone-pickaxe-v1",
     )
     bridge.dig(93, 139, -36, timeout_ms=60000, require_pickup=True)
     bridge.dig(93, 139, -36, timeout_ms=60000)
@@ -170,6 +172,8 @@ def test_m4_dig_forwards_explicit_pickup_and_tool_equip_postconditions():
                 "timeout_ms": 60000,
                 "require_pickup": True,
                 "require_tool_equip": True,
+                "preferred_tool": "stone_pickaxe",
+                "preferred_tool_policy_id": "m4-bm012-raw-iron-dig-stone-pickaxe-v1",
             },
         ),
         (
@@ -269,6 +273,7 @@ if __name__ == "__main__":
     test_capture_screenshot_sends_renderer_command()
     test_navigation_commands_omit_null_y_and_forward_pathfinder_controls()
     test_smelt_forwards_exact_furnace_materials_and_deadline()
+    test_m4_dig_forwards_explicit_pickup_and_tool_equip_postconditions()
     test_m4_place_forwards_explicit_player_clearance_postcondition()
     test_benchmark_protocol_commands_are_fixed_and_typed()
     test_single_shot_navigation_extends_and_restores_socket_timeout()

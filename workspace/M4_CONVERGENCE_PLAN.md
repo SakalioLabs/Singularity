@@ -10,7 +10,7 @@
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probe 39 remain retained ineligible history, and Probe 38 is the first independently eligible BM-012 success, so the target is now 1/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 used the Grok 4.5 OpenAI-compatible endpoint, completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop, mined eight machine-proven iron-ore source blocks, ended with `raw_iron:8`, terminal health 20, zero deaths, and 172.469 seconds of deadline margin. Probe 39 used the same endpoint and reached the wooden-pickaxe plus three-cobblestone frontier, but failed to place the station-access table before crafting `stone_pickaxe`. BM-012 still needs two more independent eligible successes before repeat verification, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37, Probe 39, and Probe 40 remain retained ineligible history, and Probe 38 is the first independently eligible BM-012 success, so the target is now 1/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 used the Grok 4.5 OpenAI-compatible endpoint, completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop, mined eight machine-proven iron-ore source blocks, ended with `raw_iron:8`, terminal health 20, zero deaths, and 172.469 seconds of deadline margin. Probe 39 used the same endpoint and exposed an occupied-target station-placement replan gap, now repaired offline. Probe 40 used the same endpoint and again completed the full empty-hand-to-stone-pickaxe loop, but failed after `stone_pickaxe:1` because the 8-block observation window did not surface the fixed-seed iron cluster and raw-iron search digs downgraded the held tool to `wooden_pickaxe`. BM-012 still needs two more independent eligible successes before repeat verification, and BM-013/BM-014 remain sequentially locked.
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
@@ -165,7 +165,22 @@ Probe 30 consumed that authorization and remained ineligible. It completed the e
 - Evidence: `workspace/evals/m4_probe39_report.json`
 - Offline repair: `m4-place-occupied-target-adjacent-replan-feedback-v1`
 - Repair behavior: strict-M4 occupied-target rejections now emit adjacent reference candidates and call the existing one-shot place-replan feedback gate. Probe39's non-candidate gravel jump is rejected before execution in offline replay, while the backend fail-closed occupancy policy, task contract, deadline policy, and success thresholds remain unchanged
-- Next gate: no Probe 40 authorization before this evidence and repair commit is pushed
+- Next gate: Probe 40 consumed the next one-use authorization from commit `f72d34c`; the occupied-target repair was exercised and a new raw-iron resource-scan/tool-preference blocker was found
+
+## Probe 40 Raw-Iron Resource Scan And Tool Preference Gap
+
+- Episode: `m4_episode_20260726_212750_8fd2d156`
+- Session: `09915fdd-1a7`
+- Planner: 34 calls, 33 real, 32 schema-valid real, one real schema rejection, one timeout, zero retries
+- Actions: 37 attempted, 37 successful; 37/37 ActionVerifier decisions accepted
+- Progress: completed logs, planks, first table, `wooden_pickaxe:1`, exactly three `cobblestone`, station access, `stone_pickaxe:1`, and stone-pickaxe equip
+- Missing transition: `raw_iron` remained 0/8; no `iron_ore` dig action executed and no observation `nearby_blocks` entry contained `iron_ore`
+- New blocker: after the raw-iron goal started at line 530, the first stone-search dig at line 552 began with `stone_pickaxe` held but backend strict tool selection chose `wooden_pickaxe`, and the same downgrade recurred across five stone-search digs. Probe 38's successful iron cluster at `(108,129,-40)` was about 13.129 blocks from Probe40's first raw-iron position, outside the old 8-block observation radius
+- Capability decision: ineligible; BM-012 remains 1/3 and M4 remains partial
+- Evidence: `workspace/evals/m4_probe40_report.json`
+- Offline repair: `m4-bm012-resource-scan-and-stone-pickaxe-dig-preference-v1`
+- Repair behavior: strict BM-012 observations now attach a bounded 16-block machine resource scan for iron/coal/log candidates and expose it to Planner context and grounded resources. Strict raw-iron search digs now carry `preferred_tool=stone_pickaxe`; the backend honors that compatible preferred tool before falling back to first-compatible selection. Protocol identity, task contract, deadline policy, and success threshold remain unchanged
+- Next gate: no Probe 41 authorization before this evidence and repair commit is pushed
 
 ## Stone Pickaxe Research Gate
 

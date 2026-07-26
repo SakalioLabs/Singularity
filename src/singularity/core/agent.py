@@ -114,6 +114,36 @@ M4_TYPED_SCHEMA_ISSUE_PATTERN = re.compile(
 M4_BM012_STONE_PICKAXE_FRONTIER_YIELD_POLICY_ID = (
     "m4-bm012-stone-pickaxe-frontier-yield-v1"
 )
+M4_BM012_RESOURCE_SCAN_POLICY_ID = "m4-bm012-resource-scan-v1"
+M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID = "m4-bm012-raw-iron-dig-stone-pickaxe-v1"
+M4_BM012_RESOURCE_SCAN_RADIUS = 16
+M4_BM012_RESOURCE_SCAN_NAMES = frozenset({
+    "iron_ore",
+    "deepslate_iron_ore",
+    "coal_ore",
+    "deepslate_coal_ore",
+    "oak_log",
+    "birch_log",
+    "spruce_log",
+    "jungle_log",
+    "acacia_log",
+    "dark_oak_log",
+    "mangrove_log",
+})
+M4_BM012_RAW_IRON_STONE_PICKAXE_DIG_BLOCKS = frozenset({
+    "iron_ore",
+    "deepslate_iron_ore",
+    "stone",
+    "deepslate",
+    "andesite",
+    "granite",
+    "diorite",
+    "tuff",
+    "coal_ore",
+    "deepslate_coal_ore",
+    "copper_ore",
+    "deepslate_copper_ore",
+})
 
 
 class Agent:
@@ -1858,6 +1888,11 @@ class Agent:
                         goal,
                         {"cycle": cycle, "mode": "goal"},
                     )
+                    action = self._apply_m4_bm012_action_execution_hints(
+                        action,
+                        observation,
+                        goal,
+                    )
                     action_count += 1
                     action_verification, rejected_result = self._verify_action_for_execution(
                         action,
@@ -2539,6 +2574,11 @@ class Agent:
                             observation,
                             goal,
                             {"cycle": total_cycles, "mode": "autonomous"},
+                        )
+                        action = self._apply_m4_bm012_action_execution_hints(
+                            action,
+                            observation,
+                            goal,
                         )
                         action_verification, rejected_result = self._verify_action_for_execution(
                             action,
@@ -8649,6 +8689,170 @@ class Agent:
             if self._m4_inventory_count(inventory.get(key)) > 0
         }
 
+    def _m4_bm012_raw_iron_goal(self, goal: str) -> bool:
+        return self._m4_bm012_exact_progression_goal(
+            str(goal or "").strip().lower()
+        ) and str(goal or "").strip().lower().startswith(
+            "collect 8 raw iron from iron ore with the stone pickaxe"
+        )
+
+    def _apply_m4_bm012_action_execution_hints(
+        self,
+        action: dict,
+        observation: dict,
+        goal: str,
+    ) -> dict:
+        """Keep strict BM-012 iron-search digs on the stone pickaxe once owned."""
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+            or str(getattr(self, "_m4_task_id", "") or "") != "BM-012"
+            or not self._m4_bm012_raw_iron_goal(goal)
+            or not isinstance(action, dict)
+            or str(action.get("type") or "") != "dig"
+        ):
+            return action
+        params = action.get("parameters", {})
+        if not isinstance(params, dict):
+            return action
+        block = str(params.get("block") or "").strip()
+        if block and block not in M4_BM012_RAW_IRON_STONE_PICKAXE_DIG_BLOCKS:
+            return action
+        inventory = (
+            observation.get("inventory", {})
+            if isinstance(observation, dict)
+            and isinstance(observation.get("inventory", {}), dict)
+            else {}
+        )
+        if self._m4_inventory_count(inventory.get("stone_pickaxe")) < 1:
+            return action
+        if str(params.get("preferred_tool") or "") == "stone_pickaxe":
+            return action
+        hinted = copy.deepcopy(action)
+        hinted_params = dict(hinted.get("parameters", {}) or {})
+        hinted_params["preferred_tool"] = "stone_pickaxe"
+        hinted_params["preferred_tool_policy_id"] = (
+            M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID
+        )
+        hinted["parameters"] = hinted_params
+        return hinted
+
+    def _attach_m4_bm012_resource_scan(self, observation: dict) -> dict:
+        """Attach a bounded machine resource scan for the BM-012 iron frontier."""
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+            or str(getattr(self, "_m4_task_id", "") or "") != "BM-012"
+            or not isinstance(observation, dict)
+        ):
+            return observation
+        reader = getattr(getattr(self, "bot", None), "get_nearby_blocks", None)
+        if not callable(reader):
+            return observation
+        try:
+            raw_blocks = reader(radius=M4_BM012_RESOURCE_SCAN_RADIUS)
+        except Exception as exc:
+            logger.warning(f"M4 BM-012 resource scan failed: {type(exc).__name__}: {exc}")
+            return observation
+        if not isinstance(raw_blocks, list):
+            return observation
+
+        def finite_float(value):
+            if isinstance(value, bool):
+                return None
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                return None
+            return number if math.isfinite(number) else None
+
+        def resource_priority(name: str) -> int:
+            if name in {"iron_ore", "deepslate_iron_ore"}:
+                return 0
+            if name in {"coal_ore", "deepslate_coal_ore"}:
+                return 1
+            return 2
+
+        candidates = []
+        seen = set()
+        for block in raw_blocks:
+            if not isinstance(block, dict):
+                continue
+            name = str(block.get("name") or "").strip()
+            if name not in M4_BM012_RESOURCE_SCAN_NAMES:
+                continue
+            position = self._m4_integral_block_position(block.get("position"))
+            if not position:
+                continue
+            key = (name, position["x"], position["y"], position["z"])
+            if key in seen:
+                continue
+            seen.add(key)
+            distance = finite_float(block.get("distance"))
+            candidate = {
+                "name": name,
+                "position": position,
+                "machine_observed": True,
+                "grounding_policy_id": M4_BM012_RESOURCE_SCAN_POLICY_ID,
+            }
+            if distance is not None:
+                candidate["distance"] = round(distance, 3)
+            candidates.append(candidate)
+
+        candidates.sort(
+            key=lambda item: (
+                resource_priority(str(item.get("name") or "")),
+                float(item.get("distance", 999999.0)),
+                item["position"]["x"],
+                item["position"]["y"],
+                item["position"]["z"],
+            )
+        )
+        candidates = candidates[:12]
+        nearest_iron = next(
+            (
+                dict(item)
+                for item in candidates
+                if item.get("name") in {"iron_ore", "deepslate_iron_ore"}
+            ),
+            None,
+        )
+        scan = {
+            "schema_version": 1,
+            "policy_id": M4_BM012_RESOURCE_SCAN_POLICY_ID,
+            "radius": M4_BM012_RESOURCE_SCAN_RADIUS,
+            "source": "machine_nearby_blocks_radius_16",
+            "candidate_count": len(candidates),
+            "candidates": candidates,
+            "nearest_iron_ore": nearest_iron,
+        }
+        enriched = dict(observation)
+        enriched["m4_resource_scan"] = scan
+        existing_grounded = (
+            list(enriched.get("grounded_resources", []))
+            if isinstance(enriched.get("grounded_resources", []), list)
+            else []
+        )
+        existing_keys = {
+            (
+                str(item.get("name") or ""),
+                json.dumps(item.get("position", {}), sort_keys=True),
+            )
+            for item in existing_grounded
+            if isinstance(item, dict)
+        }
+        for candidate in candidates:
+            key = (
+                str(candidate.get("name") or ""),
+                json.dumps(candidate.get("position", {}), sort_keys=True),
+            )
+            if key not in existing_keys:
+                existing_grounded.append(dict(candidate))
+                existing_keys.add(key)
+        if existing_grounded:
+            enriched["grounded_resources"] = existing_grounded[:16]
+        return enriched
+
     def _active_coach_policy(self):
         """Return the configured advisory coach if the runtime policy is enabled."""
         if not getattr(getattr(self, "config", None), "enable_coaching_policy", True):
@@ -8790,6 +8994,7 @@ class Agent:
         self._record_m4_player_lifecycle(observation)
         observation = self._attach_m4_shelter_verification(observation)
         observation = self._attach_m4_post_place_machine_observation(observation)
+        observation = self._attach_m4_bm012_resource_scan(observation)
         relocation = getattr(self, "_m4_shelter_relocation", {})
         if isinstance(relocation, dict) and relocation:
             observation = dict(observation)

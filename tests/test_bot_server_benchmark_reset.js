@@ -508,6 +508,45 @@ async function testM4DigRequiredToolEquipSelectsIronHarvestTier() {
     console.log('PASS: M4 selects stone pickaxe over incompatible wood for iron ore');
 }
 
+async function testM4DigRequiredToolEquipHonorsPreferredCompatibleTool() {
+    const fixture = createProbe14RequiredToolFixture({
+        blockName: 'stone',
+        toolNames: ['wooden_pickaxe', 'stone_pickaxe'],
+        acquireDrop: true,
+    });
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {},
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+        require_tool_equip: true,
+        preferred_tool: 'stone_pickaxe',
+        preferred_tool_policy_id: 'm4-bm012-raw-iron-dig-stone-pickaxe-v1',
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { cobblestone: 1 });
+    assert.deepStrictEqual(fixture.operations, ['equip:stone_pickaxe:hand', 'dig:stone']);
+    assert.deepStrictEqual(
+        result.dig_tool_equip.compatible_inventory_tools.map(item => item.name),
+        ['wooden_pickaxe', 'stone_pickaxe'],
+    );
+    assert.strictEqual(result.dig_tool_equip.preferred_tool, 'stone_pickaxe');
+    assert.strictEqual(
+        result.dig_tool_equip.preferred_tool_policy_id,
+        'm4-bm012-raw-iron-dig-stone-pickaxe-v1',
+    );
+    assert.strictEqual(result.dig_tool_equip.preferred_tool_matched, true);
+    assert.strictEqual(result.dig_tool_equip.selected_tool, 'stone_pickaxe');
+    assert.strictEqual(result.dig_tool_equip.equipped_tool, 'stone_pickaxe');
+    assert.strictEqual(result.dig_tool_equip.passed, true);
+    console.log('PASS: M4 preferred dig tool keeps iron-search stone mining on stone pickaxe');
+}
+
 async function testM4DigRequiredToolEquipFailsClosedForMissingToolAndEquipError() {
     const missing = createProbe14RequiredToolFixture({ toolAvailable: false });
     const missingResult = await createDigHandler(
@@ -1031,6 +1070,7 @@ async function main() {
     await testM4DigRequiredToolEquipReplaysProbe14BeforeMutation();
     await testM4DigRequiredToolEquipConfirmsCompatibleToolBeforeMutation();
     await testM4DigRequiredToolEquipSelectsIronHarvestTier();
+    await testM4DigRequiredToolEquipHonorsPreferredCompatibleTool();
     await testM4DigRequiredToolEquipFailsClosedForMissingToolAndEquipError();
     await testM4DigRequiredToolEquipPreservesHandAndLegacyPaths();
     await testM4DigHandlerWaitsForDropAndUsesReachablePickupGoal();

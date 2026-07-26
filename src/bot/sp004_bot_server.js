@@ -3350,6 +3350,8 @@ function createDigHandler(
             const expectedDrops = blockDropNames(activeBot, block);
             const strictPickupPostcondition = params.require_pickup === true;
             const strictToolEquip = params.require_tool_equip === true;
+            const preferredToolName = String(params.preferred_tool || '').trim();
+            const preferredToolPolicyId = String(params.preferred_tool_policy_id || '').trim();
             const targetBlockBefore = {
                 name: blockName,
                 type: Number(block.type),
@@ -3418,6 +3420,9 @@ function createDigHandler(
                     selected_tool_type: null,
                     equipped_tool: null,
                     equipped_tool_type: null,
+                    preferred_tool: preferredToolName || null,
+                    preferred_tool_policy_id: preferredToolPolicyId || null,
+                    preferred_tool_matched: false,
                     equip_attempted: false,
                     equip_confirmed: null,
                     mutation_allowed: !toolRequired,
@@ -3430,7 +3435,10 @@ function createDigHandler(
                         type: Number(item.type),
                         count: Number(item.count || 0),
                     }));
-                    const selectedTool = compatibleTools[0] || null;
+                    const preferredTool = preferredToolName
+                        ? compatibleTools.find(item => String(item.name || '') === preferredToolName) || null
+                        : null;
+                    const selectedTool = preferredTool || compatibleTools[0] || null;
                     if (!selectedTool) {
                         digToolEquip.equip_confirmed = false;
                         return failBeforeDig(
@@ -3438,6 +3446,7 @@ function createDigHandler(
                             digToolEquip,
                         );
                     }
+                    digToolEquip.preferred_tool_matched = Boolean(preferredTool);
                     digToolEquip.selected_tool = String(selectedTool.name || '');
                     digToolEquip.selected_tool_type = Number(selectedTool.type);
                     digToolEquip.equip_attempted = true;

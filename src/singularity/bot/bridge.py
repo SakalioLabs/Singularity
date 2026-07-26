@@ -625,6 +625,8 @@ class BotBridge:
         timeout_ms: int = None,
         require_pickup: bool = False,
         require_tool_equip: bool = False,
+        preferred_tool: str = "",
+        preferred_tool_policy_id: str = "",
     ) -> dict:
         params = {"x": x, "y": y, "z": z}
         if timeout_ms is not None:
@@ -633,6 +635,12 @@ class BotBridge:
             params["require_pickup"] = True
         if require_tool_equip:
             params["require_tool_equip"] = True
+        preferred_tool = str(preferred_tool or "").strip()
+        if preferred_tool:
+            params["preferred_tool"] = preferred_tool
+        preferred_tool_policy_id = str(preferred_tool_policy_id or "").strip()
+        if preferred_tool_policy_id:
+            params["preferred_tool_policy_id"] = preferred_tool_policy_id
         return self._send_command_single("dig", params)
 
     def place(

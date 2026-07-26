@@ -405,6 +405,8 @@ class ActionController:
                 timeout_ms=timeout_ms,
                 require_pickup=True,
                 require_tool_equip=True,
+                preferred_tool=params.get("preferred_tool", ""),
+                preferred_tool_policy_id=params.get("preferred_tool_policy_id", ""),
             )
         if timeout_ms is None:
             return self.bot.dig(x, y, z)

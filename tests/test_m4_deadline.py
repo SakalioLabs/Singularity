@@ -113,9 +113,20 @@ class PickupPostconditionBot:
         timeout_ms=None,
         require_pickup=False,
         require_tool_equip=False,
+        preferred_tool="",
+        preferred_tool_policy_id="",
     ):
         self.dig_calls.append(
-            (x, y, z, timeout_ms, require_pickup, require_tool_equip)
+            (
+                x,
+                y,
+                z,
+                timeout_ms,
+                require_pickup,
+                require_tool_equip,
+                preferred_tool,
+                preferred_tool_policy_id,
+            )
         )
         return {"success": True}
 
@@ -2593,8 +2604,8 @@ def test_m4_action_controller_requires_pickup_and_tool_equip_only_for_m4():
 
     assert m4_result["success"] is True
     assert control_result["success"] is True
-    assert m4_bot.dig_calls == [(93, 139, -36, None, True, True)]
-    assert control_bot.dig_calls == [(93, 139, -36, None, False, False)]
+    assert m4_bot.dig_calls == [(93, 139, -36, None, True, True, "", "")]
+    assert control_bot.dig_calls == [(93, 139, -36, None, False, False, "", "")]
     print("PASS: ActionController requires strict dig gates only under fixed M4")
 
 
@@ -4312,6 +4323,131 @@ def test_m4_exact_json_code_fence_envelope_is_bounded_and_auditable():
     assert validation["response_envelope_normalization"]["normalization_count"] == 1
 
 
+def test_m4_bm012_resource_scan_exposes_bounded_iron_candidates():
+    class ResourceScanBot:
+        def __init__(self):
+            self.calls = []
+
+        def get_nearby_blocks(self, radius=5):
+            self.calls.append(radius)
+            return [
+                {
+                    "name": "stone",
+                    "position": {"x": 113, "y": 131, "z": -29},
+                    "distance": 1.0,
+                },
+                {
+                    "name": "iron_ore",
+                    "position": {"x": 108, "y": 129, "z": -40},
+                    "distance": 13.0,
+                },
+                {
+                    "name": "dirt",
+                    "position": {"x": 113, "y": 132, "z": -30},
+                    "distance": 1.0,
+                },
+            ]
+
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent._m4_task_id = "BM-012"
+    agent.bot = ResourceScanBot()
+
+    enriched = agent._attach_m4_bm012_resource_scan(
+        {"inventory": {"stone_pickaxe": 1}, "nearby_blocks": []}
+    )
+
+    assert agent.bot.calls == [16]
+    scan = enriched["m4_resource_scan"]
+    assert scan["policy_id"] == "m4-bm012-resource-scan-v1"
+    assert scan["nearest_iron_ore"]["name"] == "iron_ore"
+    assert scan["nearest_iron_ore"]["position"] == {"x": 108, "y": 129, "z": -40}
+    assert any(
+        item.get("name") == "iron_ore"
+        and item.get("grounding_policy_id") == "m4-bm012-resource-scan-v1"
+        for item in enriched["grounded_resources"]
+    )
+
+    agent._m4_task_id = "BM-011"
+    assert agent._attach_m4_bm012_resource_scan({"nearby_blocks": []}) == {"nearby_blocks": []}
+
+
+def test_m4_bm012_raw_iron_dig_prefers_stone_pickaxe_without_touching_controls():
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent._m4_task_id = "BM-012"
+    action = {
+        "type": "dig",
+        "parameters": {"x": 113, "y": 131, "z": -29, "block": "stone"},
+    }
+
+    hinted = agent._apply_m4_bm012_action_execution_hints(
+        action,
+        {"inventory": {"stone_pickaxe": 1}},
+        "Collect 8 raw iron from iron ore with the stone pickaxe",
+    )
+
+    assert hinted is not action
+    assert "preferred_tool" not in action["parameters"]
+    assert hinted["parameters"]["preferred_tool"] == "stone_pickaxe"
+    assert hinted["parameters"]["preferred_tool_policy_id"] == (
+        "m4-bm012-raw-iron-dig-stone-pickaxe-v1"
+    )
+
+    no_tool = agent._apply_m4_bm012_action_execution_hints(
+        action,
+        {"inventory": {"wooden_pickaxe": 1}},
+        "Collect 8 raw iron from iron ore with the stone pickaxe",
+    )
+    assert no_tool is action
+
+    agent._m4_task_id = "BM-011"
+    control = agent._apply_m4_bm012_action_execution_hints(
+        action,
+        {"inventory": {"stone_pickaxe": 1}},
+        "Collect 8 raw iron from iron ore with the stone pickaxe",
+    )
+    assert control is action
+
+
+def test_m4_planner_prompt_surfaces_resource_scan_and_tool_rule():
+    planner = Planner(None, TaskSystem(), protocol="m4-fixed-v1")
+    planner._expected_plan_kind = "continuation"
+    state = {
+        "inventory": {"stone_pickaxe": 1},
+        "equipment": [{"slot": 0, "name": "stone_pickaxe", "count": 1}],
+        "nearby_blocks": [{"name": "stone", "position": {"x": 113, "y": 131, "z": -29}}],
+        "m4_resource_scan": {
+            "policy_id": "m4-bm012-resource-scan-v1",
+            "radius": 16,
+            "nearest_iron_ore": {
+                "name": "iron_ore",
+                "position": {"x": 108, "y": 129, "z": -40},
+                "distance": 13.0,
+            },
+            "candidates": [
+                {
+                    "name": "iron_ore",
+                    "position": {"x": 108, "y": 129, "z": -40},
+                    "distance": 13.0,
+                }
+            ],
+        },
+    }
+
+    system_prompt = planner._planner_system_prompt()
+    assert "m4_resource_scan" in system_prompt
+    assert "do not equip stone_pickaxe again" in system_prompt
+    prompt = planner._build_planning_prompt(
+        "Collect 8 raw iron from iron ore with the stone pickaxe",
+        state,
+        "",
+    )
+    assert "Current M4 resource scan" in prompt
+    assert "nearest_iron_ore" in prompt
+    assert '"x": 108' in prompt
+
+
 if __name__ == "__main__":
     test_m4_exact_json_code_fence_envelope_is_bounded_and_auditable()
     test_m4_planner_bounds_call_and_rejects_inflight_return()
@@ -4359,4 +4495,7 @@ if __name__ == "__main__":
     test_m4_verifier_return_after_deadline_is_rejected()
     test_session_logger_records_absolute_monotonic_event_time()
     test_m4_autonomous_loop_shares_deadline_and_suppresses_plan_suffix()
+    test_m4_bm012_resource_scan_exposes_bounded_iron_candidates()
+    test_m4_bm012_raw_iron_dig_prefers_stone_pickaxe_without_touching_controls()
+    test_m4_planner_prompt_surfaces_resource_scan_and_tool_rule()
     print("\nM4 deadline runtime tests PASSED")
