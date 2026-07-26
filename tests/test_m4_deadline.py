@@ -3800,7 +3800,55 @@ def test_m4_autonomous_loop_shares_deadline_and_suppresses_plan_suffix():
     print("PASS: M4 autonomous loop shares one deadline and suppresses late plan suffixes")
 
 
+def test_m4_exact_json_code_fence_envelope_is_bounded_and_auditable():
+    prompt = Planner(None, TaskSystem(), protocol="m4-fixed-v1")._planner_system_prompt()
+    assert "Never wrap it in Markdown code fences" in prompt
+    payload = '{"status":"complete","reasoning":"","subtasks":[],"actions":[]}'
+    normalized, report = Planner._normalize_m4_json_response_envelope(
+        f"```json\n{payload}\n```"
+    )
+    assert normalized == payload
+    assert report["policy_id"] == "m4-exact-json-code-fence-envelope-v1"
+    assert report["applied"] is True
+    assert report["normalization_count"] == 1
+    assert len(report["raw_sha256"]) == 64
+    assert len(report["normalized_sha256"]) == 64
+
+    for rejected in (
+        f"Here is the plan:\n{payload}",
+        f"prefix\n```json\n{payload}\n```",
+        f"```json\n{payload}\n```\nsuffix",
+        "```\nnot an object\n```",
+    ):
+        untouched, rejected_report = Planner._normalize_m4_json_response_envelope(
+            rejected
+        )
+        assert untouched == rejected
+        assert rejected_report["applied"] is False
+        assert rejected_report["normalization_count"] == 0
+
+    class FencedPlannerLLM(PlannerLLM):
+        def chat(self, messages, **kwargs):
+            direct = super().chat(messages, **kwargs)
+            return f"```json\n{direct}\n```"
+
+    clock = FakeClock()
+    planner = Planner(FencedPlannerLLM(clock), TaskSystem(), protocol="m4-fixed-v1")
+    planner.start_episode("Wait safely", "m4-fenced-envelope-fixture")
+    planner.set_deadline(150.0, 0.0)
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        plan = planner.plan_from_goal("Wait safely", {"inventory": {}})
+
+    assert plan["status"] == "planning"
+    assert plan["actions"] == [{"type": "wait", "parameters": {"ms": 1}}]
+    validation = planner.last_call_evidence["schema_validation"]
+    assert validation["passed"] is True
+    assert validation["response_envelope_normalization"]["applied"] is True
+    assert validation["response_envelope_normalization"]["normalization_count"] == 1
+
+
 if __name__ == "__main__":
+    test_m4_exact_json_code_fence_envelope_is_bounded_and_auditable()
     test_m4_planner_bounds_call_and_rejects_inflight_return()
     test_m4_planner_suppresses_call_after_deadline()
     test_m4_planner_rejects_empty_planning_response_and_marks_replan()

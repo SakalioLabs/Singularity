@@ -3,14 +3,14 @@
 ## Current Gate
 
 - Protocol: `m4-fixed-v1`
-- Protocol SHA-256: `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`
+- Protocol SHA-256: `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`
 - Current target: BM-012 Get 8 iron resources
 - Current-target eligible successes: 0/3
 - Completed target: BM-011 Survive the first night, `repeat_verified` at 3/3
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 24 remain ineligible at 0/3. Probe 24 consumed its one-use authorization at `autonomous_start`, but the fixed provider returned 24 single-attempt, zero-retry HTTP 401 credit errors and zero response bytes. No real/schema-valid Planner response or action occurred, so the failed-bound ready-task policy was neither exercised nor rejected. Two subsequent no-Minecraft recovery probes each made one request with zero retries and again returned HTTP 401 before a response; the third goal-turn observation explicitly classified the provider body as a credit error. `workspace/evals/m4_provider_blocked_audit_20260725.json` records that completed three-turn blocked audit. After the goal was resumed, two fresh no-Minecraft requests returned proven HTTP 401 credit errors. The next goal-turn command timed out before a provider result was observed; its process later exited cleanly, no same-turn retry ran, and the attempt is `indeterminate`. It reset the exact-401 count. Pushed policy `m4-fixed-provider-recovery-probe-v1` then ran across three consecutive goal turns from committed sources. r1 and r2 observed HTTP 401 credit errors; r3 produced no provider result and was terminated by the 25-second supervisor. Error subtypes differ, but all three prove the shared fixed-provider-unavailable-before-Planner-response condition, zero usable responses, zero retries, and no Minecraft. The strict blocked threshold is satisfied at this shared external boundary. Probe 25 is not authorized, BM-012 remains 0/3, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 26 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`. Probe 25 exposed a stale Process-credential selection defect, now closed by a provider-health preflight before Minecraft starts. Probe 26 made 33 real zero-retry calls, 29 schema-valid plans, and 29 actions; from empty inventory it reached 6 oak logs and 24 oak planks, but no crafting table or pickaxe. Four nonempty Grok responses used Markdown JSON fences and failed before schema validation, after which the episode reached its 600-second deadline. Policy `m4-exact-json-code-fence-envelope-v1` now unwraps only a complete single fenced object, records both hashes, and rejects all surrounding prose. Probe 27 remains unauthorized pending a separately committed gate. BM-013/BM-014 remain sequentially locked.
 
 ## Stone Pickaxe Research Gate
 

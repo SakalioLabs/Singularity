@@ -152,6 +152,7 @@ except Exception as e:
 
 class Planner:
     M4_PLACE_REPLAN_FEEDBACK_POLICY_ID = "m4-place-replan-feedback-grounding-v1"
+    M4_JSON_ENVELOPE_POLICY_ID = "m4-exact-json-code-fence-envelope-v1"
 
     def __init__(self, llm: LLMProvider, task_system: TaskSystem, protocol: str = ""):
         self.llm = llm
@@ -439,11 +440,21 @@ class Planner:
             call_error = f"{self.protocol.split('-', 1)[0]}_planner_response_missed_action_window"
             response = ""
 
+        response_payload = response
+        response_envelope_normalization = {
+            "policy_id": self.M4_JSON_ENVELOPE_POLICY_ID,
+            "applied": False,
+            "normalization_count": 0,
+        }
+        if self.strict_m4 and response:
+            response_payload, response_envelope_normalization = (
+                self._normalize_m4_json_response_envelope(response)
+            )
         parse_error = ""
         if self.strict_stone_pickaxe and not response and not call_error:
             parse_error = "planner_response_empty"
         try:
-            raw_plan = json.loads(response) if response else {}
+            raw_plan = json.loads(response_payload) if response_payload else {}
             if not isinstance(raw_plan, dict):
                 parse_error = "planner response is not a JSON object"
                 raw_plan = {}
@@ -538,6 +549,10 @@ class Planner:
                 schema_validation["reasoning_normalization"] = (
                     reasoning_normalization
                 )
+        if self.strict_m4:
+            schema_validation["response_envelope_normalization"] = dict(
+                response_envelope_normalization
+            )
 
         schema_valid = bool(schema_validation.get("passed"))
         if schema_valid:
@@ -633,6 +648,31 @@ class Planner:
         self._call_index += 1
         return plan
 
+    @classmethod
+    def _normalize_m4_json_response_envelope(cls, response: str) -> tuple[str, dict]:
+        raw = str(response or "")
+        stripped = raw.strip()
+        report = {
+            "policy_id": cls.M4_JSON_ENVELOPE_POLICY_ID,
+            "applied": False,
+            "normalization_count": 0,
+        }
+        match = re.fullmatch(
+            r"```(?:json)?[ \t]*\r?\n(?P<payload>\{[\s\S]*\})\r?\n```",
+            stripped,
+            flags=re.IGNORECASE,
+        )
+        if match is None:
+            return raw, report
+        payload = match.group("payload")
+        report.update({
+            "applied": True,
+            "normalization_count": 1,
+            "raw_sha256": hashlib.sha256(raw.encode("utf-8")).hexdigest(),
+            "normalized_sha256": hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+        })
+        return payload, report
+
     def _planner_system_prompt(self) -> str:
         if self.strict_m2:
             return self._m2_system_prompt()
@@ -651,6 +691,9 @@ To mine iron_ore you need at least a stone pickaxe.
 To get oak_planks, craft them from oak_log (1 log = 4 planks).
 To get sticks, craft from 2 planks (2 planks = 4 sticks).
 You can punch trees to get oak_log without any tools.
+
+Return the JSON object directly. Never wrap it in Markdown code fences and never
+add prose before or after it.
 
 Output JSON:
 {{
