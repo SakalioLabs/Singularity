@@ -1,7 +1,7 @@
 {
   "type": "m4_probe_report",
   "schema_version": 1,
-  "generated_at": "2026-07-26T11:23:35Z",
+  "generated_at": "2026-07-26T11:12:34Z",
   "profile": "m4-fixed-v1",
   "provider_revision": "m4-grok-4.5-openai-compatible-v2",
   "task_id": "BM-012",
