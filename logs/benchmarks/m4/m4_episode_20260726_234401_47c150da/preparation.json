@@ -1,0 +1,193 @@
+{
+  "type": "m4_resource_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "progress_gate_passed": false,
+  "counts_toward_task_success": false,
+  "episode_id": "m4_episode_20260726_234401_47c150da",
+  "session_id": "6119e9ce-cef",
+  "level_name": "m4_episode_20260726_234401_47c150da_bm012",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 61.0
+    },
+    {
+      "goal": "Craft and place a crafting table for iron-tool progression",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Place the crafting table nearby for iron-tool progression",
+      "goal_index": 3,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_crafting_table_unplaced",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Place the crafting table nearby for iron-tool progression",
+      "goal_index": 4,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_crafting_table_unplaced",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Place the crafting table nearby for iron-tool progression",
+      "goal_index": 5,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_crafting_table_unplaced",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Place the crafting table nearby for iron-tool progression",
+      "goal_index": 6,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_crafting_table_unplaced",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Place the crafting table nearby for iron-tool progression",
+      "goal_index": 7,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm012_crafting_table_unplaced",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Build verified shelter before nightfall",
+      "goal_index": 8,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "dusk_without_machine_verified_shelter",
+      "priority": 4,
+      "priority_class": "shelter_preparation"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 12,
+    "real_call_count": 12,
+    "schema_valid_real_call_count": 12,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 65536,
+    "reasoning_content_consumed": false,
+    "reasoning_content_retained": false,
+    "max_call_duration_ms": 65516.0,
+    "total_token_usage": 58860,
+    "violations": []
+  },
+  "action_count": 218,
+  "successful_action_count": 10,
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 119,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 111.49914831205328,
+      "y": 136,
+      "z": -27.586268820295434
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "crafting_table": 1,
+      "oak_planks": 20,
+      "oak_sapling": 1
+    },
+    "time_of_day": 10959,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 0.0,
+  "first_unrecovered_transition": {
+    "event_type": "action",
+    "goal": "Craft and place a crafting table for iron-tool progression",
+    "action": {
+      "type": "place",
+      "parameters": {
+        "item": "crafting_table",
+        "x": 114,
+        "y": 133,
+        "z": -29
+      }
+    },
+    "error": "placement target is occupied by dirt",
+    "monotonic_s": 831046.906
+  },
+  "deadline_eligible": false,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_resource_verification",
+    "terminal_player_lifecycle",
+    "terminal_bot_connected",
+    "resource_terminal_inventory_target",
+    "resource_successful_source_actions",
+    "resource_positive_inventory_delta",
+    "terminal_machine_verification",
+    "episode_within_deadline",
+    "result_duration_eligible",
+    "no_post_deadline_execution"
+  ]
+}

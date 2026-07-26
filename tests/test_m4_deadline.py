@@ -4659,6 +4659,67 @@ def test_m4_bm012_machine_step_plan_fails_closed_outside_scope_or_state():
     ) is None
 
 
+def test_m4_bm012_machine_step_place_uses_failed_target_feedback():
+    agent = _bm012_machine_step_agent()
+    agent.session_logger.log(
+        "action",
+        {
+            "action": {
+                "type": "place",
+                "parameters": {
+                    "item": "crafting_table",
+                    "x": 114,
+                    "y": 133,
+                    "z": -29,
+                },
+            },
+            "result": {
+                "success": False,
+                "error": "placement target is occupied by dirt",
+                "action_verification": {
+                    "required": {
+                        "adjacent_reference_candidates": [
+                            {"x": 115, "y": 133, "z": -29},
+                            {"x": 113, "y": 133, "z": -29},
+                        ]
+                    }
+                },
+            },
+        },
+    )
+    observation = {
+        "inventory": {"crafting_table": 1},
+        "position": {"x": 111.5, "y": 136, "z": -27.5},
+        "nearby_blocks": [
+            {"name": "dirt", "position": {"x": 114, "y": 133, "z": -29}},
+            {"name": "coal_ore", "position": {"x": 115, "y": 134, "z": -29}},
+        ],
+    }
+
+    plan = agent._think(
+        observation,
+        override_goal="Place the crafting table nearby for iron-tool progression",
+    )
+
+    assert plan["machine_step_plan"]["target"] == {
+        "reference_position": {"x": 113, "y": 133, "z": -29}
+    }
+    assert plan["machine_step_plan"]["place_feedback_policy_id"] == (
+        "m4-bm012-machine-step-place-feedback-v1"
+    )
+    assert plan["actions"] == [
+        {
+            "type": "place",
+            "parameters": {
+                "item": "crafting_table",
+                "x": 113,
+                "y": 133,
+                "z": -29,
+            },
+        }
+    ]
+
+
 def test_m4_planner_prompt_surfaces_resource_scan_and_tool_rule():
     planner = Planner(None, TaskSystem(), protocol="m4-fixed-v1")
     planner._expected_plan_kind = "continuation"
@@ -4752,5 +4813,6 @@ if __name__ == "__main__":
     test_m4_bm012_machine_step_plan_crafts_stone_pickaxe_from_verified_state()
     test_m4_bm012_machine_step_plan_uses_resource_scan_for_raw_iron()
     test_m4_bm012_machine_step_plan_fails_closed_outside_scope_or_state()
+    test_m4_bm012_machine_step_place_uses_failed_target_feedback()
     test_m4_planner_prompt_surfaces_resource_scan_and_tool_rule()
     print("\nM4 deadline runtime tests PASSED")

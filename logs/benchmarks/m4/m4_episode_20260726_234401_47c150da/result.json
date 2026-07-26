@@ -1,0 +1,382 @@
+{
+  "type": "m4_episode_result",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "completed": false,
+  "termination_reason": "episode_deadline",
+  "elapsed_s": 600.063,
+  "deadline_eligible": false,
+  "external_step_script": false,
+  "terminal_state": {
+    "health": 0,
+    "food": null,
+    "time_of_day": null,
+    "position": {},
+    "inventory": {},
+    "nearby_blocks": [],
+    "nearby_entities": [],
+    "player_lifecycle": {},
+    "bot_connected": false
+  },
+  "autonomous_result": {
+    "mode": "autonomous",
+    "goals_completed": 1,
+    "goals_failed": 6,
+    "goals_interrupted": 1,
+    "total_cycles": 222,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 600.063,
+    "max_duration_s": 600.0,
+    "episode_started_monotonic": 830849.062,
+    "episode_ended_monotonic": 831449.125,
+    "episode_deadline_monotonic": 831449.062,
+    "deadline_eligible": false,
+    "active_runtime_interrupt": {
+      "trigger_id": "interrupt-0001",
+      "reason": "dusk_shelter_required",
+      "recommended_goal": "Build verified shelter before nightfall",
+      "paused_goal": "Place the crafting table nearby for iron-tool progression",
+      "paused_task": {},
+      "frontier_before": [],
+      "trigger_context": {
+        "cycle": 220,
+        "mode": "autonomous"
+      },
+      "evidence": {
+        "time_of_day": 10019,
+        "shelter_verified": false
+      }
+    },
+    "landmarks_discovered": 0,
+    "curriculum": {
+      "recent_goals": [
+        {
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "success": true,
+          "cycles": 10
+        },
+        {
+          "goal": "Craft and place a crafting table for iron-tool progression",
+          "success": false,
+          "cycles": 40
+        },
+        {
+          "goal": "Place the crafting table nearby for iron-tool progression",
+          "success": false,
+          "cycles": 40
+        },
+        {
+          "goal": "Place the crafting table nearby for iron-tool progression",
+          "success": false,
+          "cycles": 40
+        },
+        {
+          "goal": "Place the crafting table nearby for iron-tool progression",
+          "success": false,
+          "cycles": 40
+        },
+        {
+          "goal": "Place the crafting table nearby for iron-tool progression",
+          "success": false,
+          "cycles": 40
+        },
+        {
+          "goal": "Build verified shelter before nightfall",
+          "success": false,
+          "cycles": 2
+        }
+      ],
+      "goal_stats": {
+        "Gather 6 oak logs for tools and shelter": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 10
+        },
+        "Craft and place a crafting table for iron-tool progression": {
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "last_cycles": 40
+        },
+        "Place the crafting table nearby for iron-tool progression": {
+          "attempts": 4,
+          "successes": 0,
+          "failures": 4,
+          "last_cycles": 40
+        },
+        "Build verified shelter before nightfall": {
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "last_cycles": 2
+        }
+      },
+      "last_decision": {
+        "selected": "Gather 6 oak logs for tools and shelter",
+        "fallback": "Gather 6 oak logs for iron-tool progression",
+        "candidates": [
+          {
+            "title": "Gather 6 oak logs for tools and shelter",
+            "category": "resource",
+            "score": 61.0,
+            "reasons": [
+              "early_wood_bootstrap",
+              "novelty",
+              "skill_gap"
+            ],
+            "tags": [
+              "dig_block",
+              "gather_wood",
+              "oak_log",
+              "resource"
+            ],
+            "target_items": [
+              "oak_log"
+            ],
+            "required_items": {},
+            "skill_targets": [
+              "gather_wood",
+              "dig_block"
+            ]
+          },
+          {
+            "title": "Gather 6 oak logs for iron-tool progression",
+            "category": "fallback",
+            "score": 30.0,
+            "reasons": [
+              "rule_generator"
+            ],
+            "tags": [],
+            "target_items": [],
+            "required_items": {},
+            "skill_targets": []
+          }
+        ]
+      },
+      "exploration_feedback": {
+        "discovered_blocks": [],
+        "discovered_resources": [],
+        "discovered_entities": [],
+        "action_failure_categories": {},
+        "low_movement_log_count": 0,
+        "hostile_encounter_count": 0,
+        "path_distance": 0.0
+      },
+      "world_model_feedback": {
+        "suggested_goals": [],
+        "frontiers": [],
+        "resource_hotspots": [],
+        "danger_cells": [],
+        "frontier_count": 0,
+        "resource_hotspot_count": 0,
+        "danger_cell_count": 0
+      }
+    },
+    "summary": {
+      "session_id": "6119e9ce-cef",
+      "duration_s": 602.39,
+      "total_events": 3430,
+      "action_count": 218,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 218,
+        "action_verification_status_counts": {
+          "accept": 218
+        },
+        "action_verification_action_types": {
+          "move_to": 1,
+          "dig": 6,
+          "craft": 3,
+          "place": 207,
+          "build_shelter_cell": 1
+        },
+        "action_verification_blocked_count": 0,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 218,
+        "action_verification_status_counts": {
+          "accept": 218
+        },
+        "action_verification_action_types": {
+          "move_to": 1,
+          "dig": 6,
+          "craft": 3,
+          "place": 207,
+          "build_shelter_cell": 1
+        },
+        "action_verification_blocked_count": 0
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 1,
+        "achieved": 1,
+        "failed": 0,
+        "unknown": 0,
+        "accepted": 1,
+        "rejected": 0,
+        "acceptance_reasons": {}
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 1338,
+        "memory_read_count": 223,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 899,
+          "context": 439
+        },
+        "memory_write_types": {
+          "autonomous_start": 1,
+          "curriculum_goal": 1,
+          "auto_goal": 8,
+          "context": 439,
+          "opportunity_task": 12,
+          "action_verification": 218,
+          "task_state_update": 8,
+          "action": 218,
+          "runtime_interrupt": 4,
+          "runtime_interrupt_recovery": 3,
+          "goal_verification": 1,
+          "auto_goal_complete": 1,
+          "m4_bm012_toolchain_machine_step_plan": 210,
+          "failure_reflection_suppressed": 207,
+          "auto_goal_failed": 6,
+          "auto_goal_interrupted": 1
+        },
+        "memory_read_types": {
+          "opportunity_context": 223
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 1338,
+          "read_allowed": 223
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "logs/benchmarks/m4/m4_episode_20260726_234401_47c150da\\session_6119e9ce-cef.jsonl"
+    }
+  },
+  "evidence_hashes": {
+    "preflight_sha256": "3d707d470046d49c32bcf0548a727f829cf85e0f9f45256ae2a3e8fcb56f4cfc",
+    "manifest_sha256": "7f1f8c5263429de72090122e63a7cf25b6821659f47fb636d8637ac87ed732ba",
+    "session_sha256": "cf23d645236b654a0d8b70e3915d27ace661d742ca86e82fe63005f15b48cf59",
+    "result_sha256": "c7c484ebe8ce77203bc710d62451e5a51c82fe152b475e18b3acd9fd26ef4f52"
+  }
+}
