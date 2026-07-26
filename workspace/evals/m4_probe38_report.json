@@ -1,0 +1,316 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T12:40:00Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 38,
+  "episode_id": "m4_episode_20260726_202651_d80a4946",
+  "session_id": "1ced0541-21d",
+  "level_name": "m4_episode_20260726_202651_d80a4946_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe38_authorization.json",
+    "commit": "d5f85c773abe52b1576b55e129a0e3d7dea80fb2",
+    "tree": "b937f2c8d33b92d5bd7ef3a5b421c0f96f1c3e45",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_monotonic_s": 819019.015,
+    "probe_39_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/session_1ced0541-21d.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/session_1ced0541-21d_summary.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "2c55b3d0b6fed7176ebdcdbd78f4853b265bb9b030e2c174128a408d603a5ed8",
+    "preparation": "c6ffd8bc42696160967bcaad22d45fe47b8f498a79665df57ee0d331d342dcb2",
+    "result": "e381ff55b898c4ee76373c43afd1a461d5e1b341c6bb6df5fb649f3c761f8051",
+    "eligibility": "fa60ac78141834e0dfe271353d7d1a38610a23eeabdfa4c22fa35294fbe085dc",
+    "manifest": "1bc9fc388a3015c82195ff438b19757df6b13a9dd96281c0f54236a5e087e06e",
+    "preflight": "62cc0f65edc96fee0030acb582405b7e1ea247511627b4310ad42380e0b7d0e3",
+    "session_summary": "84881ae5f426746caea2878d5881e43ed2b4e717872e775ecc39c673a2d7139d"
+  },
+  "episode_result": {
+    "completed": true,
+    "termination_reason": "terminal_task_verified",
+    "elapsed_s": 427.485,
+    "episode_duration_s": 427.531,
+    "session_duration_s": 429.65,
+    "deadline_eligible": true,
+    "deadline_margin_s": 172.469,
+    "goals_completed": 9,
+    "goals_failed": 5,
+    "goals_interrupted": 0,
+    "planner_call_count": 34,
+    "real_planner_call_count": 29,
+    "schema_valid_real_planner_call_count": 29,
+    "schema_invalid_real_planner_call_count": 0,
+    "schema_invalid_nonreal_call_count": 5,
+    "transport_error_call_count": 0,
+    "planner_total_token_usage": 115926,
+    "planner_max_call_duration_ms": 29797.0,
+    "action_count": 34,
+    "successful_action_count": 33,
+    "failed_action_count": 1,
+    "action_verifier_accept_count": 34,
+    "action_type_counts": {
+      "move_to": 4,
+      "dig": 17,
+      "craft": 8,
+      "place": 2,
+      "equip": 3
+    },
+    "session_event_count": 821,
+    "eligibility_event_count": 820,
+    "memory_write_count": 248,
+    "memory_read_count": 38,
+    "goal_verification_count": 9,
+    "goal_verification_accepted_count": 9,
+    "maximum_inventory": {
+      "oak_log": 6,
+      "oak_planks": 8,
+      "crafting_table": 1,
+      "stick": 4,
+      "wooden_pickaxe": 1,
+      "cobblestone": 33,
+      "stone_pickaxe": 1,
+      "raw_iron": 8,
+      "dirt": 5
+    },
+    "terminal_inventory": {
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "cobblestone": 33,
+      "dirt": 5,
+      "raw_iron": 8,
+      "oak_log": 2,
+      "oak_planks": 3
+    },
+    "terminal_health": 20,
+    "terminal_hunger": 20,
+    "terminal_time_of_day": 8667,
+    "death_count": 0,
+    "respawn_count": 0,
+    "bot_connected": true
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_placed": true,
+    "crafting_table_to_wooden_pickaxe": true,
+    "wooden_pickaxe_to_three_cobblestone": true,
+    "station_access_goal_completed": true,
+    "station_access_table_placed": true,
+    "cobblestone_to_stone_pickaxe": true,
+    "full_stone_pickaxe_loop_completed": true,
+    "stone_pickaxe_to_raw_iron": true,
+    "raw_iron_to_eight": true,
+    "terminal_resource_verification_passed": true,
+    "first_action_lines": {
+      "oak_log_dig": 54,
+      "oak_planks_craft": 192,
+      "crafting_table_craft": 211,
+      "crafting_table_place": 244,
+      "wooden_pickaxe_craft": 326,
+      "stone_dig": 384,
+      "stone_pickaxe_craft": 530,
+      "stone_pickaxe_equip": 559,
+      "iron_ore_dig": 575,
+      "raw_iron_goal_verification": 814,
+      "terminal_resource_verification": 815
+    }
+  },
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 8,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta": {
+      "raw_iron": 8,
+      "iron_ore": 0
+    },
+    "successful_source_action_count": 8,
+    "successful_source_actions": [
+      {
+        "event_index": 574,
+        "jsonl_line": 575,
+        "block": "iron_ore",
+        "position": {
+          "x": 108,
+          "y": 129,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 593,
+        "jsonl_line": 594,
+        "block": "iron_ore",
+        "position": {
+          "x": 107,
+          "y": 129,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 628,
+        "jsonl_line": 629,
+        "block": "iron_ore",
+        "position": {
+          "x": 108,
+          "y": 128,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 664,
+        "jsonl_line": 665,
+        "block": "iron_ore",
+        "position": {
+          "x": 108,
+          "y": 129,
+          "z": -41
+        }
+      },
+      {
+        "event_index": 740,
+        "jsonl_line": 741,
+        "block": "iron_ore",
+        "position": {
+          "x": 107,
+          "y": 129,
+          "z": -41
+        }
+      },
+      {
+        "event_index": 758,
+        "jsonl_line": 759,
+        "block": "iron_ore",
+        "position": {
+          "x": 108,
+          "y": 128,
+          "z": -41
+        }
+      },
+      {
+        "event_index": 783,
+        "jsonl_line": 784,
+        "block": "iron_ore",
+        "position": {
+          "x": 101,
+          "y": 132,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 810,
+        "jsonl_line": 811,
+        "block": "iron_ore",
+        "position": {
+          "x": 101,
+          "y": 132,
+          "z": -41
+        }
+      }
+    ]
+  },
+  "intervention_review": {
+    "probe_37_equipment_map_transitive_repair_live_exercised": false,
+    "yield_result": "prior_blocker_not_recurred_successful_alternative_path",
+    "prior_failure_layer": "m4_equipment_map_transitive_equip_precondition_grounding_gap",
+    "prior_failure_recurred": false,
+    "equipment_map_normalization_count": 0,
+    "held_item_normalization_count": 0,
+    "transitive_equip_precondition_normalization_count": 0,
+    "equipment_has_grounding_lines": [
+      543,
+      546
+    ],
+    "schema_invalid_real_planner_call_count": 0,
+    "health_preserved": true,
+    "terminal_health": 20
+  },
+  "previous_blocker_regression_check": {
+    "failure_layer": "m4_equipment_map_transitive_equip_precondition_grounding_gap",
+    "recurred": false,
+    "equipment_map_plan_count": 0,
+    "transitive_equip_precondition_schema_rejection_count": 0,
+    "raw_iron_dig_action_count": 8,
+    "first_successful_iron_ore_dig_line": 575,
+    "raw_iron_goal_completed_line": 814,
+    "terminal_resource_verification_line": 815,
+    "terminal_raw_iron": 8,
+    "terminal_stone_pickaxe": 1
+  },
+  "offline_repair": {
+    "policy_id": "m4-equip-equipment-map-transitive-precondition-grounding-v1",
+    "extends_policy_id": "m4-equip-success-criteria-grounding-v1",
+    "scope": "strict_m4_planner_task_grounding_only",
+    "implemented_before_probe": true,
+    "live_exercised_by_probe": false,
+    "prior_blocker_not_recurred": true,
+    "validated_offline": true,
+    "source_sha256": {
+      "planner": "55d47b79cf0303c47e4e76f1c82bde8f0b0f6d555ce8a8b014e568866e80224e",
+      "m4_deadline_tests": "4929e02207a8cc2a44098e7e3835092d7014cb2e6cc1134ceacdbec1c8b8aee9",
+      "agent": "b9e336feeb9339899b8df0e17c759d95da42f28b563ecd19b5188e9eb4019e92",
+      "goal_generator": "845c1706f8eec862930c1cf4d25ef9aa62477c523102473a22c6cfa6ce802d81"
+    },
+    "probe_39_authorized": false
+  },
+  "eligibility": {
+    "eligible": true,
+    "success": true,
+    "progress_gate_passed": true,
+    "counts_toward_bm012_success": true,
+    "counts_toward_capability": false,
+    "issues": []
+  },
+  "decision": {
+    "counts_toward_bm012_success": true,
+    "counts_toward_capability": false,
+    "bm012_success_count_after": 1,
+    "required_success_count": 3,
+    "remaining_success_count": 2,
+    "next_live_probe_locked_until_evidence_commit": true,
+    "probe_39_authorized": false
+  }
+}

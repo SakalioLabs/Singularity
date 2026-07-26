@@ -2,7 +2,7 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has thirty-seven failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `partial` and incomplete: BM-011 is repeat_verified at 3/3, BM-012 has thirty-seven retained failed live attempts plus one eligible success and is now 1/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-The active provider is `grok-4.5` through the pinned OpenAI-compatible endpoint and revision `m4-grok-4.5-openai-compatible-v2`; its multimodal capability is available at the provider boundary, while the frozen M4 Planner continues to consume structured text observations. Probe 37 consumed its one-use authorization with zero retries and remained ineligible. It again completed the full empty-hand-to-`stone_pickaxe:1` loop and ended with terminal health 20 and zero deaths. Raw iron remained 0/8 and the run exceeded the 600-second deadline. The new blocker is `success_criteria.equipment={"stone_pickaxe":1}` plus a transitive `stone_pickaxe_equipped` precondition in the raw-iron phase, which left equip dependencies ungrounded and caused schema/deadline churn before any iron-ore dig. Offline repair `m4-equip-equipment-map-transitive-precondition-grounding-v1` now extends strict-M4 equip grounding to single-item equipment maps, `held_item`, and direct or transitive equip-flag dependencies with fail-closed controls. Probe 37 grants no BM-012 or capability credit, Probe 38 is not authorized until this repair is committed and pushed, BM-012 remains 0/3, and M4 remains `failing`.
+The active provider is `grok-4.5` through the pinned OpenAI-compatible endpoint and revision `m4-grok-4.5-openai-compatible-v2`; its multimodal capability is available at the provider boundary, while the frozen M4 Planner continues to consume structured text observations. Probe 38 consumed its one-use authorization with zero retries and produced the first eligible BM-012 success. It completed the full empty-hand-to-`stone_pickaxe:1` loop, then dug eight machine-proven `iron_ore` sources into terminal `raw_iron:8` with health 20, hunger 20, zero deaths, and 172.469 seconds of deadline margin. Probe 37's `success_criteria.equipment={"stone_pickaxe":1}` plus transitive `stone_pickaxe_equipped` blocker did not recur, but that exact repair branch was not live-exercised because the successful path used the already-grounded `equipment_has` form. BM-012 is now 1/3, no BM-012 repeat-verification or full M4 capability credit is granted yet, Probe 39 is not authorized until this evidence is committed and pushed, and M4 remains incomplete.
 
 ## Stone Pickaxe Skill Convergence
 
@@ -95,7 +95,7 @@ Current report outcome:
 | M1 | `repeat_verified` |
 | M2 | `repeat_verified` |
 | M3 | `repeat_verified` |
-| M4 | `failing` |
+| M4 | `partial` |
 | M5 | `failing` |
 | M6 | `failing` |
 | M7 | `not_run` |

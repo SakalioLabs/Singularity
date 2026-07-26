@@ -5,12 +5,12 @@
 - Protocol: `m4-fixed-v1`
 - Protocol SHA-256: `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`
 - Current target: BM-012 Get 8 iron resources
-- Current-target eligible successes: 0/3
+- Current-target eligible successes: 1/3
 - Completed target: BM-011 Survive the first night, `repeat_verified` at 3/3
-- M4 canonical status: `failing`
+- M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 37 used the Grok 4.5 OpenAI-compatible endpoint, again completed the full empty-hand-to-stone-pickaxe loop, and ended with terminal health 20 and zero deaths. It still did not collect raw iron and timed out at 600.031 seconds, so BM-012 remains 0/3. The new blocker is an equipment map plus transitive equip-flag gap in the raw-iron phase: a plan used `success_criteria.equipment={"stone_pickaxe":1}` at line 619, later subtasks used `stone_pickaxe_equipped` through an indirect dependency chain, and schema rejections at lines 654 and 671 consumed budget before any iron-ore dig. The current offline repair is `m4-equip-equipment-map-transitive-precondition-grounding-v1`, implemented and locally validated but not live-validated. Probe 38 is not authorized until this repair is committed and pushed, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 remain retained ineligible history, and Probe 38 is the first independently eligible BM-012 success, so the target is now 1/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 used the Grok 4.5 OpenAI-compatible endpoint, completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop, mined eight machine-proven iron-ore source blocks, ended with `raw_iron:8`, terminal health 20, zero deaths, and 172.469 seconds of deadline margin. The Probe 37 equipment-map plus transitive equip-flag blocker did not recur, but its exact branch was not live-exercised because the successful Probe 38 plan used the already-grounded `success_criteria.equipment_has` form. BM-012 still needs two more independent eligible successes before repeat verification, and BM-013/BM-014 remain sequentially locked.
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
@@ -136,7 +136,20 @@ Probe 30 consumed that authorization and remained ineligible. It completed the e
 - Evidence: `workspace/evals/m4_probe37_report.json`
 - Offline repair: `m4-equip-equipment-map-transitive-precondition-grounding-v1`
 - Repair behavior: strict-M4 Planner grounds single-item `equipment` maps and `held_item` aliases to action-result equip proof, removes equipped flags through direct or transitive dependency chains, and fails closed for empty, multi-item, count-zero, or unbound cases
-- Next gate: no Probe 38 authorization before this bounded repair is committed and pushed
+- Next gate: Probe 38 consumed the one-use authorization from commit `d5f85c7` and produced the first eligible BM-012 success
+
+## Probe 38 First Eligible BM-012 Success
+
+- Episode: `m4_episode_20260726_202651_d80a4946`
+- Session: `1ced0541-21d`
+- Planner: 34 calls, 29 real, all 29 real calls schema-valid, zero retries and zero transport errors; five non-real empty envelopes were rejected
+- Actions: 34 attempted, 33 successful; 34/34 ActionVerifier decisions accepted, with the single failed action being a recovered navigation miss
+- Progress: completed logs, planks, crafting table, placed table, wooden pickaxe, exactly three cobblestone, station access, `stone_pickaxe:1`, and eight `iron_ore` digs into `raw_iron:8`
+- Resource proof: terminal resource verification line 815 passed with observed count 8, terminal health 20, uninterrupted lifecycle, and zero death/respawn transitions
+- Prior-blocker check: the Probe 37 `success_criteria.equipment={"stone_pickaxe":1}` plus transitive `stone_pickaxe_equipped` schema blocker did not recur; the exact repair branch was not live-exercised because the successful path used `success_criteria.equipment_has`
+- Capability decision: eligible BM-012 success 1/3; no overall M4 upgrade until BM-012 reaches 3/3 and BM-013/BM-014 complete
+- Evidence: `workspace/evals/m4_probe38_report.json`
+- Next gate: no Probe 39 authorization before this evidence is committed and pushed
 
 ## Stone Pickaxe Research Gate
 
@@ -159,7 +172,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_37_equipment_map_transitive_repair_offline_passed |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_38_success_1_of_3 |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 

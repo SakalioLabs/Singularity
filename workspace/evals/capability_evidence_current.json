@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-15T03:29:09.078241+00:00",
+  "generated_at": "2026-07-26T12:45:52.810191+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -64,6 +64,21 @@
       "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_120631_3bec6052/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_132127_03a86405/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_150442_eb77f668/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_170045_375cdbbb/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_175504_3d40e665/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_191518_099f82f9/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_194031_5db1c9fd/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/eligibility.json",
       "logs/benchmarks/m1_benchmark_20260710_174239.json",
       "logs/benchmarks/m1_benchmark_20260710_174806.json",
       "logs/benchmarks/m1_benchmark_20260710_175231.json",
@@ -3569,6 +3584,636 @@
       ]
     },
     {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/eligibility.json",
+      "session_id": "256378c6-a50",
+      "session_ids": [
+        "256378c6-a50"
+      ],
+      "content_sha256": "b40c9a30fcbf147eaced24751facdfab2dd4115f29b154d86013a75421644dcf",
+      "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "protocol_hashes": [
+        "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260725_225534_83b6c4ba/session.json",
+      "session_id": "256378c6-a50",
+      "session_ids": [
+        "256378c6-a50"
+      ],
+      "content_sha256": "ce1a07b26821f0cc5587c8309c571e394c74db56fc935d7da68e5a681d4ddce7",
+      "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "protocol_hashes": [
+        "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/eligibility.json",
+      "session_id": "212c704d-4b6",
+      "session_ids": [
+        "212c704d-4b6"
+      ],
+      "content_sha256": "a0fcbd55db40a5dffc5bb62564aaad2eeaa2ba389b1f8e0a5c71bce61ee83ff8",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_115303_5694249f/session.json",
+      "session_id": "212c704d-4b6",
+      "session_ids": [
+        "212c704d-4b6"
+      ],
+      "content_sha256": "d1dca66bd93d2d8ad680d4d4d62a9063fb07e62011d6b29bf64f5a6a572c4497",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_120631_3bec6052/eligibility.json",
+      "session_id": "7dea1345-c12",
+      "session_ids": [
+        "7dea1345-c12"
+      ],
+      "content_sha256": "4629759c17803f66890726956464f6d16d5b3278f3843d75e6c9375f11b5b9f0",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_120631_3bec6052/session.json",
+      "session_id": "7dea1345-c12",
+      "session_ids": [
+        "7dea1345-c12"
+      ],
+      "content_sha256": "00f2f03f757bab0ee9233b07fdf44619de4077e22dc3fec0097e1fdb5f53359d",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/eligibility.json",
+      "session_id": "5325482a-ef9",
+      "session_ids": [
+        "5325482a-ef9"
+      ],
+      "content_sha256": "49b2c3833c4b05edd4984608fa57ddce01d2d919d19b75c5629faa739019ae1d",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/session.json",
+      "session_id": "5325482a-ef9",
+      "session_ids": [
+        "5325482a-ef9"
+      ],
+      "content_sha256": "dc92a82b24d9da7a10ffd8755c2ce7a7a02473274ea82148479c764f0a594cb3",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_132127_03a86405/eligibility.json",
+      "session_id": "3fa8c0bf-f74",
+      "session_ids": [
+        "3fa8c0bf-f74"
+      ],
+      "content_sha256": "d743ae3bf4df10e8721086ed2758fdf10db30c398638d2005441207638fa2e39",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_132127_03a86405/session.json",
+      "session_id": "3fa8c0bf-f74",
+      "session_ids": [
+        "3fa8c0bf-f74"
+      ],
+      "content_sha256": "cd98ae85640ad60c7828418f237f98221295a469be2156e6f69fe13ef9eb7cd4",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/eligibility.json",
+      "session_id": "98512bb5-f9c",
+      "session_ids": [
+        "98512bb5-f9c"
+      ],
+      "content_sha256": "e0247e04082165c7b437800610f109ba8171aa83d815e11156d73fe40b39718c",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/session.json",
+      "session_id": "98512bb5-f9c",
+      "session_ids": [
+        "98512bb5-f9c"
+      ],
+      "content_sha256": "f99426cd5d87628ae030eec5ee46bee5acb9778eeaeb87dce1ddb832bec38fa0",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_150442_eb77f668/eligibility.json",
+      "session_id": "e5af5bbe-566",
+      "session_ids": [
+        "e5af5bbe-566"
+      ],
+      "content_sha256": "f19da35464550b77f8d15a04208557841a0a662f8ea346dc906a4fae0202d93f",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_150442_eb77f668/session.json",
+      "session_id": "e5af5bbe-566",
+      "session_ids": [
+        "e5af5bbe-566"
+      ],
+      "content_sha256": "bf52c8b9ab039b5fc59924e8c0206ceb90a3650dadee6bfd77defb3e3cfa5f41",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_170045_375cdbbb/eligibility.json",
+      "session_id": "ff7244ee-0d4",
+      "session_ids": [
+        "ff7244ee-0d4"
+      ],
+      "content_sha256": "1aa18b485a1a62a03b3a6310c4afa5fe366a474da80d507a24d419ecd18f025b",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_170045_375cdbbb/session.json",
+      "session_id": "ff7244ee-0d4",
+      "session_ids": [
+        "ff7244ee-0d4"
+      ],
+      "content_sha256": "e85228de70c97859390d68ed92bb5aee30a372cf90e3f1ca7fd3d6f4cc2df608",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_175504_3d40e665/eligibility.json",
+      "session_id": "d7b7377c-784",
+      "session_ids": [
+        "d7b7377c-784"
+      ],
+      "content_sha256": "191242340e08325e217a6b06fff669998de51bf18f5138f04689d5b4daba07d8",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_175504_3d40e665/session.json",
+      "session_id": "d7b7377c-784",
+      "session_ids": [
+        "d7b7377c-784"
+      ],
+      "content_sha256": "d3546fc1753cd9748eeb5f609d6d0c27b1d7e2fc36508656d9fb7ae276db017a",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/eligibility.json",
+      "session_id": "974bfabb-b64",
+      "session_ids": [
+        "974bfabb-b64"
+      ],
+      "content_sha256": "4a63cffb0b50171e996e23108dd924cbf5f339bf02560af91847a607c4858820",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/session.json",
+      "session_id": "974bfabb-b64",
+      "session_ids": [
+        "974bfabb-b64"
+      ],
+      "content_sha256": "efc8ec747a49aa709091543c7b31a8ab7102dbd80a0306cf07a4e6e13bb9888b",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/eligibility.json",
+      "session_id": "a2a086e2-dbf",
+      "session_ids": [
+        "a2a086e2-dbf"
+      ],
+      "content_sha256": "abf8378d966a8055e028688d6cb5b62cb081c03438dd6118c88cedee5b2f3bb7",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_185244_6c97bbff/session.json",
+      "session_id": "a2a086e2-dbf",
+      "session_ids": [
+        "a2a086e2-dbf"
+      ],
+      "content_sha256": "e75f85bd4555992b336b86f5a825dd7bafd8906de7e32545576fe95e6eeaf199",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_191518_099f82f9/eligibility.json",
+      "session_id": "942c86d0-f55",
+      "session_ids": [
+        "942c86d0-f55"
+      ],
+      "content_sha256": "cf689693eca174857d50f39e5e0cde9734043cfb9972055234cc86601ed08be6",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_191518_099f82f9/session.json",
+      "session_id": "942c86d0-f55",
+      "session_ids": [
+        "942c86d0-f55"
+      ],
+      "content_sha256": "672fc8c58815c8f986e7092c9962a105e66850273827e1457a9222107fca0515",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_194031_5db1c9fd/eligibility.json",
+      "session_id": "c9973e8a-b5f",
+      "session_ids": [
+        "c9973e8a-b5f"
+      ],
+      "content_sha256": "6e04e48da4a8df95328a596f06cd50a8d1f6eaf7cb33ad929dde6c7fdd83b68d",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_194031_5db1c9fd/session.json",
+      "session_id": "c9973e8a-b5f",
+      "session_ids": [
+        "c9973e8a-b5f"
+      ],
+      "content_sha256": "f408d15061c57f56da619fe829ba2cfcc6a5f61b192a824521fad04e18175c1f",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/eligibility.json",
+      "session_id": "dbcb2bfd-0f1",
+      "session_ids": [
+        "dbcb2bfd-0f1"
+      ],
+      "content_sha256": "61a3ee19ffdb02ab6759193af1db1dac33954afdd3204ab46d515ebefd3112b8",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/session.json",
+      "session_id": "dbcb2bfd-0f1",
+      "session_ids": [
+        "dbcb2bfd-0f1"
+      ],
+      "content_sha256": "4a0c8272169ef88dcd0deace3d05a5eb3d92bde1a208a50d73c0a0492a61e0ee",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/eligibility.json",
+      "session_id": "1ced0541-21d",
+      "session_ids": [
+        "1ced0541-21d"
+      ],
+      "content_sha256": "fa60ac78141834e0dfe271353d7d1a38610a23eeabdfa4c22fa35294fbe085dc",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260726_202651_d80a4946/session.json",
+      "session_id": "1ced0541-21d",
+      "session_ids": [
+        "1ced0541-21d"
+      ],
+      "content_sha256": "3133dc9ee1c639114ebc72aaa293683f8bcf3ef4af935cff5200bede26f60e49",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
       "repo_relative_path": "logs/benchmarks/visual_action_ablation_current.json",
       "session_id": "not_applicable",
       "session_ids": [],
@@ -5375,7 +6020,7 @@
     "unsupported_completion_count": 0,
     "repeat_verified_phase_count": 3,
     "live_observed_phase_count": 0,
-    "failing_phase_count": 3,
+    "failing_phase_count": 2,
     "system_complete": false
   },
   "contradicted_phases": [],
@@ -6566,12 +7211,12 @@
       "id": "M4",
       "name": "Autonomous Survival",
       "evidence_kind": "benchmark",
-      "status": "failing",
+      "status": "partial",
       "completion_claim_allowed": false,
       "declared": {
         "name": "Autonomous Survival",
-        "status": "Failing (failing)",
-        "progress": "BM-011 repeatverified 3/3; BM-012 twenty-two failed attempts, 0/3; BM-013..014 notrun"
+        "status": "Partial (partial)",
+        "progress": "BM-011 repeatverified 3/3; BM-012 Probe 38 success 1/3; BM-013..014 notrun"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -6591,7 +7236,7 @@
         }
       ],
       "required_benchmark_count": 4,
-      "live_observed_benchmark_count": 1,
+      "live_observed_benchmark_count": 2,
       "repeat_verified_benchmark_count": 1,
       "benchmarks": [
         {
@@ -6620,8 +7265,8 @@
             "uninterrupted_survival",
             "terminal_player_lifecycle",
             "terminal_machine_verification",
-            "m4_eligibility_protocol_mismatch",
-            "m4_manifest_protocol_mismatch"
+            "unsupported_protocol_sha256",
+            "m4_eligibility_protocol_mismatch"
           ],
           "repeats_required": 3,
           "evidence_refs": [
@@ -6647,10 +7292,10 @@
         },
         {
           "task_id": "BM-012",
-          "status": "failing",
-          "attempts": 23,
-          "successes": 0,
-          "failures": 23,
+          "status": "live_observed",
+          "attempts": 38,
+          "successes": 1,
+          "failures": 37,
           "ineligible_successes": 0,
           "ineligibility_reasons": [],
           "repeats_required": 3,
@@ -6705,7 +7350,7 @@
       "required_live_execution_count": 0,
       "live_observed_execution_count": 0,
       "missing_evidence": [
-        "BM-012:needs_3_more_successes",
+        "BM-012:needs_2_more_successes",
         "BM-013:needs_3_more_successes",
         "BM-014:needs_3_more_successes"
       ]
@@ -8257,7 +8902,7 @@
   ],
   "errors": [],
   "recommendations": [
-    "diagnose_and_rerun_m4_benchmarks",
+    "complete_m4_live_evidence_contract",
     "diagnose_and_rerun_m5_live_evidence",
     "diagnose_and_rerun_m6_live_evidence",
     "run_m7_benchmarks"
@@ -8268,13 +8913,13 @@
     "specialized_reports_are_non_authoritative": true
   },
   "document_consistency": {
-    "consistent": true,
+    "consistent": false,
     "expected": {
       "M0": "source_verified",
       "M1": "repeat_verified",
       "M2": "repeat_verified",
       "M3": "repeat_verified",
-      "M4": "failing",
+      "M4": "partial",
       "M5": "failing",
       "M6": "failing",
       "M7": "not_run"
@@ -8285,7 +8930,7 @@
         "M1": "repeat_verified",
         "M2": "repeat_verified",
         "M3": "repeat_verified",
-        "M4": "failing",
+        "M4": "partial",
         "M5": "failing",
         "M6": "failing",
         "M7": "not_run"
@@ -8295,22 +8940,22 @@
         "M1": "repeat_verified",
         "M2": "repeat_verified",
         "M3": "repeat_verified",
-        "M4": "failing",
+        "M4": "partial",
         "M5": "failing",
         "M6": "failing",
         "M7": "not_run"
       },
-      "readme": {
-        "M0": "source_verified",
-        "M1": "repeat_verified",
-        "M2": "repeat_verified",
-        "M3": "repeat_verified",
-        "M4": "failing",
-        "M5": "failing",
-        "M6": "failing",
-        "M7": "not_run"
-      }
+      "readme": {}
     },
-    "errors": []
+    "errors": [
+      "readme_status_mismatch:M0:expected=source_verified:observed=missing",
+      "readme_status_mismatch:M1:expected=repeat_verified:observed=missing",
+      "readme_status_mismatch:M2:expected=repeat_verified:observed=missing",
+      "readme_status_mismatch:M3:expected=repeat_verified:observed=missing",
+      "readme_status_mismatch:M4:expected=partial:observed=missing",
+      "readme_status_mismatch:M5:expected=failing:observed=missing",
+      "readme_status_mismatch:M6:expected=failing:observed=missing",
+      "readme_status_mismatch:M7:expected=not_run:observed=missing"
+    ]
   }
 }
