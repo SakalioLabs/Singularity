@@ -1586,6 +1586,8 @@ The `bounded_shelter_partial_failure_atomicity` hypothesis passed live in Probe 
   against the pinned `/models` endpoint before Minecraft startup and selects the
   first healthy candidate. If none pass, startup fails closed without consuming
   a live episode. Probe 26 requires a new authorization-only commit.
+- Probe 26 is parent-bound to credential-preflight commit `e5b2efd` and permits
+  one fresh fixed-limit BM-012 episode after that preflight passes.
 
 - One live episode per round.
 - One root-cause hypothesis per round.

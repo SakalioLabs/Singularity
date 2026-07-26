@@ -591,3 +591,6 @@ The material below is retained as historical context and is not active work whil
 - `m4-provider-credential-preflight-v1` now deduplicates configured Process,
   User, and Machine candidates and requires one candidate to pass the pinned
   provider `/models` endpoint before Paper starts. Probe 26 is not authorized.
+- Probe 26 is separately authorized after the credential-preflight fix commit.
+  It permits exactly one fresh BM-012 episode and requires provider credential
+  preflight to pass before Paper starts.

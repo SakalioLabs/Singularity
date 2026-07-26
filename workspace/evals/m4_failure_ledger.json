@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-26T03:57:24Z",
+  "generated_at": "2026-07-26T04:03:29Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -21,7 +21,7 @@
   "current_gate": {
     "hypothesis": "stale_process_credential_selected_before_valid_user_credential",
     "policy_id": "m4-provider-credential-preflight-v1",
-    "status": "probe_25_ineligible_offline_repair_complete",
+    "status": "probe_26_authorized_one_use",
     "earliest_blocker": "runtime_selected_stale_process_credential_before_planner_response",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -1156,9 +1156,11 @@
     "bm012_probe_25_action_count": 0,
     "bm012_probe_25_eligible": false,
     "bm012_provider_credential_preflight_offline_gate_passed": true,
-    "bm012_probe_26_authorized": false,
-    "bm012_ready_task_next_authorized_episode": null,
-    "bm012_ready_task_authorized_episode_count": 0
+    "bm012_probe_26_authorized": true,
+    "bm012_probe_26_authorization_path": "workspace/evals/m4_probe26_authorization.json",
+    "bm012_probe_26_authorization_sha256": "7e0fce9d44ff2cca8d3fd8fdbb1f5cd29d1ebf4277eecae88bb6f89d2419f4b7",
+    "bm012_ready_task_next_authorized_episode": "probe_26_one_fresh_bm012_episode",
+    "bm012_ready_task_authorized_episode_count": 1
   },
   "entries": [
     {
