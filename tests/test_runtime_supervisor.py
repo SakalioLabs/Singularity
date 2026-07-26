@@ -211,6 +211,58 @@ def test_runtime_interrupts_on_health_and_hostiles():
     print("PASS: RuntimeSupervisor interrupts health and hostile threats")
 
 
+def test_m4_preplanner_explosive_hostile_horizon_replays_probe_30():
+    observation = {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {},
+        "equipment": [],
+        "position": {"x": 106.5, "y": 136, "z": -29.3},
+        "time_of_day": 4425,
+        "nearby_entities": [{
+            "id": 948,
+            "type": "creeper",
+            "distance": 12.7,
+            "hostile": True,
+            "position": {"x": 96.617, "y": 136, "z": -37.217},
+        }],
+    }
+    supervisor = RuntimeSupervisor(Config(planner_protocol="m4-fixed-v1"))
+
+    decision = supervisor.evaluate_preplanner_interrupt(observation)
+
+    assert decision.should_interrupt is True
+    assert decision.reason == "hostile_nearby"
+    assert decision.emergency_action["type"] == "move_to"
+    assert decision.evidence["m4_explosive_hostile_horizon"] == {
+        "policy_id": "m4-preplanner-explosive-hostile-horizon-v1",
+        "hostile_type": "creeper",
+        "distance": 12.7,
+        "legacy_interrupt_distance": 8.0,
+        "explosive_interrupt_distance": 16.0,
+        "planner_latency_exposure": True,
+    }
+
+    assert RuntimeSupervisor(
+        Config(planner_protocol="m2-fixed-v1")
+    ).evaluate_preplanner_interrupt(observation).should_interrupt is False
+    assert supervisor.evaluate_preplanner_interrupt({
+        **observation,
+        "nearby_entities": [{
+            **observation["nearby_entities"][0],
+            "type": "zombie",
+        }],
+    }).should_interrupt is False
+    assert supervisor.evaluate_preplanner_interrupt({
+        **observation,
+        "nearby_entities": [{
+            **observation["nearby_entities"][0],
+            "distance": 16.01,
+        }],
+    }).should_interrupt is False
+    print("PASS: Probe 30 creeper is handled before planner latency")
+
+
 def test_runtime_interrupts_deadlines_and_return_to_base():
     tasks = TaskSystem()
     task = tasks.create_task(

@@ -2348,6 +2348,41 @@ class Agent:
                         termination_reason = "machine_verified_readiness_recovery"
                         break
 
+                    runtime = getattr(self, "runtime", None)
+                    evaluate_preplanner = getattr(
+                        runtime,
+                        "evaluate_preplanner_interrupt",
+                        None,
+                    )
+                    preplanner_decision = (
+                        evaluate_preplanner(observation)
+                        if callable(evaluate_preplanner)
+                        else None
+                    )
+                    if (
+                        preplanner_decision is not None
+                        and preplanner_decision.should_interrupt
+                    ):
+                        interrupted, observation = self._handle_runtime_interrupt(
+                            observation,
+                            goal,
+                            {
+                                "cycle": total_cycles,
+                                "mode": "autonomous",
+                                "phase": "pre_planner",
+                            },
+                        )
+                        if interrupted:
+                            interrupt_reason = str(
+                                getattr(self, "_last_runtime_interrupt_yield", "") or ""
+                            )
+                            termination_reason = (
+                                f"runtime_interrupt:{interrupt_reason}"
+                                if interrupt_reason
+                                else "runtime_interrupt:hostile_nearby"
+                            )
+                            break
+
                     plan = self._think(observation, override_goal=goal)
                     last_plan = plan
                     self.session_logger.log_plan(plan)

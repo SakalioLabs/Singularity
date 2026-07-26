@@ -1,0 +1,73 @@
+{
+  "type": "m4_probe30_preplanner_explosive_hostile_repair_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T08:10:00Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 30,
+  "episode_id": "m4_episode_20260726_150442_eb77f668",
+  "session_id": "e5af5bbe-566",
+  "classification": "behavioral_ineligible",
+  "counts_toward_bm012_success": false,
+  "counts_toward_capability": false,
+  "first_unrecovered_transition": {
+    "failure_layer": "preplanner_explosive_hostile_horizon_gap",
+    "preplanner_observation_line_index": 334,
+    "preplanner_observation_monotonic_s": 799970.531,
+    "health_before": 20,
+    "hunger_before": 20,
+    "time_of_day_before": 4425,
+    "hostile_type": "creeper",
+    "hostile_distance": 12.7,
+    "legacy_interrupt_distance": 8.0,
+    "planner_call_line_index": 338,
+    "planner_call_id": "llm-eae93d1a9a7f4d50",
+    "planner_duration_ms": 14938,
+    "postplanner_observation_line_index": 350,
+    "postplanner_observation_monotonic_s": 799986.031,
+    "health_after": 1.2373027801513672,
+    "hunger_after": 20,
+    "time_of_day_after": 4725,
+    "health_loss": 18.762697219848633,
+    "first_runtime_interrupt_line_index": 356,
+    "first_runtime_interrupt_reason": "health_critical",
+    "recovered": false
+  },
+  "downstream_failures": [
+    "probabilistic_leaf_drop_selected_as_emergency_food",
+    "repeated_failed_emergency_food_roots",
+    "player_death",
+    "post_death_null_health_task_reconciliation_type_error",
+    "max_total_cycles"
+  ],
+  "offline_repair": {
+    "policy_id": "m4-preplanner-explosive-hostile-horizon-v1",
+    "scope": "strict_m4_only",
+    "explosive_hostile_types": [
+      "creeper"
+    ],
+    "explosive_interrupt_distance": 16.0,
+    "legacy_interrupt_distance_preserved": 8.0,
+    "preplanner_check": true,
+    "machine_grounding": "nearby_entities hostile type distance and position",
+    "emergency_action": "bounded move_to away from nearest explosive hostile",
+    "non_m4_unchanged": true,
+    "non_explosive_extended_horizon_rejected": true,
+    "out_of_horizon_rejected": true,
+    "capability_upgrade": false
+  },
+  "evidence_paths": {
+    "probe_report": "workspace/evals/m4_probe30_report.json",
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_150442_eb77f668/session_e5af5bbe-566.jsonl"
+  },
+  "evidence_sha256": {
+    "probe_report": "97d285f7b34c24f85d2323d180c357cee0c0950507056186bf5800f86d8eb643",
+    "raw_session_jsonl": "0500498e3064fce784f1b6a837e140d324679f20eadb278a07fc7c144770ff4b"
+  },
+  "decision": {
+    "bm012_eligible_success_count": 0,
+    "m4_status": "failing",
+    "probe_31_authorized": false
+  }
+}

@@ -26,7 +26,7 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - Repair audit: `workspace/evals/m4_probe29_failed_bound_nearby_block_repair_audit.json`
 - Next gate: Probe 30 has one parent-bound authorization from pushed repair commit `6be8a21e`; zero retries and no advance credit
 
-Probe 30 consumed that authorization and remained ineligible. It completed the empty-hand-to-wooden-pickaxe prefix with 20/22 successful actions, then died before cobblestone progression. A post-death observation carried `health: null`; exact task reconciliation compared it directly with an integer threshold and emitted 290 repeated type errors from cycle 31. Null, nonnumeric, NaN, and infinite health now fail closed instead of raising. Probe 31 is not authorized.
+Probe 30 consumed that authorization and remained ineligible. It completed the empty-hand-to-wooden-pickaxe prefix with 20/22 successful actions, then died before cobblestone progression. The earliest retained transition precedes the post-death type error: observation line 334 showed full health and one hostile creeper at distance 12.7 immediately before a 14.938-second Planner call. The legacy hostile radius was 8 blocks and no safety check ran before planning; line 350 then showed health 1.237 after the creeper closed and exploded. Emergency leaf digging, death, and 290 post-death null-health errors are downstream. Policy `m4-preplanner-explosive-hostile-horizon-v1` adds a strict-M4-only pre-Planner check for creepers within 16 blocks and executes the existing machine-grounded flee action before model latency. Non-M4 modes, non-explosive hostiles beyond 8 blocks, and creepers beyond 16 blocks remain unchanged. Probe 31 is not authorized.
 
 ## Stone Pickaxe Research Gate
 

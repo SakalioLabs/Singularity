@@ -25,6 +25,12 @@ class RuntimeSupervisor:
     """Evaluates fast actor-side interrupts between planner cycles."""
 
     BM012_DUSK_IRON_POLICY_ID = "m4-bm012-bounded-dusk-iron-continuation-v1"
+    M4_EXPLOSIVE_HOSTILE_HORIZON_POLICY_ID = (
+        "m4-preplanner-explosive-hostile-horizon-v1"
+    )
+    HOSTILE_INTERRUPT_DISTANCE = 8.0
+    M4_EXPLOSIVE_HOSTILE_DISTANCE = 16.0
+    EXPLOSIVE_HOSTILE_TYPES = frozenset({"creeper"})
 
     SURVIVAL_INTERRUPT_REASONS = frozenset({
         "hostile_nearby",
@@ -68,6 +74,16 @@ class RuntimeSupervisor:
             }
         return decision
 
+    def evaluate_preplanner_interrupt(self, observation: dict) -> InterruptDecision:
+        """Catch strict-M4 explosive threats that can close during planner latency."""
+        if str(getattr(self.config, "planner_protocol", "") or "") != "m4-fixed-v1":
+            return InterruptDecision(False)
+        decision = self._hostile_interrupt(observation)
+        horizon = decision.evidence.get("m4_explosive_hostile_horizon")
+        if decision.should_interrupt and isinstance(horizon, dict) and horizon:
+            return decision
+        return InterruptDecision(False)
+
     def _health_interrupt(self, observation: dict) -> InterruptDecision:
         health = self._number(observation.get("health", 20), 20.0)
         if health >= self.config.health_critical_threshold:
@@ -83,14 +99,18 @@ class RuntimeSupervisor:
         )
 
     def _hostile_interrupt(self, observation: dict) -> InterruptDecision:
-        hostiles = [
-            entity for entity in observation.get("nearby_entities", [])
-            if (
-                isinstance(entity, dict)
-                and entity.get("hostile")
-                and self._number(entity.get("distance", 999), 999.0) <= 8
-            )
-        ]
+        strict_m4 = str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1"
+        hostiles = []
+        for entity in observation.get("nearby_entities", []):
+            if not isinstance(entity, dict) or not entity.get("hostile"):
+                continue
+            hostile_type = str(entity.get("type") or "").strip().lower()
+            distance = self._number(entity.get("distance", 999), 999.0)
+            threshold = self.HOSTILE_INTERRUPT_DISTANCE
+            if strict_m4 and hostile_type in self.EXPLOSIVE_HOSTILE_TYPES:
+                threshold = self.M4_EXPLOSIVE_HOSTILE_DISTANCE
+            if distance <= threshold:
+                hostiles.append(entity)
         if not hostiles:
             return InterruptDecision(False)
         nearest = sorted(
@@ -110,13 +130,30 @@ class RuntimeSupervisor:
                 reason="m4_hostile_safe_state_grounding",
                 evidence={"m4_hostile_safe_state_grounding": safe_state_grounding},
             )
+        evidence = {"entity": nearest}
+        nearest_type = str(nearest.get("type") or "").strip().lower()
+        nearest_distance = self._number(nearest.get("distance", 999), 999.0)
+        if (
+            strict_m4
+            and nearest_type in self.EXPLOSIVE_HOSTILE_TYPES
+            and self.HOSTILE_INTERRUPT_DISTANCE < nearest_distance
+            <= self.M4_EXPLOSIVE_HOSTILE_DISTANCE
+        ):
+            evidence["m4_explosive_hostile_horizon"] = {
+                "policy_id": self.M4_EXPLOSIVE_HOSTILE_HORIZON_POLICY_ID,
+                "hostile_type": nearest_type,
+                "distance": nearest_distance,
+                "legacy_interrupt_distance": self.HOSTILE_INTERRUPT_DISTANCE,
+                "explosive_interrupt_distance": self.M4_EXPLOSIVE_HOSTILE_DISTANCE,
+                "planner_latency_exposure": True,
+            }
         return InterruptDecision(
             True,
             reason="hostile_nearby",
             priority=120,
             recommended_goal="Handle nearby hostile entity",
             emergency_action=action,
-            evidence={"entity": nearest},
+            evidence=evidence,
         )
 
     def _m4_verified_shelter_hostile_grounding(
