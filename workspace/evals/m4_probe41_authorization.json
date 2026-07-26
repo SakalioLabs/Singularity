@@ -26,6 +26,10 @@
   "required_bm012_eligible_success_count": 3,
   "remaining_bm012_eligible_success_count_before_probe": 2,
   "counts_toward_capability_before_independent_verification": false,
-  "consumed": false,
+  "consumed": true,
+  "consumed_by_episode": "m4_episode_20260726_221222_50eaaed0",
+  "consumed_session_id": "75b754c6-194",
+  "consumed_at": "autonomous_start",
+  "consumed_monotonic_s": 825360.39,
   "next_authorization": false
 }

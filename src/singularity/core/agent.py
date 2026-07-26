@@ -114,6 +114,9 @@ M4_TYPED_SCHEMA_ISSUE_PATTERN = re.compile(
 M4_BM012_STONE_PICKAXE_FRONTIER_YIELD_POLICY_ID = (
     "m4-bm012-stone-pickaxe-frontier-yield-v1"
 )
+M4_BM012_TOOLCHAIN_FALLBACK_LOCK_POLICY_ID = (
+    "m4-bm012-toolchain-progression-fallback-lock-v1"
+)
 M4_BM012_RESOURCE_SCAN_POLICY_ID = "m4-bm012-resource-scan-v1"
 M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID = "m4-bm012-raw-iron-dig-stone-pickaxe-v1"
 M4_BM012_RESOURCE_SCAN_RADIUS = 16
@@ -8515,6 +8518,12 @@ class Agent:
         ):
             return False
         return str(goal_lower or "").startswith((
+            "craft crafting table",
+            "craft and place crafting table",
+            "craft and place a crafting table for iron-tool progression",
+            "place the crafting table nearby for iron-tool progression",
+            "craft a wooden pickaxe for stone acquisition",
+            "craft wooden pickaxe",
             "confirm collection of 8 iron resources",
             "gather 3 cobblestone with the wooden pickaxe",
             "craft a stone pickaxe for mining iron ore",

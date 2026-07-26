@@ -1,0 +1,292 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T14:26:46Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 41,
+  "episode_id": "m4_episode_20260726_221222_50eaaed0",
+  "session_id": "75b754c6-194",
+  "level_name": "m4_episode_20260726_221222_50eaaed0_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe41_authorization.json",
+    "commit": "c179a056bda383df49bd9e08a137ca59e2e0b70c",
+    "tree": "645bbc41224d8497b2c469e78833f2acd56b593b",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_monotonic_s": 825360.39,
+    "probe_42_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/session_75b754c6-194.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/session_75b754c6-194_summary.json",
+    "session_json": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/session.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260726_221222_50eaaed0/reset.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "8107a7c2a724d795d380bc62d74f57b048776ef3ecb9095dc139c10d885940ca",
+    "preparation": "08041d89789dcb700053fca4364687c22ac34c4e5be858b4d38031107789efbf",
+    "result": "4d7e7670c9b759ae4895871778cfbbb943dc97039e0dd3539120bcabe0cfa30c",
+    "eligibility": "8d60e5249621e2ec656b1d75e1d7d3ef625b2d873bfda2cda9b2004baeb3bfb3",
+    "manifest": "e94a91119aad3f986f42453fcadcf31fbd22388699282cb998b1ea2657ff91ad",
+    "preflight": "2a902ddbb5fcce1dde9d4f6fd139feaf0181801fa2c51c07310af118e4cc6f40",
+    "session_summary": "2b7e68e5dcaa9215e7ca8fc3e29480fc0fdc82582eaf1fa71a7846e671bbebc1",
+    "session_json": "97510076552ad13fb07a7fcb90d6466b6a904c1328286da05a0f43dbae00e5c0",
+    "protocol_status": "fd114901467a491148d87cac1ddb8dffca2dc107a414fb626c0d16accfb2f4a5",
+    "reset": "1da4b0257fc39b59d160dd8108c9198f2ea4b0145dae1b379609ea973346e44f"
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 600.0,
+    "episode_duration_s": 600.063,
+    "session_duration_s": 603.3,
+    "deadline_eligible": false,
+    "goals_completed": 5,
+    "goals_failed": 4,
+    "goals_interrupted": 0,
+    "total_cycles": 23,
+    "planner_call_count": 23,
+    "real_planner_call_count": 20,
+    "schema_valid_real_planner_call_count": 20,
+    "schema_invalid_real_planner_call_count": 0,
+    "schema_invalid_nonreal_call_count": 3,
+    "planner_timeout_call_count": 0,
+    "transport_error_call_count": 0,
+    "planner_total_token_usage": 110677,
+    "planner_max_call_duration_ms": 72282.0,
+    "action_count": 18,
+    "successful_action_count": 17,
+    "failed_action_count": 1,
+    "action_verifier_accept_count": 18,
+    "action_verifier_reject_count": 0,
+    "action_type_counts": {
+      "move_to": 1,
+      "dig": 6,
+      "craft": 8,
+      "place": 1,
+      "build_shelter_cell": 1,
+      "wait": 1
+    },
+    "session_event_count": 598,
+    "eligibility_event_count": 597,
+    "memory_write_count": 154,
+    "memory_read_count": 30,
+    "goal_verification_count": 4,
+    "goal_verification_accepted_count": 4,
+    "maximum_inventory": {
+      "oak_log": 6,
+      "oak_planks": 11,
+      "crafting_table": 1,
+      "stick": 4,
+      "wooden_pickaxe": 1,
+      "oak_sapling": 1
+    },
+    "terminal_inventory": {
+      "stick": 2,
+      "crafting_table": 1,
+      "wooden_pickaxe": 1,
+      "oak_sapling": 1,
+      "oak_planks": 2
+    },
+    "terminal_health": 20,
+    "terminal_hunger": 20,
+    "terminal_time_of_day": 12150,
+    "terminal_lifecycle_death_count": 0,
+    "terminal_lifecycle_respawn_count": 0,
+    "bot_connected": true
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_placed": true,
+    "crafting_table_to_wooden_pickaxe": true,
+    "wooden_pickaxe_equipped": false,
+    "wooden_pickaxe_to_three_cobblestone": false,
+    "station_access_goal_completed": false,
+    "station_access_table_crafted": false,
+    "station_access_table_placed": false,
+    "cobblestone_to_stone_pickaxe": false,
+    "full_stone_pickaxe_loop_completed": false,
+    "stone_pickaxe_to_raw_iron": false,
+    "raw_iron_to_eight": false,
+    "terminal_resource_verification_passed": false,
+    "first_action_lines": {
+      "oak_log_dig": 37,
+      "oak_planks_craft": 217,
+      "crafting_table_craft": 241,
+      "crafting_table_place": 286,
+      "wooden_pickaxe_craft": 512,
+      "wooden_pickaxe_equip": null,
+      "stone_dig": null,
+      "stone_pickaxe_craft": null,
+      "terminal_resource_verification": null
+    }
+  },
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "principal_blocker": {
+    "failure_layer": "m4_bm012_toolchain_progression_fallback_gap",
+    "secondary_failure_layer": "m4_bm012_schema_noise_recovery_curriculum_detour",
+    "first_empty_plan_line": 128,
+    "second_empty_plan_line": 146,
+    "third_empty_plan_line": 253,
+    "wood_goal_recovered_line": 178,
+    "coal_detour_goal_line": 190,
+    "coal_detour_selected_before_wooden_pickaxe": true,
+    "coal_detour_fallback": "Craft and place a crafting table for iron-tool progression",
+    "coal_detour_selection_reason": "curriculum_ranked:night_and_cave_safety",
+    "first_readiness_recovery_line": 296,
+    "second_readiness_recovery_line": 331,
+    "runtime_interrupt_lines_during_wooden_pickaxe_goal": [
+      385,
+      463,
+      485
+    ],
+    "wooden_pickaxe_craft_action_line": 512,
+    "shelter_goal_line_after_wooden_pickaxe": 519,
+    "cobblestone_dig_action_count": 0,
+    "stone_pickaxe_craft_action_count": 0,
+    "raw_iron_dig_action_count": 0,
+    "episode_deadline_exceeded_line": 584,
+    "post_deadline_wait_action_line": 589,
+    "terminal_raw_iron": 0,
+    "terminal_cobblestone": 0,
+    "terminal_stone_pickaxe": 0,
+    "terminal_wooden_pickaxe": 1,
+    "recovered": false
+  },
+  "intervention_review": {
+    "probe_40_resource_scan_repair_exercised": true,
+    "probe_38_bm012_success_repeated": false,
+    "yield_result": "intervention_not_exercised_new_blocker",
+    "prior_probe40_failure_recurred": false,
+    "prior_probe40_stone_pickaxe_frontier_reached": false,
+    "toolchain_detour_observed": true,
+    "health_preserved": true,
+    "terminal_health": 20
+  },
+  "offline_repair": {
+    "policy_id": "m4-bm012-toolchain-progression-fallback-lock-v1",
+    "extends_policy_ids": [
+      "m4-bm012-resource-scan-and-stone-pickaxe-dig-preference-v1",
+      "m4-bm012-resource-scan-v1",
+      "m4-bm012-repeat-success-v1"
+    ],
+    "scope": "strict_m4_bm012_goal_selection_before_ready_task_and_curriculum_override",
+    "implemented_after_probe": true,
+    "protected_fallback_prefixes": [
+      "craft crafting table",
+      "craft and place crafting table",
+      "craft and place a crafting table for iron-tool progression",
+      "place the crafting table nearby for iron-tool progression",
+      "craft a wooden pickaxe for stone acquisition",
+      "craft wooden pickaxe",
+      "gather 3 cobblestone with the wooden pickaxe",
+      "craft a stone pickaxe for mining iron ore",
+      "collect 8 raw iron from iron ore with the stone pickaxe"
+    ],
+    "survival_emergencies_still_preserved": true,
+    "non_m4_controls_unchanged": true,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "deadline_policy_changed": false,
+    "success_threshold_changed": false,
+    "source_sha256": {
+      "agent": "aae39787633ba7df031f9525d6196831b271374bb326cf18edf69df37a6164ab",
+      "m4_deadline_tests": "55994665055af24c23dd58668ab685311580f556e704e0dfe7502b9bef96c04f"
+    },
+    "validated_offline": true,
+    "focused_test_files": [
+      "tests/test_m4_deadline.py"
+    ],
+    "probe_42_authorized": false
+  },
+  "eligibility": {
+    "eligible": false,
+    "success": false,
+    "progress_gate_passed": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "issues": [
+      "event:terminal_resource_verification",
+      "player_lifecycle_observation_complete",
+      "player_lifecycle_observation_valid",
+      "player_lifecycle_baseline_consistent",
+      "player_lifecycle_event_valid",
+      "player_lifecycle_event_baseline_consistent",
+      "player_lifecycle_event_counts_monotonic",
+      "active_episode_death_absent",
+      "active_episode_respawn_absent",
+      "uninterrupted_survival",
+      "natural_time_progression",
+      "terminal_player_lifecycle",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "episode_within_deadline",
+      "result_duration_eligible",
+      "no_post_deadline_execution"
+    ]
+  },
+  "decision": {
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "bm012_success_count_after": 1,
+    "required_success_count": 3,
+    "remaining_success_count": 2,
+    "next_live_probe_locked_until_offline_repair_commit": true,
+    "probe_42_authorized": false
+  }
+}

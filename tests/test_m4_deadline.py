@@ -4323,6 +4323,86 @@ def test_m4_exact_json_code_fence_envelope_is_bounded_and_auditable():
     assert validation["response_envelope_normalization"]["normalization_count"] == 1
 
 
+def test_m4_bm012_toolchain_progression_fallback_lock_blocks_curriculum_detours():
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent._m4_task_id = "BM-012"
+    observation = {
+        "inventory": {"oak_log": 6, "oak_planks": 4},
+        "nearby_blocks": [{"name": "coal_ore", "position": {"x": 115, "y": 134, "z": -29}}],
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 6000,
+    }
+
+    assert agent._should_preserve_autonomous_fallback(
+        observation,
+        "Craft and place a crafting table for iron-tool progression",
+    )
+    assert agent._should_preserve_autonomous_fallback(
+        observation,
+        "Craft a wooden pickaxe for stone acquisition",
+    )
+    assert agent._should_preserve_autonomous_fallback(
+        observation,
+        "Gather 3 cobblestone with the wooden pickaxe",
+    )
+    assert not agent._should_preserve_autonomous_fallback(
+        observation,
+        "Collect coal or charcoal for torches",
+    )
+
+    non_m4 = object.__new__(Agent)
+    non_m4.config = Config(planner_protocol="m2-fixed-v1")
+    non_m4._m4_task_id = "BM-012"
+    assert not non_m4._should_preserve_autonomous_fallback(
+        observation,
+        "Craft a wooden pickaxe for stone acquisition",
+    )
+
+
+def test_m4_bm012_select_autonomous_goal_preserves_toolchain_before_ready_tasks():
+    class ExplodingTaskSystem:
+        def task_readiness_report(self, _state):
+            raise AssertionError("readiness should not run before BM-012 fallback lock")
+
+        def get_next_task(self, _state):
+            raise AssertionError("ready task should not override BM-012 fallback lock")
+
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent._m4_task_id = "BM-012"
+    agent.task_system = ExplodingTaskSystem()
+    agent._m4_ready_task_goal_binding = {}
+    agent._m4_active_readiness_recovery_root_id = ""
+    agent._last_autonomous_goal_decision = {
+        "goal": "Craft a wooden pickaxe for stone acquisition",
+        "selection_source": "goal_generator",
+        "selection_reason": "bm012_wooden_pickaxe_missing",
+        "priority": 6,
+        "priority_class": "tool_resource_progression",
+        "selection_score": None,
+    }
+    agent._reconcile_m4_satisfied_tasks = lambda *args, **kwargs: []
+
+    selected = agent._select_autonomous_goal(
+        {
+            "inventory": {"oak_log": 4, "oak_planks": 4, "stick": 2},
+            "nearby_blocks": [{"name": "coal_ore", "position": {"x": 115, "y": 134, "z": -29}}],
+            "health": 20,
+            "hunger": 20,
+            "time_of_day": 6000,
+        },
+        "Craft a wooden pickaxe for stone acquisition",
+    )
+
+    assert selected == "Craft a wooden pickaxe for stone acquisition"
+    assert agent._last_autonomous_goal_decision["selection_source"] == "goal_generator"
+    assert agent._last_autonomous_goal_decision["selection_reason"] == (
+        "bm012_wooden_pickaxe_missing"
+    )
+
+
 def test_m4_bm012_resource_scan_exposes_bounded_iron_candidates():
     class ResourceScanBot:
         def __init__(self):
@@ -4495,6 +4575,8 @@ if __name__ == "__main__":
     test_m4_verifier_return_after_deadline_is_rejected()
     test_session_logger_records_absolute_monotonic_event_time()
     test_m4_autonomous_loop_shares_deadline_and_suppresses_plan_suffix()
+    test_m4_bm012_toolchain_progression_fallback_lock_blocks_curriculum_detours()
+    test_m4_bm012_select_autonomous_goal_preserves_toolchain_before_ready_tasks()
     test_m4_bm012_resource_scan_exposes_bounded_iron_candidates()
     test_m4_bm012_raw_iron_dig_prefers_stone_pickaxe_without_touching_controls()
     test_m4_planner_prompt_surfaces_resource_scan_and_tool_rule()
