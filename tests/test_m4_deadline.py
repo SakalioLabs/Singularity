@@ -681,10 +681,17 @@ def test_m4_place_target_occupancy_gate_replays_probe_7_and_controls():
         assert decision.status == "reject"
         assert decision.policy_id == "m4-place-target-occupancy-v1"
         assert f"observed_target:{occupied_by}" in decision.evidence
-        assert decision.required == {
-            "target_position": {"x": 93, "y": 135, "z": -38},
-            "target_state": "air_or_replaceable",
-        }
+        assert decision.required["target_position"] == {"x": 93, "y": 135, "z": -38}
+        assert decision.required["target_state"] == "air_or_replaceable"
+        assert decision.required["target_player_clearance"] == "outside_player_collision_cells"
+        assert decision.required["replan_mode"] == "next_cycle"
+        assert decision.required["replan_candidate_limit"] == 4
+        assert decision.required["adjacent_reference_candidates"] == [
+            {"x": 94, "y": 134, "z": -38},
+            {"x": 92, "y": 134, "z": -38},
+            {"x": 93, "y": 134, "z": -37},
+            {"x": 93, "y": 134, "z": -39},
+        ]
 
     replaceable = verifier.verify(
         action,
@@ -728,7 +735,8 @@ def test_m4_place_target_occupancy_gate_replays_probe_7_and_controls():
 
     prompt = Planner(PlannerLLM(FakeClock()), TaskSystem(), protocol="m4-fixed-v1")._planner_system_prompt()
     assert "actual target is the block cell at floor(x), floor(y)+1, floor(z)" in prompt
-    assert "choose a different reference after an occupied-target rejection" in prompt
+    assert "After an occupied-target or player-collision rejection" in prompt
+    assert "use one supplied adjacent reference candidate" in prompt
     print("PASS: M4 rejects the exact Probe 7 occupied targets while controls remain executable")
 
 
@@ -856,7 +864,7 @@ def test_m4_place_target_player_occupancy_gate_replays_probe_13_and_controls():
 
 def test_m4_occupied_place_rejection_requests_grounded_replan():
     clock = FakeClock()
-    planner = RuntimePlanner()
+    planner = StructuredReplanRuntimePlanner()
     agent = object.__new__(Agent)
     agent.config = Config(
         planner_protocol="m4-fixed-v1",
@@ -880,6 +888,7 @@ def test_m4_occupied_place_rejection_requests_grounded_replan():
             },
         },
         {
+            "position": {"x": 90.5, "y": 135, "z": -40.5},
             "inventory": {"crafting_table": 1},
             "nearby_blocks": [{
                 "name": "grass_block",
@@ -893,13 +902,26 @@ def test_m4_occupied_place_rejection_requests_grounded_replan():
     assert verification["status"] == "reject"
     assert verification["policy_id"] == "m4-place-target-occupancy-v1"
     assert verification["replan_requested"] is True
+    assert verification["replan_candidate_count"] == 4
     assert result["success"] is False
     assert result["verification_blocked"] is True
     assert result["duration_ms"] == 0
     assert result["requires_replan"] is True
     assert len(planner.replan_reasons) == 1
     assert "occupied by grass_block" in planner.replan_reasons[0]
+    assert "perform one next-cycle replan" in planner.replan_reasons[0]
+    assert "[(94,134,-36),(92,134,-36),(93,134,-35),(93,134,-37)]" in planner.replan_reasons[0]
+    assert "do not retry the rejected reference" in planner.replan_reasons[0]
     assert "cell above is air or replaceable" in planner.replan_reasons[0]
+    assert planner.place_replan_feedback == [{
+        "rejected_reference": {"x": 93, "y": 134, "z": -36},
+        "adjacent_reference_candidates": [
+            {"x": 94, "y": 134, "z": -36},
+            {"x": 92, "y": 134, "z": -36},
+            {"x": 93, "y": 134, "z": -35},
+            {"x": 93, "y": 134, "z": -37},
+        ],
+    }]
     event = agent.session_logger.events[-1]
     assert event["type"] == "action_verification"
     assert event["data"]["verification"]["replan_requested"] is True
@@ -1016,6 +1038,19 @@ def _probe_16_place_feedback() -> dict:
     }
 
 
+def _probe_39_place_feedback() -> dict:
+    return {
+        "policy_id": "m4-place-replan-feedback-grounding-v1",
+        "rejected_reference": {"x": 112, "y": 132, "z": -29},
+        "adjacent_reference_candidates": [
+            {"x": 113, "y": 132, "z": -29},
+            {"x": 111, "y": 132, "z": -29},
+            {"x": 112, "y": 132, "z": -28},
+            {"x": 112, "y": 132, "z": -30},
+        ],
+    }
+
+
 def test_m4_place_replan_feedback_grounding_replays_probe_16_and_fails_closed():
     feedback = _probe_16_place_feedback()
     repeated_plan = _probe_16_place_plan({"x": 106, "y": 135, "z": -29})
@@ -1086,6 +1121,16 @@ def test_m4_place_replan_feedback_grounding_replays_probe_16_and_fails_closed():
         assert report["passed"] is False
         assert issue in report["issues"]
         assert report["fail_closed_before_action_execution"] is True
+
+    _, probe_39 = Planner._ground_m4_place_replan_feedback(
+        _probe_16_place_plan({"x": 114, "y": 132, "z": -32}),
+        plan_kind="replan",
+        feedback=_probe_39_place_feedback(),
+    )
+    assert probe_39["passed"] is False
+    assert probe_39["selected_reference"] == {"x": 114, "y": 132, "z": -32}
+    assert "action[0]:place_replan_reference_not_adjacent_candidate" in probe_39["issues"]
+    assert probe_39["fail_closed_before_action_execution"] is True
 
     feedback_controls = [
         (
@@ -4280,6 +4325,9 @@ if __name__ == "__main__":
     test_m4_place_success_criteria_grounding_is_narrow_and_fails_closed()
     test_m4_planner_grounds_probe33_equip_criteria_aliases_to_action_result()
     test_m4_equip_success_criteria_grounding_fails_closed_for_unbound_aliases()
+    test_m4_place_target_occupancy_gate_replays_probe_7_and_controls()
+    test_m4_place_target_player_occupancy_gate_replays_probe_13_and_controls()
+    test_m4_occupied_place_rejection_requests_grounded_replan()
     test_m4_player_occupied_place_rejection_requests_bounded_adjacent_replan()
     test_m4_place_replan_feedback_grounding_replays_probe_16_and_fails_closed()
     test_m4_planner_place_replan_feedback_gate_blocks_output_and_preserves_controls()

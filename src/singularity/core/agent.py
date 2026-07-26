@@ -4707,21 +4707,20 @@ class Agent:
         ):
             planner = getattr(self, "planner", None)
             if hasattr(planner, "request_replan"):
-                candidates = []
+                candidates = verification.get("required", {}).get(
+                    "adjacent_reference_candidates",
+                    [],
+                )
+                candidate_text = ",".join(
+                    f"({item['x']},{item['y']},{item['z']})"
+                    for item in candidates
+                    if isinstance(item, dict)
+                    and all(axis in item for axis in ("x", "y", "z"))
+                )
                 if (
                     verification.get("policy_id")
                     == ActionVerifier.M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID
                 ):
-                    candidates = verification.get("required", {}).get(
-                        "adjacent_reference_candidates",
-                        [],
-                    )
-                    candidate_text = ",".join(
-                        f"({item['x']},{item['y']},{item['z']})"
-                        for item in candidates
-                        if isinstance(item, dict)
-                        and all(axis in item for axis in ("x", "y", "z"))
-                    )
                     bounded_instruction = (
                         "perform one next-cycle replan using one adjacent reference candidate "
                         f"[{candidate_text}] whose cell above is air or replaceable and outside "
@@ -4731,6 +4730,12 @@ class Agent:
                             "re-observe a finite player position, then perform one next-cycle "
                             "replan to a different adjacent reference outside the player collision cells"
                         )
+                    )
+                elif candidate_text:
+                    bounded_instruction = (
+                        "perform one next-cycle replan using one adjacent reference candidate "
+                        f"[{candidate_text}] whose cell above is air or replaceable and outside "
+                        "the player collision cells; do not retry the rejected reference"
                     )
                 else:
                     bounded_instruction = (

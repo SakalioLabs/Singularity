@@ -10,7 +10,7 @@
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 remain retained ineligible history, and Probe 38 is the first independently eligible BM-012 success, so the target is now 1/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 used the Grok 4.5 OpenAI-compatible endpoint, completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop, mined eight machine-proven iron-ore source blocks, ended with `raw_iron:8`, terminal health 20, zero deaths, and 172.469 seconds of deadline margin. The Probe 37 equipment-map plus transitive equip-flag blocker did not recur, but its exact branch was not live-exercised because the successful Probe 38 plan used the already-grounded `success_criteria.equipment_has` form. BM-012 still needs two more independent eligible successes before repeat verification, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probe 39 remain retained ineligible history, and Probe 38 is the first independently eligible BM-012 success, so the target is now 1/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 used the Grok 4.5 OpenAI-compatible endpoint, completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop, mined eight machine-proven iron-ore source blocks, ended with `raw_iron:8`, terminal health 20, zero deaths, and 172.469 seconds of deadline margin. Probe 39 used the same endpoint and reached the wooden-pickaxe plus three-cobblestone frontier, but failed to place the station-access table before crafting `stone_pickaxe`. BM-012 still needs two more independent eligible successes before repeat verification, and BM-013/BM-014 remain sequentially locked.
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
@@ -149,7 +149,23 @@ Probe 30 consumed that authorization and remained ineligible. It completed the e
 - Prior-blocker check: the Probe 37 `success_criteria.equipment={"stone_pickaxe":1}` plus transitive `stone_pickaxe_equipped` schema blocker did not recur; the exact repair branch was not live-exercised because the successful path used `success_criteria.equipment_has`
 - Capability decision: eligible BM-012 success 1/3; no overall M4 upgrade until BM-012 reaches 3/3 and BM-013/BM-014 complete
 - Evidence: `workspace/evals/m4_probe38_report.json`
-- Next gate: no Probe 39 authorization before this evidence is committed and pushed
+- Next gate: Probe 39 consumed the one-use authorization from commit `87ce581` and exposed an occupied-target replan feedback gap
+
+## Probe 39 Occupied-Target Replan Feedback Gap
+
+- Episode: `m4_episode_20260726_205205_42dfb6da`
+- Session: `1dfae9df-5b2`
+- Planner: 27 calls, 24 real, all 24 real calls schema-valid, zero retries; two non-real empty envelopes and one timeout were rejected
+- Actions: 23 attempted, 21 successful; one ActionVerifier place rejection and one backend place rejection both failed closed with zero mutation
+- Progress: completed logs, planks, first table, `wooden_pickaxe:1`, wooden-pickaxe equip, coal collection, and exactly three `cobblestone`
+- Missing transition: `stone_pickaxe` craft action count was 0; terminal inventory retained `crafting_table:1`, `stick:2`, and `cobblestone:3`
+- Recovered nonterminal finding: preparation recorded an early line-95 empty plan in the first wood goal, but later goals recovered and reached the wooden-pickaxe plus cobblestone frontier
+- New blocker: line 522 rejected reference `(112,132,-29)` because target `(112,133,-29)` was occupied by dirt, but the replan was generic instead of structured. Line 532 then selected non-candidate gravel reference `(114,132,-32)` with `place_replan_feedback_grounding.reason=no_pending_place_replan_feedback`; line 543 failed closed because target `(114,133,-32)` was occupied by gravel
+- Capability decision: ineligible; BM-012 remains 1/3 and M4 remains partial
+- Evidence: `workspace/evals/m4_probe39_report.json`
+- Offline repair: `m4-place-occupied-target-adjacent-replan-feedback-v1`
+- Repair behavior: strict-M4 occupied-target rejections now emit adjacent reference candidates and call the existing one-shot place-replan feedback gate. Probe39's non-candidate gravel jump is rejected before execution in offline replay, while the backend fail-closed occupancy policy, task contract, deadline policy, and success thresholds remain unchanged
+- Next gate: no Probe 40 authorization before this evidence and repair commit is pushed
 
 ## Stone Pickaxe Research Gate
 

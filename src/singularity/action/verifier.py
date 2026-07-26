@@ -284,6 +284,28 @@ class ActionVerifier:
             "target_position": target,
             "target_state": "air_or_replaceable",
         }
+        player_policy_id = self.M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID
+        raw_player_position = state.get("position")
+        if not isinstance(raw_player_position, dict):
+            raw_player_position = state.get("player_position")
+        player_collision = self._m4_player_collision_evidence(raw_player_position)
+        collision_cells = []
+        adjacent_references = []
+        if player_collision is not None:
+            collision_cells = player_collision["cells"]
+            adjacent_references = self._m4_adjacent_place_references(
+                reference,
+                collision_cells,
+            )
+            required.update({
+                "player_position": player_collision["position"],
+                "player_collision_box": player_collision["box"],
+                "player_collision_cells": collision_cells,
+                "target_player_clearance": "outside_player_collision_cells",
+                "adjacent_reference_candidates": adjacent_references,
+                "replan_mode": "next_cycle",
+                "replan_candidate_limit": 4,
+            })
         if occupied:
             names = sorted({str(block.get("name") or "unknown") for block in occupied})
             return self._decision(
@@ -299,11 +321,6 @@ class ActionVerifier:
                 policy_id=policy_id,
             )
 
-        player_policy_id = self.M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID
-        raw_player_position = state.get("position")
-        if not isinstance(raw_player_position, dict):
-            raw_player_position = state.get("player_position")
-        player_collision = self._m4_player_collision_evidence(raw_player_position)
         if player_collision is None:
             return self._decision(
                 "place",
@@ -319,21 +336,7 @@ class ActionVerifier:
                 policy_id=player_policy_id,
             )
 
-        collision_cells = player_collision["cells"]
         target_intersects_player = target in collision_cells
-        adjacent_references = self._m4_adjacent_place_references(
-            reference,
-            collision_cells,
-        )
-        required.update({
-            "player_position": player_collision["position"],
-            "player_collision_box": player_collision["box"],
-            "player_collision_cells": collision_cells,
-            "target_player_clearance": "outside_player_collision_cells",
-            "adjacent_reference_candidates": adjacent_references,
-            "replan_mode": "next_cycle",
-            "replan_candidate_limit": 4,
-        })
         if target_intersects_player:
             return self._decision(
                 "place",
