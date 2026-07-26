@@ -42,8 +42,8 @@
     "bm012_task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
     "bm012_offline_gate_passed": true,
     "bm012_eligible_success_count": 0,
-    "bm012_live_episode_count": 29,
-    "bm012_latest_failure_layer": "failed_bound_ready_task_nearby_block_machine_state_reconciliation_gap",
+    "bm012_live_episode_count": 30,
+    "bm012_latest_failure_layer": "post_death_null_health_task_reconciliation_type_error",
     "bm012_purpose_phrase_offline_gate_passed": true,
     "bm012_purpose_phrase_focused_test_count": 57,
     "bm012_purpose_phrase_live_validated": true,
@@ -1222,11 +1222,16 @@
     "bm012_failed_bound_nearby_block_policy_id": "m4-failed-bound-ready-task-machine-state-reconciliation-v1",
     "bm012_failed_bound_nearby_block_probe_29_suppression_count": 51,
     "bm012_failed_bound_nearby_block_replay_latency_ticks": 1,
-    "bm012_probe_30_authorized": true,
+    "bm012_probe_30_authorized": false,
+    "bm012_probe_30_consumed": true,
+    "bm012_probe_30_episode_id": "m4_episode_20260726_150442_eb77f668",
+    "bm012_probe_30_report_path": "workspace/evals/m4_probe30_report.json",
     "bm012_probe_30_authorization_path": "workspace/evals/m4_probe30_authorization.json",
-    "bm012_probe_30_authorization_sha256": "8888c2d10c2649d825ba6e2c9b508f580605951d4e92c18e729e9509fb3ad515",
-    "bm012_ready_task_next_authorized_episode": "probe_30_one_fresh_bm012_episode",
-    "bm012_ready_task_authorized_episode_count": 1
+    "bm012_probe_30_authorization_sha256": "cc0e54f54b376e1c0fe6668d4dd58f497bac2e916850d5aeb5a40a0a4041653e",
+    "bm012_probe_30_report_sha256": "97d285f7b34c24f85d2323d180c357cee0c0950507056186bf5800f86d8eb643",
+    "bm012_post_death_null_health_offline_gate_passed": true,
+    "bm012_ready_task_next_authorized_episode": null,
+    "bm012_ready_task_authorized_episode_count": 0
   },
   "entries": [
     {

@@ -26,6 +26,8 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - Repair audit: `workspace/evals/m4_probe29_failed_bound_nearby_block_repair_audit.json`
 - Next gate: Probe 30 has one parent-bound authorization from pushed repair commit `6be8a21e`; zero retries and no advance credit
 
+Probe 30 consumed that authorization and remained ineligible. It completed the empty-hand-to-wooden-pickaxe prefix with 20/22 successful actions, then died before cobblestone progression. A post-death observation carried `health: null`; exact task reconciliation compared it directly with an integer threshold and emitted 290 repeated type errors from cycle 31. Null, nonnumeric, NaN, and infinite health now fail closed instead of raising. Probe 31 is not authorized.
+
 ## Stone Pickaxe Research Gate
 
 The separate stone-pickaxe project remains non-capability research and does not authorize another M4 probe. SP-001 and SP-002 are each 3/3 with executable versions `learned:acquire_cobblestone@1.1.0` and `learned:craft_stone_pickaxe@1.0.1`. SP-003 is now 1/1 baseline and 0/3 candidate after thirty-five baseline authorizations. Phase 147 evidence commit `bcf35e6c` and Phase 148 authorization commit `3056719f` are pushed. The one-use Phase 148 episode starts from empty inventory and completes the strict wood, table, wooden-pickaxe, three-stone, and stone-pickaxe chain in 23/23 successful actions. Both component verifiers, the five-node graph, and all 51 strict criteria pass; manifest `55c9026a...` binds the run. This is SP-003 lifecycle evidence only and grants no capability or M4 credit. Candidate `r1` remains locked until Phase 148 evidence is independently committed and pushed; M4 and Probe 23 authorization remain unchanged and false.

@@ -53,7 +53,7 @@
     },
     {
       "path": "src/singularity/core/task_system.py",
-      "sha256": "bd2b9516fc0254ae7ffb49a7b2fbe0976127692ae6535aca7e979f9759d530ea"
+      "sha256": "83a15aa532c3757ae5b348bf4ce66b80c0d2772687743b310a068e69b2838dca"
     },
     {
       "path": "tests/test_m4_deadline.py",

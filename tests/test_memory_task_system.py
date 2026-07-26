@@ -5596,3 +5596,23 @@ if __name__ == "__main__":
     test_m4_autonomous_scheduler_completes_recovery_root_before_planner()
     test_autonomous_loop_logs_machine_checkable_subgoal_events()
     print("\nMemory/task system tests PASSED")
+def test_machine_state_health_criterion_fails_closed_after_player_death():
+    system = TaskSystem()
+    task = system.create_task(
+        title="Recover health",
+        success_criteria={"health_at_least": 10},
+    )
+    system.update_task(task.id, status=TaskStatus.ACCEPTED)
+
+    for health in (None, "20", float("nan"), float("inf")):
+        assert system.complete_state_satisfied_tasks(
+            {"health": health},
+            allowed_criteria={"health_at_least"},
+        ) == []
+        assert task.status == TaskStatus.ACCEPTED
+
+    completed = system.complete_state_satisfied_tasks(
+        {"health": 10},
+        allowed_criteria={"health_at_least"},
+    )
+    assert [candidate.id for candidate in completed] == [task.id]

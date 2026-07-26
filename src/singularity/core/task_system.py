@@ -931,7 +931,13 @@ class TaskSystem:
         if "flags" in criteria:
             checks.append(all(flag in set(world_state.get("flags", [])) for flag in criteria["flags"]))
         if "health_at_least" in criteria:
-            checks.append(world_state.get("health", 0) >= criteria["health_at_least"])
+            observed_health = self._finite_count(world_state.get("health"))
+            required_health = self._finite_count(criteria["health_at_least"])
+            checks.append(bool(
+                observed_health is not None
+                and required_health is not None
+                and observed_health >= required_health
+            ))
         if "position_near" in criteria:
             checks.append(self._position_near(criteria["position_near"], world_state, action, result))
         if "observed" in criteria:
