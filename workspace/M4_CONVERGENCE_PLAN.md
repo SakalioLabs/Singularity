@@ -24,6 +24,7 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - Capability decision: ineligible; BM-012 remains 0/3 and M4 remains failing
 - Evidence: `workspace/evals/m4_probe29_report.json`
 - Repair audit: `workspace/evals/m4_probe29_failed_bound_nearby_block_repair_audit.json`
+- Next gate: Probe 30 has one parent-bound authorization from pushed repair commit `6be8a21e`; zero retries and no advance credit
 
 ## Stone Pickaxe Research Gate
 

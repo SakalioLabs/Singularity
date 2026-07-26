@@ -1222,8 +1222,11 @@
     "bm012_failed_bound_nearby_block_policy_id": "m4-failed-bound-ready-task-machine-state-reconciliation-v1",
     "bm012_failed_bound_nearby_block_probe_29_suppression_count": 51,
     "bm012_failed_bound_nearby_block_replay_latency_ticks": 1,
-    "bm012_ready_task_next_authorized_episode": null,
-    "bm012_ready_task_authorized_episode_count": 0
+    "bm012_probe_30_authorized": true,
+    "bm012_probe_30_authorization_path": "workspace/evals/m4_probe30_authorization.json",
+    "bm012_probe_30_authorization_sha256": "8888c2d10c2649d825ba6e2c9b508f580605951d4e92c18e729e9509fb3ad515",
+    "bm012_ready_task_next_authorized_episode": "probe_30_one_fresh_bm012_episode",
+    "bm012_ready_task_authorized_episode_count": 1
   },
   "entries": [
     {
