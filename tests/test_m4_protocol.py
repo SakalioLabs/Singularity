@@ -247,6 +247,11 @@ def test_m4_protocol_integrity_and_scope():
     report = protocol_integrity_report()
     assert report["passed"], report
     assert PROTOCOL["profile"] == "m4-fixed-v1"
+    assert PROTOCOL["provider_revision"] == "m4-grok-4.5-openai-compatible-v1"
+    assert PROTOCOL["llm"]["base_url"] == "http://192.168.3.27:8317/v1"
+    assert PROTOCOL["llm"]["model"] == "grok-4.5"
+    assert PROTOCOL["llm"]["provider_modalities"] == ["text", "image"]
+    assert PROTOCOL["llm"]["runtime_modalities"] == ["text"]
     assert PROTOCOL["difficulty"] == "normal"
     assert PROTOCOL["gamerules"]["doDaylightCycle"] is True
     assert PROTOCOL["gamerules"]["doMobSpawning"] is True

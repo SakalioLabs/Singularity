@@ -1,0 +1,53 @@
+{
+  "type": "m4_provider_migration_audit",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-26T02:54:41Z",
+  "policy_id": "m4-grok-4.5-openai-compatible-v1",
+  "profile": "m4-fixed-v1",
+  "task_id": "BM-012",
+  "superseded_provider": {
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "reason": "provider_expired"
+  },
+  "replacement_provider": {
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "protocol_sha256": "6e001440091ff1aa3ef73eb96bc764162254a9ad0a968d217e6ec79096d8e13b",
+    "bm012_contract_sha256": "d001266357f21548a088fdfc56f519d3674602a1547245189ffaca31845ab1d9"
+  },
+  "credential_retention": {
+    "repository": false,
+    "evidence": false,
+    "local_user_environment": true
+  },
+  "health_checks": [
+    {
+      "request_shape": "m4_json_object_with_thinking_disabled",
+      "timeout_s": 20,
+      "max_retries": 0,
+      "result": "supervisor_timeout",
+      "minecraft_started": false
+    },
+    {
+      "request_shape": "minimal_chat_completion",
+      "timeout_s": 60,
+      "max_retries": 0,
+      "result": "http_401_invalid_api_key",
+      "minecraft_started": false
+    }
+  ],
+  "historical_evidence_modified": false,
+  "live_episode_authorized": false,
+  "counts_toward_m4": false,
+  "status": "blocked_credential_rejected"
+}
