@@ -248,14 +248,22 @@ def test_bm012_goal_progression_is_autonomous_and_survival_preemptible():
         assert decision["selection_source"] == "goal_generator"
         assert decision["priority_class"] == "tool_resource_progression"
 
-    survival_goal, survival = _decision(
+    dusk_goal, dusk = _decision(
         generator,
         _observation(time_of_day=11000, inventory={"stone_pickaxe": 1}),
         task_id="BM-012",
     )
+    assert "Collect 8 raw iron" in dusk_goal
+    assert dusk["selection_reason"] == "bm012_bounded_dusk_iron_continuation"
+
+    survival_goal, survival = _decision(
+        generator,
+        _observation(time_of_day=13000, inventory={"stone_pickaxe": 1}),
+        task_id="BM-012",
+    )
     assert "shelter" in survival_goal.lower()
     assert survival["priority_class"] == "shelter_preparation"
-    print("PASS: BM-012 intermediate goals are autonomous while survival priorities still preempt")
+    print("PASS: BM-012 continues iron at safe dusk while true night still preempts")
 
 
 def test_bm012_probe_4_family_state_advances_after_stale_task_reconciliation():

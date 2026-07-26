@@ -320,6 +320,55 @@ class TaskSystem:
             "requirement_fingerprint": fingerprint,
         }
 
+    def machine_state_nearby_block_reconciliation_requirement(
+        self,
+        task_id: str,
+        *,
+        policy_id: str = FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+    ) -> dict:
+        """Return one exact nearby-block postcondition for bound-task reconciliation."""
+        if policy_id != FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID:
+            return {}
+        task = self.tasks.get(str(task_id or ""))
+        if task is None:
+            return {}
+        criteria = task.success_criteria if isinstance(task.success_criteria, dict) else {}
+        if set(criteria) != {"nearby_block_present"}:
+            return {}
+        required_block = criteria.get("nearby_block_present")
+        if (
+            not isinstance(required_block, str)
+            or not required_block
+            or required_block != required_block.strip().lower()
+            or any(
+                not (character.isalnum() or character in {"_", ":"})
+                for character in required_block
+            )
+        ):
+            return {}
+        fingerprint_payload = {
+            "policy_id": policy_id,
+            "task_id": task.id,
+            "criterion": "nearby_block_present",
+            "required_block": required_block,
+            "source": "world_state.nearby_blocks",
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(
+                fingerprint_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        return {
+            "schema_version": 1,
+            "policy_id": policy_id,
+            "source_task_id": task.id,
+            "criterion": "nearby_block_present",
+            "required_block": required_block,
+            "requirement_fingerprint": fingerprint,
+        }
+
     def reconcile_failed_dependencies(
         self,
         world_state: Optional[dict] = None,
@@ -428,7 +477,7 @@ class TaskSystem:
         reconciliation_scope: str,
         candidate_context: Optional[dict] = None,
     ) -> list[dict]:
-        """Complete bounded terminal tasks whose inventory postconditions are proven."""
+        """Complete bounded terminal tasks whose allowed machine postconditions are proven."""
         world_state = world_state if isinstance(world_state, dict) else {}
         candidate_context = candidate_context if isinstance(candidate_context, dict) else {}
         resolved_observation_id, resolved_generation = self._machine_state_identity(
@@ -451,9 +500,21 @@ class TaskSystem:
                 inventory_families=inventory_families,
                 policy_id=policy_id,
             )
+            if (
+                not requirement
+                and policy_id
+                == FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID
+            ):
+                requirement = self.machine_state_nearby_block_reconciliation_requirement(
+                    task.id,
+                    policy_id=policy_id,
+                )
             if not requirement:
                 continue
-            proof = self._machine_state_inventory_proof(requirement, world_state)
+            if requirement.get("criterion") == "nearby_block_present":
+                proof = self._machine_state_nearby_block_proof(requirement, world_state)
+            else:
+                proof = self._machine_state_inventory_proof(requirement, world_state)
             if proof.get("satisfied") is not True:
                 continue
             fingerprint = str(requirement["requirement_fingerprint"])
@@ -977,6 +1038,50 @@ class TaskSystem:
             "observed_count": observed_count,
             "satisfied": bool(required_count > 0 and observed_count >= required_count),
             "source": "world_state.inventory",
+        }
+
+    def _machine_state_nearby_block_proof(
+        self,
+        requirement: dict,
+        world_state: dict,
+    ) -> dict:
+        required_block = str(requirement.get("required_block") or "")
+        nearby_blocks = world_state.get("nearby_blocks", [])
+        nearby_blocks = nearby_blocks if isinstance(nearby_blocks, list) else []
+        observed_blocks = []
+        for block in nearby_blocks:
+            position = {}
+            if isinstance(block, str):
+                name = block
+            elif isinstance(block, dict):
+                name = block.get("name") or block.get("block")
+                position = {
+                    axis: block[axis]
+                    for axis in ("x", "y", "z")
+                    if axis in block
+                }
+                if not position and isinstance(block.get("position"), dict):
+                    position = {
+                        axis: block["position"][axis]
+                        for axis in ("x", "y", "z")
+                        if axis in block["position"]
+                    }
+            else:
+                continue
+            if not isinstance(name, str) or not name.strip():
+                continue
+            observed_blocks.append({
+                "name": name.strip().lower(),
+                "position": position,
+            })
+        observed_names = sorted({block["name"] for block in observed_blocks})
+        return {
+            "criterion": "nearby_block_present",
+            "required_block": required_block,
+            "observed_names": observed_names,
+            "observed_blocks": observed_blocks,
+            "satisfied": bool(required_block and required_block in observed_names),
+            "source": "world_state.nearby_blocks",
         }
 
     def _machine_state_identity(

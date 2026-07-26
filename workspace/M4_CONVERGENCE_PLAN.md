@@ -10,7 +10,20 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 28 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`. Probe 28 made 31 real zero-retry calls, all schema-valid, and completed 36/37 actions. It machine-verified the full empty-hand, logs, planks, crafting-table, wooden-pickaxe, 12-cobblestone, stone-pickaxe chain. All nine deterministic goal verifications were achieved; the prior equip loop did not recur. Dusk then forced verified-shelter progression and the 600-second deadline arrived before any iron resource was acquired. Policy `m4-bm012-bounded-dusk-iron-continuation-v1` removes the generic 12-cobblestone overcollection by preserving the exact 3-cobblestone BM-012 frontier, preserves the exact 8-iron frontier, and allows only a healthy, fed, hostile-free dusk continuation. True night still forces shelter. Probe 29 has a separate parent-bound, one-use authorization for one fresh fixed-limit BM-012 episode with zero client/proxy retries. BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 29 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 29 made 51 real zero-retry calls, 50 schema-valid, and completed 10/14 actions. It gathered six logs, crafted and machine-placed a crafting table, then remained on `Place crafting table nearby` for 40 cycles. The exact bound task had already failed on its deadline, so 51 achieved machine verifications were suppressed despite the table remaining observed at `(106,136,-30)`. Policy `m4-failed-bound-ready-task-machine-state-reconciliation-v1` now permits one explicitly bound failed/blocked task with the exact scalar criterion `nearby_block_present` to reconcile from `world_state.nearby_blocks` within one scheduler tick. It preserves original attempts, blockers, result, failure transition, and idempotent audit history; inventory-only, entity-only, malformed, mixed-criterion, binding-drift, ordinary failed-dependency, and non-M4 cases fail closed. Probe 29 grants no capability credit, Probe 30 is not authorized, and BM-013/BM-014 remain sequentially locked.
+
+## Probe 29 Failed Bound Nearby-Block Repair
+
+- Episode: `m4_episode_20260726_135524_972c9378`
+- Session: `98512bb5-f9c`
+- Planner: 52 calls, 51 real, 50 schema-valid real, zero retries
+- Actions: 14 attempted, 10 successful, including one machine-verified crafting-table placement
+- Earliest retained blocker: bound task `0e0b9f36` entered `failed` before the successful placement
+- Consequence: 51 achieved verifications were suppressed with zero binding issues until the 600-second deadline
+- Offline repair: exact nearby-block reconciliation for only the selected bound ready task
+- Capability decision: ineligible; BM-012 remains 0/3 and M4 remains failing
+- Evidence: `workspace/evals/m4_probe29_report.json`
+- Repair audit: `workspace/evals/m4_probe29_failed_bound_nearby_block_repair_audit.json`
 
 ## Stone Pickaxe Research Gate
 

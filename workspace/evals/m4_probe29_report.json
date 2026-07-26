@@ -1,0 +1,168 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T06:15:50Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 29,
+  "episode_id": "m4_episode_20260726_135524_972c9378",
+  "session_id": "98512bb5-f9c",
+  "level_name": "m4_episode_20260726_135524_972c9378_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe29_authorization.json",
+    "commit": "8900a7f4748f81ceff014eed2112b75ed3ed87ab",
+    "tree": "8acefcfe18d3d4c9ea9204c4b4633a47d837af04",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_monotonic_s": 795633.375,
+    "probe_30_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "model": "grok-4.5",
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 600.031,
+    "deadline_eligible": false,
+    "planner_call_count": 52,
+    "real_planner_call_count": 51,
+    "schema_valid_real_planner_call_count": 50,
+    "schema_invalid_real_planner_call_count": 1,
+    "non_real_planner_call_count": 1,
+    "action_count": 14,
+    "successful_action_count": 10,
+    "failed_action_count": 4,
+    "maximum_inventory": {
+      "oak_log": 6,
+      "oak_planks": 4,
+      "crafting_table": 1,
+      "wooden_pickaxe": 0,
+      "cobblestone": 0,
+      "stone_pickaxe": 0,
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "oak_log": 5
+    },
+    "terminal_nearby_crafting_table": true,
+    "terminal_health": 20,
+    "death_count": 0,
+    "respawn_count": 0
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_placed": true,
+    "crafting_table_to_wooden_pickaxe": false,
+    "wooden_pickaxe_to_cobblestone": false,
+    "cobblestone_to_stone_pickaxe": false,
+    "stone_pickaxe_to_iron": false,
+    "full_stone_pickaxe_loop_completed": false
+  },
+  "action_summary": {
+    "move_to": 1,
+    "dig": 6,
+    "craft": 2,
+    "place": 5,
+    "successful_place": {
+      "monotonic_s": 796095.281,
+      "reference_position": {"x": 106, "y": 135, "z": -30},
+      "placed_position": {"x": 106, "y": 136, "z": -30}
+    }
+  },
+  "goal_summary": {
+    "goal_count": 5,
+    "goals_completed": 2,
+    "goals_failed": 3,
+    "goal_verification_count": 53,
+    "goal_verification_achieved_count": 53,
+    "place_nearby_goal_verification_count": 51,
+    "place_nearby_goal_cycles": 40,
+    "remaining_terminal_goal": "Reach or build emergency verified shelter immediately"
+  },
+  "planner_result": {
+    "real_response_count": 51,
+    "schema_valid_real_response_count": 50,
+    "schema_invalid_real_response_count": 1,
+    "provider_authentication_error_count": 0
+  },
+  "latest_blocker": {
+    "failure_layer": "failed_bound_ready_task_nearby_block_machine_state_reconciliation_gap",
+    "bound_task_id": "0e0b9f36",
+    "bound_task_goal": "Place crafting table nearby",
+    "bound_success_criteria": {"nearby_block_present": "crafting_table"},
+    "bound_task_failure_reason": "task_deadline_elapsed",
+    "successful_place_monotonic_s": 796095.281,
+    "machine_observed_crafting_table": true,
+    "verifier_achieved_gate_count": 51,
+    "suppress_until_bound_task_machine_completion_count": 51,
+    "binding_issue_count": 0,
+    "recovered": false
+  },
+  "eligibility": {
+    "eligible": false,
+    "check_count": 74,
+    "pass_count": 66,
+    "issue_count": 8,
+    "issues": [
+      "event:terminal_resource_verification",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "episode_within_deadline",
+      "result_duration_eligible",
+      "no_post_deadline_execution"
+    ]
+  },
+  "decision": {
+    "value": "behavioral_ineligible",
+    "reason": "crafting_table_machine_verified_but_failed_bound_ready_task_remained_terminal_and_suppressed_51_achieved_verifications_until_deadline",
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "bm012_eligible_success_count": 0,
+    "m4_status": "failing",
+    "next_authorization": false
+  },
+  "evidence_paths": {
+    "preflight": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/preflight.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/manifest.json",
+    "session": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/session.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/eligibility.json",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/preparation.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/reset.json",
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/session_98512bb5-f9c.jsonl",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260726_135524_972c9378/session_98512bb5-f9c_summary.json"
+  },
+  "evidence_sha256": {
+    "preflight": "b0d0afe87a7080781504751512691f07d84a7344663a391e99007b202354e686",
+    "manifest": "f9df0de32e26507353903cf9a731a554ae854a283c423effa4827c2e30387b4c",
+    "session": "f99426cd5d87628ae030eec5ee46bee5acb9778eeaeb87dce1ddb832bec38fa0",
+    "result": "ae71047913a4a6dd8f5d2b9fe229d8c7f2acb6bc96231239c891636c582ffcf7",
+    "eligibility": "e0247e04082165c7b437800610f109ba8171aa83d815e11156d73fe40b39718c",
+    "preparation": "a109833cd22afdd21610c980ba4a544d639e85799fca34ca797f9f11dc4d2b98",
+    "protocol_status": "b427a19cfdf62e56ecb59a3e6c443d1d45f5f69cc3d860851ffce3d848dfd03f",
+    "reset": "05b7cffbd44a48e21e471e6985de3c9efcd85d29709ebb691f89929146baa9d0",
+    "raw_session_jsonl": "2cd350e71867bdc28a6e3d7a5ba5c71bf485fc0ebaae6e796a048321d7e5faa5",
+    "session_summary": "5141ceae8f1ab0b86a58743f5c2a175702b43b41b0d5ac63d3e3bac400143730"
+  }
+}

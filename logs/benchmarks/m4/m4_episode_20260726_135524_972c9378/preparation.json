@@ -1,0 +1,160 @@
+{
+  "type": "m4_resource_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "progress_gate_passed": false,
+  "counts_toward_task_success": false,
+  "episode_id": "m4_episode_20260726_135524_972c9378",
+  "session_id": "98512bb5-f9c",
+  "level_name": "m4_episode_20260726_135524_972c9378_bm012",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 61.0
+    },
+    {
+      "goal": "Craft crafting table",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:unlock_crafting_grid",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 55.0
+    },
+    {
+      "goal": "Place crafting table for tool progression",
+      "goal_index": 3,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:bm012_crafting_table_unplaced",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 66.0
+    },
+    {
+      "goal": "Place crafting table nearby",
+      "goal_index": 4,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Reach or build emergency verified shelter immediately",
+      "goal_index": 5,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "night_without_machine_verified_shelter",
+      "priority": 4,
+      "priority_class": "shelter_preparation"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 52,
+    "real_call_count": 51,
+    "schema_valid_real_call_count": 50,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 65536,
+    "reasoning_content_consumed": false,
+    "reasoning_content_retained": false,
+    "max_call_duration_ms": 29437.0,
+    "total_token_usage": 199176,
+    "violations": []
+  },
+  "action_count": 14,
+  "successful_action_count": 10,
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 914,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 106.39695708172346,
+      "y": 136,
+      "z": -28.50000000000035
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "oak_log": 5
+    },
+    "time_of_day": 12854,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 0.0,
+  "first_unrecovered_transition": {
+    "event_type": "empty_plan",
+    "goal": "Place crafting table for tool progression",
+    "detail": {
+      "goal": "Place crafting table for tool progression",
+      "cycle": 11,
+      "status": "error",
+      "reasoning": "Planner output rejected before execution: action[0]:place_replan_rejected_reference_repeated"
+    },
+    "monotonic_s": 795809.078
+  },
+  "deadline_eligible": false,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_resource_verification",
+    "resource_terminal_inventory_target",
+    "resource_successful_source_actions",
+    "resource_positive_inventory_delta",
+    "terminal_machine_verification",
+    "episode_within_deadline",
+    "result_duration_eligible",
+    "no_post_deadline_execution"
+  ]
+}

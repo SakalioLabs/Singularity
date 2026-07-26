@@ -3499,6 +3499,178 @@ def test_m4_failed_bound_ready_task_reconciliation_fails_closed():
     print("PASS: wrong item, insufficient state, binding drift, and non-M4 controls fail closed")
 
 
+def test_m4_failed_bound_nearby_block_task_replays_probe_29_within_one_tick():
+    clock = FakeClock()
+    goal = "Place crafting table nearby"
+    agent = _m4_ready_task_goal_verifier_agent(clock)
+    task = agent.task_system.create_task(
+        title=goal,
+        success_criteria={"nearby_block_present": "crafting_table"},
+        priority=0,
+        root_plan_id="root-probe-29",
+        planner_call_id="probe-29-place-call",
+    )
+    agent.task_system.update_task(task.id, status=TaskStatus.ACCEPTED)
+    selected = agent._select_autonomous_goal(
+        {"inventory": {"crafting_table": 1}, "health": 20, "food": 20},
+        "Craft wooden pickaxe",
+    )
+    assert selected == goal
+
+    task.attempts = 11
+    task.blockers = ["task deadline elapsed before successful placement"]
+    task.result = {
+        "success": False,
+        "reason": "task_deadline_elapsed",
+        "event_index": 417,
+    }
+    agent.task_system._set_status(task, TaskStatus.FAILED, "task_deadline_elapsed")
+    failure_transition = copy.deepcopy(task.status_history[-1])
+
+    completed = agent._reconcile_m4_satisfied_tasks(
+        {
+            "observation_id": "probe-29-place-observation",
+            "state_generation": "probe-29-table-generation-1",
+            "inventory": {},
+            "nearby_blocks": [
+                {
+                    "name": "crafting_table",
+                    "position": {"x": 106, "y": 136, "z": -30},
+                }
+            ],
+            "health": 20,
+            "food": 20,
+        },
+        goal,
+        1,
+        source="post_action_machine_observation",
+    )
+    assert [candidate.id for candidate in completed] == [task.id]
+    assert task.status == TaskStatus.COMPLETED
+    assert task.attempts == 11
+    assert task.blockers == ["task deadline elapsed before successful placement"]
+    assert task.result["completed_by"] == "machine_state_reconciliation"
+    assert task.result["reconciliation_policy_id"] == (
+        FAILED_BOUND_READY_TASK_MACHINE_STATE_RECONCILIATION_POLICY_ID
+    )
+    assert task.result["previous_status"] == "failed"
+    assert task.result["original_attempts"] == 11
+    assert task.result["original_failure_result"]["event_index"] == 417
+    assert task.result["original_failure_event"] == failure_transition
+    assert task.result["requirement"]["criterion"] == "nearby_block_present"
+    assert task.result["requirement"]["required_block"] == "crafting_table"
+    assert task.result["proof"]["observed_names"] == ["crafting_table"]
+    assert task.result["proof"]["observed_blocks"][0]["position"] == {
+        "x": 106,
+        "y": 136,
+        "z": -30,
+    }
+
+    allowed, report = agent._gate_m4_ready_task_goal_verification(
+        selected,
+        True,
+        _achieved_goal_verification(goal),
+        {"mode": "autonomous", "phase": "pre_plan", "cycle": 1},
+    )
+    assert allowed is True
+    assert report["decision"] == "allow_bound_task_machine_completion"
+
+    repeated = agent._reconcile_m4_satisfied_tasks(
+        {
+            "observation_id": "probe-29-place-observation-replay",
+            "state_generation": "probe-29-table-generation-1",
+            "nearby_blocks": [{"name": "crafting_table"}],
+        },
+        goal,
+        2,
+    )
+    assert repeated == []
+    assert len(task.metadata["machine_state_reconciliations"]) == 1
+    observations = [
+        item for item in task.observations
+        if isinstance(item, dict)
+        and item.get("type")
+        == "m4_failed_bound_ready_task_machine_state_reconciliation"
+    ]
+    assert len(observations) == 1
+    print("PASS: Probe 29 failed bound table task reconciles within one tick")
+
+
+def test_m4_failed_bound_nearby_block_reconciliation_fails_closed():
+    clock = FakeClock()
+    goal = "Place crafting table nearby"
+
+    for criteria, world_state in (
+        (
+            {"nearby_block_present": "crafting_table"},
+            {"nearby_blocks": [{"name": "furnace"}]},
+        ),
+        (
+            {"nearby_block_present": "crafting_table"},
+            {"inventory": {"crafting_table": 1}},
+        ),
+        (
+            {"nearby_block_present": "crafting_table"},
+            {"nearby_entities": [{"name": "crafting_table"}]},
+        ),
+        (
+            {"nearby_block_present": ["crafting_table"]},
+            {"nearby_blocks": [{"name": "crafting_table"}]},
+        ),
+        (
+            {"nearby_block_present": "Crafting_Table"},
+            {"nearby_blocks": [{"name": "crafting_table"}]},
+        ),
+        (
+            {
+                "nearby_block_present": "crafting_table",
+                "inventory": {"crafting_table": 1},
+            },
+            {"nearby_blocks": [{"name": "crafting_table"}]},
+        ),
+    ):
+        agent = _m4_ready_task_goal_verifier_agent(clock)
+        task = agent.task_system.create_task(
+            title=goal,
+            success_criteria=criteria,
+            priority=0,
+        )
+        agent.task_system.update_task(task.id, status=TaskStatus.ACCEPTED)
+        assert agent._select_autonomous_goal(
+            {"inventory": {}, "health": 20, "food": 20},
+            "Craft wooden pickaxe",
+        ) == goal
+        agent.task_system._set_status(task, TaskStatus.FAILED, "task_deadline_elapsed")
+        assert agent._reconcile_m4_satisfied_tasks(
+            {**world_state, "health": 20, "food": 20},
+            goal,
+            1,
+        ) == []
+        assert task.status == TaskStatus.FAILED
+        assert not task.metadata.get("machine_state_reconciliations")
+
+    control = _m4_ready_task_goal_verifier_agent(clock)
+    control.config = Config(planner_protocol="m2-fixed-v1")
+    task = control.task_system.create_task(
+        title=goal,
+        success_criteria={"nearby_block_present": "crafting_table"},
+        priority=0,
+    )
+    control.task_system.update_task(task.id, status=TaskStatus.ACCEPTED)
+    assert control._select_autonomous_goal(
+        {"inventory": {}, "health": 20, "food": 20},
+        "Craft wooden pickaxe",
+    ) == goal
+    control.task_system._set_status(task, TaskStatus.FAILED, "task_deadline_elapsed")
+    assert control._reconcile_m4_satisfied_tasks(
+        {"nearby_blocks": [{"name": "crafting_table"}]},
+        goal,
+        1,
+    ) == []
+    assert task.status == TaskStatus.FAILED
+    print("PASS: nearby-block reconciliation rejects spoofed, malformed, drifted, and non-M4 state")
+
+
 def test_m4_ready_task_goal_verifier_rejects_same_title_task_replacement():
     clock = FakeClock()
     goal = "Mine iron ore"

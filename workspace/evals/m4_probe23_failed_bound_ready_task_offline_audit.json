@@ -49,15 +49,15 @@
   "implementation": [
     {
       "path": "src/singularity/core/agent.py",
-      "sha256": "b8bef76925afedf30e2d2a3ad7b3ed56672afcb085a2a1cd2635db57ca396137"
+      "sha256": "da97ac2ba2b6ea53ee9a7b44dd4f047584b9e542e344a75e057961cf8fdcd154"
     },
     {
       "path": "src/singularity/core/task_system.py",
-      "sha256": "f83c4d5b8f3db98559a4eb2c5b70fc94c25351f6a058ce7a17409e78531c7830"
+      "sha256": "bd2b9516fc0254ae7ffb49a7b2fbe0976127692ae6535aca7e979f9759d530ea"
     },
     {
       "path": "tests/test_m4_deadline.py",
-      "sha256": "708159ae19d3fd607552ea22f92d42ca75748157ccee24100735903be6b8a194"
+      "sha256": "2f9d4c689822550fb087aa769a59135bf50949bcbab90d32f46416e9656cca52"
     }
   ],
   "validation": {
