@@ -8451,6 +8451,8 @@ class Agent:
         text = str(fallback_goal or "").lower()
         if self._m4_bm012_exact_progression_goal(text):
             return True
+        if self._m4_bm012_stone_pickaxe_station_access_goal(observation, text):
+            return True
         if any(token in text for token in ("attack", "flee", "eat", "restore health", "find food")):
             return True
         try:
@@ -8473,6 +8475,28 @@ class Agent:
             "craft a stone pickaxe for mining iron ore",
             "craft stone pickaxe",
             "collect 8 raw iron from iron ore with the stone pickaxe",
+        ))
+
+    def _m4_bm012_stone_pickaxe_station_access_goal(self, observation: dict, goal_lower: str) -> bool:
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+            or str(getattr(self, "_m4_task_id", "") or "") != "BM-012"
+        ):
+            return False
+        observation = observation if isinstance(observation, dict) else {}
+        inventory = observation.get("inventory", {})
+        inventory = inventory if isinstance(inventory, dict) else {}
+        if not (
+            self._m4_inventory_count(inventory.get("wooden_pickaxe")) >= 1
+            and self._m4_inventory_count(inventory.get("stone_pickaxe")) < 1
+            and self._m4_inventory_count(inventory.get("cobblestone")) >= 3
+        ):
+            return False
+        return str(goal_lower or "").startswith((
+            "craft crafting table for stone-pickaxe crafting",
+            "place the crafting table nearby for stone-pickaxe crafting",
+            "gather 1 log for stone-pickaxe crafting table access",
         ))
 
     def _yield_m4_bm012_stone_pickaxe_frontier(

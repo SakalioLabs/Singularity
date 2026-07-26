@@ -235,6 +235,62 @@ class GoalGenerator:
             isinstance(block, dict) and block.get("name") == "crafting_table"
             for block in nearby_blocks
         )
+        log_count = sum(
+            self._count(inventory.get(item))
+            for item in (
+                "oak_log",
+                "birch_log",
+                "spruce_log",
+                "jungle_log",
+                "acacia_log",
+                "dark_oak_log",
+                "mangrove_log",
+            )
+        )
+        plank_count = sum(
+            self._count(inventory.get(item))
+            for item in (
+                "oak_planks",
+                "birch_planks",
+                "spruce_planks",
+                "jungle_planks",
+                "acacia_planks",
+                "dark_oak_planks",
+                "mangrove_planks",
+            )
+        )
+        stone_pickaxe_frontier_ready = (
+            self._count(inventory.get("wooden_pickaxe")) >= 1
+            and self._count(inventory.get("stone_pickaxe")) < 1
+            and self._count(inventory.get("cobblestone")) >= 3
+        )
+        if not table_nearby and stone_pickaxe_frontier_ready:
+            if self._count(inventory.get("crafting_table")) > 0:
+                return self._progression(
+                    "Place the crafting table nearby for stone-pickaxe crafting",
+                    "bm012_stone_pickaxe_crafting_table_unplaced",
+                    time_of_day,
+                    health,
+                    hunger,
+                    shelter_verified,
+                )
+            if plank_count >= 4 or log_count >= 1:
+                return self._progression(
+                    "Craft crafting table for stone-pickaxe crafting",
+                    "bm012_stone_pickaxe_crafting_table_missing",
+                    time_of_day,
+                    health,
+                    hunger,
+                    shelter_verified,
+                )
+            return self._progression(
+                "Gather 1 log for stone-pickaxe crafting table access",
+                "bm012_stone_pickaxe_crafting_table_wood_missing",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
         if not table_nearby and self._count(inventory.get("crafting_table")) > 0:
             return self._progression(
                 "Place the crafting table nearby for iron-tool progression",

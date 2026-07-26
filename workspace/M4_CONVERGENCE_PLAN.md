@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 31 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 31 retained the empty-hand-to-wooden-pickaxe and cobblestone prefix with terminal health 20, but it never crafted a stone pickaxe after reaching `cobblestone:3`; the 12-cobblestone root consumed the remaining daytime window and dusk shelter interrupted at event 874. The current offline repair is `m4-bm012-stone-pickaxe-frontier-yield-v1`, which is implemented and locally validated but not live-validated. Probe 32 is not authorized until this repair is committed and pushed, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 32 remain ineligible at 0/3. The active provider is `grok-4.5` under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 32 live-validated the empty-hand-to-wooden-pickaxe-to-three-cobblestone prefix and exercised the Probe 31 stone-pickaxe frontier yield, but it still never crafted `stone_pickaxe`. After `cobblestone:3`, the agent had moved away from the placed crafting table; GoalGenerator fell back to a six-log reserve, and Curriculum repeatedly selected coal/torch safety. The current offline repair is `m4-bm012-stone-pickaxe-station-access-v1`, which is implemented and locally validated but not live-validated. Probe 33 is not authorized until this repair is committed and pushed, and BM-013/BM-014 remain sequentially locked.
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
@@ -42,7 +42,23 @@ Probe 30 consumed that authorization and remained ineligible. It completed the e
 - Offline repair: `m4-bm012-stone-pickaxe-frontier-yield-v1`
 - Repair audit: `workspace/evals/m4_probe31_stone_pickaxe_frontier_repair_audit.json`
 - Repair behavior: BM-012 now protects the three exact frontiers: gather 3 cobblestone, craft stone pickaxe, and collect 8 iron; stale 12-cobblestone roots yield at pre-planner or post-action once `wooden_pickaxe >= 1`, `cobblestone >= 3`, and `stone_pickaxe == 0`
-- Next gate: no Probe 32 authorization before the bounded stone-pickaxe progression repair is committed and pushed
+- Next gate: Probe 32 consumed its one-use authorization from commit `3dcb03d`; the frontier-yield branch was exercised and found a new crafting-station-access blocker
+
+## Probe 32 Detached Crafting-Station Frontier Gap
+
+- Episode: `m4_episode_20260726_175504_3d40e665`
+- Session: `d7b7377c-784`
+- Planner: 22 calls, 22 real, 22 schema-valid real, zero retries
+- Actions: 20 attempted, 18 successful; the single placement target-collision rejection recovered with a later successful placement
+- Progress: crafted and placed the table, crafted `wooden_pickaxe:1`, mined exactly to `cobblestone:3`, terminal health 20 with zero deaths
+- Live intervention: `m4-bm012-stone-pickaxe-frontier-yield-v1` emitted once at event 534, proving the stale oversized cobblestone branch now yields
+- Missing transition: `stone_pickaxe` craft action count was 0 after `cobblestone:3` at event 507 / elapsed 348.39s / time 6980
+- New blocker: the crafting table was no longer nearby and no table was in inventory; GoalGenerator recommended `Gather 6 oak logs for iron-tool progression`, after which Curriculum selected `Collect coal or charcoal for torches` 19 times
+- Capability decision: ineligible; BM-012 remains 0/3 and M4 remains failing
+- Evidence: `workspace/evals/m4_probe32_report.json`
+- Offline repair: `m4-bm012-stone-pickaxe-station-access-v1`
+- Repair behavior: BM-012 now treats crafting-station access as part of the stone-pickaxe frontier once `wooden_pickaxe >= 1`, `cobblestone >= 3`, and `stone_pickaxe == 0`; it crafts or places a table before any coal/torch curriculum diversion
+- Next gate: no Probe 33 authorization before the bounded station-access repair is committed and pushed
 
 ## Stone Pickaxe Research Gate
 
@@ -65,7 +81,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_31_stone_pickaxe_frontier_repair_offline_passed |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_32_station_access_repair_offline_passed |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 

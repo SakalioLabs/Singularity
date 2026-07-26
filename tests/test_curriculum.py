@@ -321,6 +321,37 @@ def test_m4_bm012_goal_generator_closes_wood_to_stone_pickaxe_frontier():
     print("PASS: strict BM-012 closes wood-to-stone-pickaxe frontier")
 
 
+def test_m4_bm012_goal_generator_repairs_detached_crafting_station_frontier():
+    generator = GoalGenerator()
+    detached = {
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 7000,
+        "inventory": {
+            "oak_log": 3,
+            "oak_planks": 3,
+            "stick": 2,
+            "wooden_pickaxe": 1,
+            "cobblestone": 3,
+        },
+        "nearby_entities": [],
+        "nearby_blocks": [{"name": "stone"}, {"name": "coal_ore"}],
+    }
+    carrying_table = dict(detached)
+    carrying_table["inventory"] = {**detached["inventory"], "crafting_table": 1}
+
+    craft_table = generator.next_goal(detached, task_id="BM-012")
+    craft_decision = dict(generator.last_decision)
+    place_table = generator.next_goal(carrying_table, task_id="BM-012")
+    place_decision = dict(generator.last_decision)
+
+    assert craft_table == "Craft crafting table for stone-pickaxe crafting"
+    assert craft_decision["selection_reason"] == "bm012_stone_pickaxe_crafting_table_missing"
+    assert place_table == "Place the crafting table nearby for stone-pickaxe crafting"
+    assert place_decision["selection_reason"] == "bm012_stone_pickaxe_crafting_table_unplaced"
+    print("PASS: strict BM-012 restores crafting-station access before stone-pickaxe crafting")
+
+
 def test_m4_bm012_selector_preserves_stone_pickaxe_frontier_over_stale_tasks():
     tmpdir = tempfile.mkdtemp()
     agent = object.__new__(Agent)
@@ -364,6 +395,43 @@ def test_m4_bm012_selector_preserves_stone_pickaxe_frontier_over_stale_tasks():
     assert selected == "Craft a stone pickaxe for mining iron ore"
     assert stale in agent.task_system.get_ready_tasks(observation)
     print("PASS: strict BM-012 stone-pickaxe frontier outranks stale cobblestone tasks")
+
+
+def test_m4_bm012_selector_preserves_detached_station_frontier_over_coal():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.config = Config(
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        planner_protocol="m4-fixed-v1",
+    )
+    agent._m4_task_id = "BM-012"
+    agent.task_system = TaskSystem()
+    agent.curriculum = CurriculumManager()
+    agent.memory = MemorySystem(agent.config.memory_dir, persist=False)
+    agent.skill_library = SkillLibrary(agent.config.skill_dir, persist=False)
+    observation = {
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 7000,
+        "inventory": {
+            "oak_log": 3,
+            "oak_planks": 3,
+            "stick": 2,
+            "wooden_pickaxe": 1,
+            "cobblestone": 3,
+        },
+        "nearby_entities": [],
+        "nearby_blocks": [{"name": "stone"}, {"name": "coal_ore"}],
+    }
+
+    fallback = "Craft crafting table for stone-pickaxe crafting"
+    selected = agent._select_autonomous_goal(observation, fallback)
+
+    assert selected == fallback
+    assert selected != "Collect coal or charcoal for torches"
+    assert agent._last_autonomous_goal_decision["selection_source"] == "goal_generator"
+    print("PASS: strict BM-012 station-access frontier outranks nearby coal")
 
 
 def test_coach_policy_biases_curriculum_candidates_without_mutating_inputs():
@@ -451,7 +519,9 @@ if __name__ == "__main__":
     test_agent_autonomous_selector_uses_curriculum_when_no_ready_task()
     test_m4_bm012_selector_preserves_exact_three_cobblestone_frontier()
     test_m4_bm012_goal_generator_closes_wood_to_stone_pickaxe_frontier()
+    test_m4_bm012_goal_generator_repairs_detached_crafting_station_frontier()
     test_m4_bm012_selector_preserves_stone_pickaxe_frontier_over_stale_tasks()
+    test_m4_bm012_selector_preserves_detached_station_frontier_over_coal()
     test_coach_policy_biases_curriculum_candidates_without_mutating_inputs()
     test_agent_autonomous_selector_records_coached_curriculum_decision()
     print("\nCurriculum tests PASSED")

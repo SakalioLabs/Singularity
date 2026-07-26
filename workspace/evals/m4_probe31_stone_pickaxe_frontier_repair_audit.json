@@ -76,9 +76,9 @@
     "runtime_supervisor_tests": "tests/test_runtime_supervisor.py"
   },
   "source_sha256": {
-    "agent": "1bb1769af289e4031c94d92da3c2cbee36506e5065be66e957761c41f4a313f0",
-    "goal_generator": "5d3e9e118c97590e77d1fdd3bbc4ee4971c5c7c961c8cf5c016aa6eaa0fb92c0",
-    "curriculum_tests": "98ccf4fe0195705bf0aac98c2f695982cb49f75a6892792c384fbeaf45a09b75",
+    "agent": "23568120abbf49c207a11ed7c6d4ee73fa17dfaa33b4af33b00ba862886b4d35",
+    "goal_generator": "845c1706f8eec862930c1cf4d25ef9aa62477c523102473a22c6cfa6ce802d81",
+    "curriculum_tests": "cd8e91aac62f84e211bbc3265403076d6575717bbfe3a61abda8afc7ff47e7d6",
     "runtime_supervisor_tests": "4c0779a490a24a884f04b3b036d2986bc8667414c3618e1cde24016bfc9144c2"
   },
   "decision": {
