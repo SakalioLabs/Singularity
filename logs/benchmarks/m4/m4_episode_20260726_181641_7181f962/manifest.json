@@ -1,0 +1,99 @@
+{
+  "type": "m4_runtime_manifest",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "reset_protocol_sha256": "0df412101c5c01bf89b32e26d2d9beead7f9b64d10ba5de714caab51b1b63e52",
+  "validation_protocol_sha256": "bd2e7466d18d72927c7ca84a11736597a05eab5adf4b788627fe9377542d1e02",
+  "deadline_policy_id": "m4-absolute-episode-deadline-v1",
+  "episode_id": "m4_episode_20260726_181641_7181f962",
+  "session_id": "974bfabb-b64",
+  "level_name": "m4_episode_20260726_181641_7181f962_bm012",
+  "world_seed": "12345",
+  "episode_started_monotonic": 811208.281,
+  "episode_deadline_monotonic": 811808.281,
+  "episode_ended_monotonic": 811808.406,
+  "runtime_versions": {
+    "python": "3.12.8",
+    "node": "22.16.0",
+    "mineflayer": "4.37.1",
+    "mineflayer_pathfinder": "2.4.5",
+    "minecraft_data": "3.111.0"
+  },
+  "llm": {
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "reasoning_content_policy": {
+      "max_bytes": 65536,
+      "consumed": false,
+      "retained": false
+    },
+    "temperature": 0.0,
+    "max_tokens": 4096,
+    "extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    }
+  },
+  "identities": {
+    "agent": "singularity-agent-v1",
+    "goal_generator": "survival-goal-generator-v1",
+    "curriculum": "autonomous-curriculum-v1",
+    "planner": "llm-autonomous-planner-v1",
+    "action_backend": "mineflayer-bridge-v1",
+    "goal_verifier": "m4-survival-machine-verifier-v1",
+    "runtime_interrupt": "m4-survival-interrupt-v1",
+    "skill_runtime_profile": "m4-baseline-learned-skills-off-v1",
+    "player_lifecycle_verifier": "m4-player-lifecycle-verifier-v1"
+  },
+  "runtime_controls": {
+    "skill_execution_mode": "off",
+    "learned_executable_skills_enabled": false,
+    "quarantined_skills_enabled": false,
+    "policy_skills_enabled": false,
+    "skill_memory_context_enabled": false,
+    "memory_persistence_enabled": false,
+    "vision_enabled": false,
+    "visual_action_grounding_enabled": false,
+    "screenshot_capture_enabled": false,
+    "self_evolution_policy_enabled": false,
+    "world_model_curriculum_feedback_enabled": false,
+    "multi_agent_enabled": false,
+    "autocurriculum_enabled": true,
+    "goal_verification_enabled": true,
+    "action_verification_enabled": true,
+    "action_verification_enforced": true
+  },
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+  "skill_execution_mode": "off",
+  "learned_executable_skills_enabled": false,
+  "quarantined_skills_enabled": false,
+  "vision_enabled": false,
+  "multi_agent_enabled": false,
+  "runtime_limits": {
+    "max_duration_s": 600.0,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40
+  },
+  "evidence_paths": {
+    "preflight": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/preflight.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/reset.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/manifest.json",
+    "session": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/session.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/eligibility.json",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260726_181641_7181f962/preparation.json"
+  }
+}

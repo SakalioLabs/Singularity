@@ -487,6 +487,9 @@ class Planner:
             raw_plan, place_success_criteria_grounding = (
                 self._ground_m4_place_success_criteria(raw_plan, goal=goal)
             )
+            raw_plan, equip_success_criteria_grounding = (
+                self._ground_m4_equip_success_criteria(raw_plan)
+            )
             raw_plan, subtask_numeric_grounding = self._ground_m4_subtask_numeric_criteria(raw_plan)
             raw_plan, opportunity_trigger_grounding = (
                 self._ground_m4_subtask_opportunity_triggers(raw_plan)
@@ -509,6 +512,7 @@ class Planner:
             grounding_issues = list(action_parameter_grounding.get("issues", []))
             grounding_issues.extend(place_replan_feedback_grounding.get("issues", []))
             grounding_issues.extend(place_success_criteria_grounding.get("issues", []))
+            grounding_issues.extend(equip_success_criteria_grounding.get("issues", []))
             grounding_issues.extend(subtask_numeric_grounding.get("issues", []))
             grounding_issues.extend(opportunity_trigger_grounding.get("issues", []))
             schema_validation["action_parameter_grounding"] = action_parameter_grounding
@@ -517,6 +521,9 @@ class Planner:
             )
             schema_validation["place_success_criteria_grounding"] = (
                 place_success_criteria_grounding
+            )
+            schema_validation["equip_success_criteria_grounding"] = (
+                equip_success_criteria_grounding
             )
             schema_validation["subtask_numeric_criteria_grounding"] = subtask_numeric_grounding
             schema_validation["subtask_opportunity_trigger_grounding"] = (
@@ -570,6 +577,9 @@ class Planner:
                 )
                 plan["place_success_criteria_grounding"] = dict(
                     schema_validation.get("place_success_criteria_grounding", {})
+                )
+                plan["equip_success_criteria_grounding"] = dict(
+                    schema_validation.get("equip_success_criteria_grounding", {})
                 )
                 plan["subtask_numeric_criteria_grounding"] = dict(
                     schema_validation.get("subtask_numeric_criteria_grounding", {})
@@ -2073,6 +2083,299 @@ Plan the steps to achieve this goal."""
         if isinstance(value, list) and all(isinstance(item, str) for item in value):
             return {item.strip().lower() for item in value if item.strip()}
         return set()
+
+    @classmethod
+    def _ground_m4_equip_success_criteria(cls, plan: dict) -> tuple[dict, dict]:
+        """Ground equip completion in the executed equip action result."""
+        grounded_plan = dict(plan or {})
+        actions = grounded_plan.get("actions")
+        subtasks = grounded_plan.get("subtasks")
+        equip_actions = [
+            action for action in actions
+            if (
+                isinstance(action, dict)
+                and str(action.get("type") or "").strip() == "equip"
+                and isinstance(action.get("parameters"), dict)
+                and str((action.get("parameters") or {}).get("item") or "").strip()
+            )
+        ] if isinstance(actions, list) else []
+        equip_items = sorted({
+            str((action.get("parameters") or {}).get("item") or "").strip()
+            for action in equip_actions
+        })
+        original_subtasks_sha256 = cls._parameter_sha256(subtasks)
+        if not isinstance(subtasks, list):
+            return grounded_plan, {
+                "type": "m4_equip_success_criteria_grounding",
+                "schema_version": 1,
+                "policy_id": "m4-equip-success-criteria-grounding-v1",
+                "passed": True,
+                "equip_action_count": len(equip_actions),
+                "equip_action_items": equip_items,
+                "subtask_count": 0,
+                "equip_subtask_count": 0,
+                "grounded_subtask_count": 0,
+                "removed_equipped_precondition_count": 0,
+                "original_subtasks_sha256": original_subtasks_sha256,
+                "grounded_subtasks_sha256": original_subtasks_sha256,
+                "normalizations": [],
+                "precondition_normalizations": [],
+                "issues": [],
+            }
+
+        issues: list[str] = []
+        normalizations = []
+        grounded_subtasks = []
+        equip_subtask_count = 0
+        grounded_subtask_count = 0
+        equip_item_set = set(equip_items)
+
+        for subtask_index, subtask in enumerate(subtasks):
+            if not isinstance(subtask, dict):
+                grounded_subtasks.append(subtask)
+                continue
+            grounded_subtask = dict(subtask)
+            criteria = subtask.get("success_criteria")
+            if not isinstance(criteria, dict):
+                grounded_subtasks.append(grounded_subtask)
+                continue
+
+            descriptor = " ".join((
+                str(subtask.get("title") or ""),
+                str(subtask.get("type") or ""),
+            ))
+            descriptor_tokens = set(re.findall(
+                r"[a-z0-9]+",
+                descriptor.lower().replace("_", " "),
+            ))
+            equip_intent = bool(
+                str(subtask.get("type") or "").strip() == "equip"
+                or descriptor_tokens
+                & {"equip", "equips", "equipped", "equipping", "wield", "hold"}
+            )
+            if not equip_intent:
+                grounded_subtasks.append(grounded_subtask)
+                continue
+            equip_subtask_count += 1
+
+            candidate_items: list[dict] = []
+            for key in ("equipment_has", "equipped"):
+                if key not in criteria:
+                    continue
+                value = criteria.get(key)
+                if isinstance(value, str) and value.strip():
+                    candidate_items.append({
+                        "item": value.strip(),
+                        "source_field": f"success_criteria.{key}",
+                        "source_value": value,
+                    })
+                else:
+                    issues.append(
+                        f"subtask[{subtask_index}]:equip_success_criteria_grounding_failed"
+                    )
+            for item in cls._m4_equipped_flag_items(criteria.get("flags")):
+                candidate_items.append({
+                    "item": item,
+                    "source_field": "success_criteria.flags",
+                    "source_value": criteria.get("flags"),
+                })
+
+            if not candidate_items:
+                grounded_subtasks.append(grounded_subtask)
+                continue
+
+            unique_items = sorted({candidate["item"] for candidate in candidate_items})
+            preconditions = subtask.get("preconditions")
+            inventory = (
+                preconditions.get("inventory")
+                if isinstance(preconditions, dict)
+                else None
+            )
+            missing_or_invalid = [
+                item for item in unique_items
+                if (
+                    item not in equip_item_set
+                    or not isinstance(inventory, dict)
+                    or not isinstance(inventory.get(item), int)
+                    or isinstance(inventory.get(item), bool)
+                    or inventory.get(item) < 1
+                )
+            ]
+            if len(unique_items) != 1 or missing_or_invalid:
+                issues.append(
+                    f"subtask[{subtask_index}]:equip_success_criteria_grounding_failed"
+                )
+                grounded_subtasks.append(grounded_subtask)
+                continue
+
+            item = unique_items[0]
+            normalized_source_fields = {
+                candidate["source_field"] for candidate in candidate_items
+            }
+            grounded_criteria = dict(criteria)
+            if "success_criteria.equipment_has" in normalized_source_fields:
+                grounded_criteria.pop("equipment_has", None)
+            if "success_criteria.equipped" in normalized_source_fields:
+                grounded_criteria.pop("equipped", None)
+            if "success_criteria.flags" in normalized_source_fields:
+                grounded_criteria.pop("flags", None)
+            grounded_criteria["action"] = {"type": "equip"}
+            grounded_criteria["result"] = {"success": True}
+            grounded_subtask["success_criteria"] = grounded_criteria
+            grounded_subtasks.append(grounded_subtask)
+            grounded_subtask_count += 1
+            for candidate in candidate_items:
+                normalizations.append({
+                    "subtask_index": subtask_index,
+                    "item": item,
+                    "source_field": candidate["source_field"],
+                    "source_value_sha256": cls._parameter_sha256(candidate["source_value"]),
+                    "canonical_criteria": {
+                        "action": {"type": "equip"},
+                        "result": {"success": True},
+                    },
+                    "reason": "equip_requires_action_result_completion_proof",
+                })
+
+        equip_dependency_items: dict[str, str] = {}
+        for subtask in grounded_subtasks:
+            if not isinstance(subtask, dict):
+                continue
+            criteria = subtask.get("success_criteria")
+            if not (
+                isinstance(criteria, dict)
+                and isinstance(criteria.get("action"), dict)
+                and criteria["action"].get("type") == "equip"
+                and isinstance(criteria.get("result"), dict)
+                and criteria["result"].get("success") is True
+            ):
+                continue
+            preconditions = subtask.get("preconditions")
+            inventory = (
+                preconditions.get("inventory")
+                if isinstance(preconditions, dict)
+                else None
+            )
+            items = [
+                str(item)
+                for item, count in (inventory or {}).items()
+                if (
+                    item in equip_item_set
+                    and isinstance(count, int)
+                    and not isinstance(count, bool)
+                    and count >= 1
+                )
+            ] if isinstance(inventory, dict) else []
+            if len(items) != 1:
+                continue
+            for key in ("id", "title"):
+                value = str(subtask.get(key) or "").strip()
+                if value:
+                    equip_dependency_items[value] = items[0]
+
+        final_subtasks = []
+        precondition_normalizations = []
+        removed_precondition_count = 0
+        for subtask_index, subtask in enumerate(grounded_subtasks):
+            if not isinstance(subtask, dict):
+                final_subtasks.append(subtask)
+                continue
+            preconditions = subtask.get("preconditions")
+            flags = (
+                preconditions.get("flags")
+                if isinstance(preconditions, dict)
+                else None
+            )
+            if not isinstance(flags, list):
+                final_subtasks.append(subtask)
+                continue
+            equipped_flags = [
+                (flag, cls._m4_equipped_flag_item(flag))
+                for flag in flags
+                if cls._m4_equipped_flag_item(flag)
+            ]
+            if not equipped_flags:
+                final_subtasks.append(subtask)
+                continue
+            dependencies = subtask.get("depends_on")
+            dependency_items = {
+                equip_dependency_items[dependency]
+                for dependency in dependencies
+                if isinstance(dependency, str) and dependency in equip_dependency_items
+            } if isinstance(dependencies, list) else set()
+            unbound_flags = [
+                flag for flag, item in equipped_flags
+                if item not in dependency_items
+            ]
+            if unbound_flags:
+                issues.append(
+                    f"subtask[{subtask_index}]:equip_precondition_grounding_failed"
+                )
+                final_subtasks.append(subtask)
+                continue
+
+            grounded_subtask = dict(subtask)
+            grounded_preconditions = dict(preconditions)
+            remaining_flags = []
+            for flag in flags:
+                item = cls._m4_equipped_flag_item(flag)
+                if item and item in dependency_items:
+                    removed_precondition_count += 1
+                    precondition_normalizations.append({
+                        "subtask_index": subtask_index,
+                        "item": item,
+                        "source_field": "preconditions.flags",
+                        "source_value_sha256": cls._parameter_sha256(flag),
+                        "canonical_dependency_item": item,
+                        "reason": "equip_dependency_replaces_virtual_equipped_flag",
+                    })
+                    continue
+                remaining_flags.append(flag)
+            if remaining_flags:
+                grounded_preconditions["flags"] = remaining_flags
+            else:
+                grounded_preconditions.pop("flags", None)
+            grounded_subtask["preconditions"] = grounded_preconditions
+            final_subtasks.append(grounded_subtask)
+
+        grounded_subtasks = final_subtasks
+        grounded_plan["subtasks"] = grounded_subtasks
+        return grounded_plan, {
+            "type": "m4_equip_success_criteria_grounding",
+            "schema_version": 1,
+            "policy_id": "m4-equip-success-criteria-grounding-v1",
+            "passed": not issues,
+            "equip_action_count": len(equip_actions),
+            "equip_action_items": equip_items,
+            "subtask_count": len(subtasks),
+            "equip_subtask_count": equip_subtask_count,
+            "grounded_subtask_count": grounded_subtask_count,
+            "removed_equipped_precondition_count": removed_precondition_count,
+            "original_subtasks_sha256": original_subtasks_sha256,
+            "grounded_subtasks_sha256": cls._parameter_sha256(grounded_subtasks),
+            "normalizations": normalizations,
+            "precondition_normalizations": precondition_normalizations,
+            "issues": sorted(set(issues)),
+        }
+
+    @staticmethod
+    def _m4_equipped_flag_items(value) -> list[str]:
+        if not isinstance(value, list) or len(value) != 1:
+            return []
+        flag = value[0]
+        if not isinstance(flag, str):
+            return []
+        item = Planner._m4_equipped_flag_item(flag)
+        return [item] if item else []
+
+    @staticmethod
+    def _m4_equipped_flag_item(value) -> str:
+        if not isinstance(value, str):
+            return ""
+        match = re.fullmatch(r"([a-z0-9_]+)_equipped", value.strip())
+        if match is None:
+            return ""
+        return match.group(1)
 
     @classmethod
     def _ground_m4_subtask_numeric_criteria(cls, plan: dict) -> tuple[dict, dict]:

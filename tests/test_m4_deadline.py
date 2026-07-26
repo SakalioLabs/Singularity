@@ -1743,6 +1743,183 @@ def test_m4_place_success_criteria_grounding_is_narrow_and_fails_closed():
     print("PASS: M4 placement criterion grounding is intent-bound and fail-closed")
 
 
+def test_m4_planner_grounds_probe33_equip_criteria_aliases_to_action_result():
+    cases = [
+        ("equipment_has", {"equipment_has": "wooden_pickaxe"}),
+        ("equipped", {"equipped": "wooden_pickaxe"}),
+        ("equipped_flag", {"flags": ["wooden_pickaxe_equipped"]}),
+    ]
+    for label, criteria in cases:
+        clock = FakeClock()
+        tasks = TaskSystem()
+        llm = ScriptedPlannerLLM(clock, [{
+            "status": "planning",
+            "reasoning": f"equip the wooden pickaxe using {label}",
+            "subtasks": [{
+                "title": "Equip wooden pickaxe",
+                "type": "equip",
+                "priority": 1,
+                "preconditions": {"inventory": {"wooden_pickaxe": 1}},
+                "success_criteria": criteria,
+                "depends_on": [],
+            }, {
+                "title": "Mine 3 cobblestone",
+                "type": "mine",
+                "priority": 2,
+                "preconditions": {
+                    "inventory": {"wooden_pickaxe": 1},
+                    "flags": ["wooden_pickaxe_equipped"],
+                },
+                "success_criteria": {"inventory": {"cobblestone": 3}},
+                "depends_on": ["Equip wooden pickaxe"],
+            }],
+            "actions": [{
+                "type": "equip",
+                "parameters": {"item": "wooden_pickaxe"},
+            }],
+        }])
+        planner = Planner(llm, tasks, protocol="m4-fixed-v1")
+        planner.start_episode("Equip wooden pickaxe", f"m4-probe-33-{label}")
+        planner.set_deadline(200.0, 0.0)
+        with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+            plan = planner.plan_from_goal(
+                "Equip wooden pickaxe",
+                {"inventory": {"wooden_pickaxe": 1}},
+            )
+
+        assert plan["schema_validation"]["passed"] is True
+        grounding = plan["equip_success_criteria_grounding"]
+        assert grounding["policy_id"] == "m4-equip-success-criteria-grounding-v1"
+        assert grounding["passed"] is True
+        assert grounding["equip_action_items"] == ["wooden_pickaxe"]
+        assert grounding["grounded_subtask_count"] == 1
+        assert grounding["removed_equipped_precondition_count"] == 1
+        assert grounding["normalizations"][0]["source_field"].startswith(
+            "success_criteria."
+        )
+        assert grounding["precondition_normalizations"][0]["source_field"] == (
+            "preconditions.flags"
+        )
+        assert len(grounding["original_subtasks_sha256"]) == 64
+        assert len(grounding["grounded_subtasks_sha256"]) == 64
+        assert grounding["original_subtasks_sha256"] != grounding["grounded_subtasks_sha256"]
+        assert plan["subtasks"][1]["preconditions"] == {
+            "inventory": {"wooden_pickaxe": 1},
+        }
+
+        task = next(
+            candidate
+            for candidate in tasks.tasks.values()
+            if candidate.title == "Equip wooden pickaxe"
+        )
+        assert task.success_criteria == {
+            "action": {"type": "equip"},
+            "result": {"success": True},
+        }
+        tasks.update_task(task.id, status=TaskStatus.ACCEPTED)
+        tasks.apply_action_result(
+            {"type": "equip", "parameters": {"item": "wooden_pickaxe"}},
+            {"success": True},
+            {"inventory": {"wooden_pickaxe": 1}},
+            task_id=task.id,
+        )
+        assert task.status == TaskStatus.COMPLETED
+        assert task.result["completed_by"] == "action_result"
+    print("PASS: M4 grounds Probe 33 equip criteria aliases to action-result proof")
+
+
+def test_m4_equip_success_criteria_grounding_fails_closed_for_unbound_aliases():
+    def fixture(
+        *,
+        criteria,
+        action_item="wooden_pickaxe",
+        preconditions=None,
+        title="Equip wooden pickaxe",
+        task_type="equip",
+    ):
+        return {
+            "status": "planning",
+            "subtasks": [{
+                "title": title,
+                "type": task_type,
+                "priority": 1,
+                "preconditions": (
+                    {"inventory": {"wooden_pickaxe": 1}}
+                    if preconditions is None
+                    else preconditions
+                ),
+                "success_criteria": criteria,
+                "depends_on": [],
+            }],
+            "actions": [{
+                "type": "equip",
+                "parameters": {"item": action_item},
+            }],
+        }
+
+    controls = [
+        fixture(criteria={"equipment_has": "wooden_pickaxe"}, action_item="stone_pickaxe"),
+        fixture(criteria={"equipped": "wooden_pickaxe"}, preconditions={"inventory": {}}),
+        fixture(criteria={"flags": ["wooden_pickaxe_equipped"]}, action_item="stone_pickaxe"),
+        fixture(criteria={"equipment_has": ""}),
+        {
+            "status": "planning",
+            "subtasks": [{
+                "title": "Mine 3 cobblestone",
+                "type": "mine",
+                "priority": 2,
+                "preconditions": {
+                    "inventory": {"wooden_pickaxe": 1},
+                    "flags": ["wooden_pickaxe_equipped"],
+                },
+                "success_criteria": {"inventory": {"cobblestone": 3}},
+                "depends_on": [],
+            }],
+            "actions": [{
+                "type": "equip",
+                "parameters": {"item": "wooden_pickaxe"},
+            }],
+        },
+    ]
+    for plan in controls[:4]:
+        unchanged, report = Planner._ground_m4_equip_success_criteria(plan)
+        assert report["passed"] is False
+        assert report["issues"] == [
+            "subtask[0]:equip_success_criteria_grounding_failed"
+        ]
+        assert unchanged["subtasks"][0]["success_criteria"] == plan["subtasks"][0]["success_criteria"]
+
+    unchanged, report = Planner._ground_m4_equip_success_criteria(controls[4])
+    assert report["passed"] is False
+    assert report["issues"] == [
+        "subtask[0]:equip_precondition_grounding_failed"
+    ]
+    assert unchanged["subtasks"][0]["preconditions"]["flags"] == [
+        "wooden_pickaxe_equipped"
+    ]
+
+    unrelated_flags = fixture(criteria={"flags": ["shelter_complete"]})
+    unchanged, report = Planner._ground_m4_equip_success_criteria(unrelated_flags)
+    assert report["passed"] is True
+    assert report["grounded_subtask_count"] == 0
+    assert unchanged["subtasks"][0]["success_criteria"] == {
+        "flags": ["shelter_complete"],
+    }
+
+    unrelated_subtask = fixture(
+        criteria={"equipment_has": "wooden_pickaxe"},
+        title="Verify wooden pickaxe",
+        task_type="verify",
+    )
+    unchanged, report = Planner._ground_m4_equip_success_criteria(unrelated_subtask)
+    assert report["passed"] is True
+    assert report["grounded_subtask_count"] == 0
+    assert unchanged["subtasks"][0]["success_criteria"] == {
+        "equipment_has": "wooden_pickaxe",
+    }
+    print("PASS: M4 equip criterion grounding fails closed for unbound aliases")
+
+
 def _probe_9_typed_schema_rejection_response() -> dict:
     return {
         "status": "planning",
@@ -4030,6 +4207,8 @@ if __name__ == "__main__":
     test_m4_opportunity_trigger_type_gate_preserves_strings_and_fails_closed()
     test_m4_planner_grounds_probe_5_place_success_criterion_to_machine_state()
     test_m4_place_success_criteria_grounding_is_narrow_and_fails_closed()
+    test_m4_planner_grounds_probe33_equip_criteria_aliases_to_action_result()
+    test_m4_equip_success_criteria_grounding_fails_closed_for_unbound_aliases()
     test_m4_player_occupied_place_rejection_requests_bounded_adjacent_replan()
     test_m4_place_replan_feedback_grounding_replays_probe_16_and_fails_closed()
     test_m4_planner_place_replan_feedback_gate_blocks_output_and_preserves_controls()
