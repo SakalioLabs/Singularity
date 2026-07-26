@@ -111,6 +111,9 @@ M4_TYPED_SCHEMA_RECOVERY_LIMIT = 1
 M4_TYPED_SCHEMA_ISSUE_PATTERN = re.compile(
     r"^subtask\[(?:0|[1-9]\d*)\]:(?:preconditions|success_criteria)_inventory_count_invalid:.+$"
 )
+M4_BM012_STONE_PICKAXE_FRONTIER_YIELD_POLICY_ID = (
+    "m4-bm012-stone-pickaxe-frontier-yield-v1"
+)
 
 
 class Agent:
@@ -2111,6 +2114,7 @@ class Agent:
             self._active_runtime_interrupt = {}
             self._runtime_interrupt_sequence = 0
             self._last_runtime_interrupt_yield = ""
+            self._m4_bm012_stone_pickaxe_frontier_yield_fingerprint = ""
             self._m4_typed_schema_recovery_state = {}
             self._m4_task_id = m4_task_id
         elif max_duration_s is not None:
@@ -2348,6 +2352,14 @@ class Agent:
                         termination_reason = "machine_verified_readiness_recovery"
                         break
 
+                    if self._yield_m4_bm012_stone_pickaxe_frontier(
+                        observation,
+                        goal,
+                        {"cycle": total_cycles, "mode": "autonomous", "phase": "pre_planner"},
+                    ):
+                        termination_reason = "runtime_interrupt:bm012_stone_pickaxe_frontier_ready"
+                        break
+
                     runtime = getattr(self, "runtime", None)
                     evaluate_preplanner = getattr(
                         runtime,
@@ -2564,6 +2576,19 @@ class Agent:
                             {"action": action, "result": result},
                             source="autonomous_action",
                         )
+
+                        if self._yield_m4_bm012_stone_pickaxe_frontier(
+                            observation,
+                            goal,
+                            {
+                                "cycle": total_cycles,
+                                "goal": goal,
+                                "mode": "autonomous",
+                                "phase": "post_action",
+                            },
+                        ):
+                            termination_reason = "runtime_interrupt:bm012_stone_pickaxe_frontier_ready"
+                            break
 
                         if termination_reason == "episode_deadline":
                             break
@@ -8445,8 +8470,153 @@ class Agent:
         return str(goal_lower or "").startswith((
             "confirm collection of 8 iron resources",
             "gather 3 cobblestone with the wooden pickaxe",
+            "craft a stone pickaxe for mining iron ore",
+            "craft stone pickaxe",
             "collect 8 raw iron from iron ore with the stone pickaxe",
         ))
+
+    def _yield_m4_bm012_stone_pickaxe_frontier(
+        self,
+        observation: dict,
+        goal: str,
+        context: dict = None,
+    ) -> bool:
+        """Suspend oversized cobblestone goals once the stone-pickaxe frontier is ready."""
+        if not self._m4_bm012_stone_pickaxe_frontier_ready(observation, goal):
+            return False
+        recommended_goal = self._m4_bm012_recommended_frontier_goal(observation)
+        payload = {
+            "schema_version": 1,
+            "policy_id": M4_BM012_STONE_PICKAXE_FRONTIER_YIELD_POLICY_ID,
+            "reason": "stone_pickaxe_frontier_ready",
+            "goal": str(goal or ""),
+            "recommended_goal": recommended_goal,
+            "context": dict(context or {}),
+            "resume_policy": "regenerate_survival_goal_then_resume_frontier",
+            "inventory": self._m4_bm012_toolchain_inventory_snapshot(observation),
+            "task_id": str(getattr(self, "_m4_task_id", "") or ""),
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(
+                {
+                    "policy_id": payload["policy_id"],
+                    "goal": payload["goal"],
+                    "recommended_goal": recommended_goal,
+                    "inventory": payload["inventory"],
+                    "phase": payload["context"].get("phase"),
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        if (
+            fingerprint
+            != str(
+                getattr(
+                    self,
+                    "_m4_bm012_stone_pickaxe_frontier_yield_fingerprint",
+                    "",
+                )
+                or ""
+            )
+        ):
+            payload["frontier_yield_fingerprint"] = fingerprint
+            self._m4_bm012_stone_pickaxe_frontier_yield_fingerprint = fingerprint
+            if hasattr(getattr(self, "session_logger", None), "log"):
+                self.session_logger.log(
+                    "m4_bm012_stone_pickaxe_frontier_yield",
+                    payload,
+                    level="WARNING",
+                )
+            self._write_memory_episode(
+                "m4_bm012_stone_pickaxe_frontier_yield",
+                payload,
+                source="runtime",
+            )
+        self._last_runtime_interrupt_yield = "bm012_stone_pickaxe_frontier_ready"
+        return True
+
+    def _m4_bm012_stone_pickaxe_frontier_ready(
+        self,
+        observation: dict,
+        goal: str,
+    ) -> bool:
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+            or str(getattr(self, "_m4_task_id", "") or "") != "BM-012"
+        ):
+            return False
+        goal_lower = str(goal or "").strip().lower()
+        if self._m4_bm012_exact_progression_goal(goal_lower):
+            return False
+        if any(
+            token in goal_lower
+            for token in (
+                "attack",
+                "flee",
+                "eat",
+                "restore health",
+                "find food",
+                "shelter",
+                "nightfall",
+                "wait for dawn",
+            )
+        ):
+            return False
+        inventory = (
+            observation.get("inventory", {})
+            if isinstance(observation, dict)
+            and isinstance(observation.get("inventory", {}), dict)
+            else {}
+        )
+        return (
+            self._m4_inventory_count(inventory.get("wooden_pickaxe")) >= 1
+            and self._m4_inventory_count(inventory.get("stone_pickaxe")) < 1
+            and self._m4_inventory_count(inventory.get("cobblestone")) >= 3
+        )
+
+    def _m4_bm012_recommended_frontier_goal(self, observation: dict) -> str:
+        generator = getattr(self, "goal_generator", None)
+        if generator is not None and hasattr(generator, "next_goal"):
+            previous_decision = copy.deepcopy(getattr(generator, "last_decision", {}))
+            try:
+                return str(generator.next_goal(observation or {}, task_id="BM-012") or "")
+            except TypeError:
+                try:
+                    return str(generator.next_goal(observation or {}) or "")
+                except Exception:
+                    pass
+            except Exception:
+                pass
+            finally:
+                try:
+                    generator.last_decision = previous_decision
+                except Exception:
+                    pass
+        return "Craft a stone pickaxe for mining iron ore"
+
+    def _m4_bm012_toolchain_inventory_snapshot(self, observation: dict) -> dict:
+        inventory = (
+            observation.get("inventory", {})
+            if isinstance(observation, dict)
+            and isinstance(observation.get("inventory", {}), dict)
+            else {}
+        )
+        keys = (
+            "oak_log",
+            "oak_planks",
+            "stick",
+            "crafting_table",
+            "wooden_pickaxe",
+            "cobblestone",
+            "stone_pickaxe",
+        )
+        return {
+            key: self._m4_inventory_count(inventory.get(key))
+            for key in keys
+            if self._m4_inventory_count(inventory.get(key)) > 0
+        }
 
     def _active_coach_policy(self):
         """Return the configured advisory coach if the runtime policy is enabled."""

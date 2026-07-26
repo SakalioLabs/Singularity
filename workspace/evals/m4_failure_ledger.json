@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-26T06:15:50Z",
+  "generated_at": "2026-07-26T10:35:00Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -19,9 +19,9 @@
   ],
   "live_episode_count_under_current_protocol": 4,
   "current_gate": {
-    "hypothesis": "preplanner_explosive_hostile_horizon_gap",
-    "policy_id": "m4-preplanner-explosive-hostile-horizon-v1",
-    "status": "probe_31_retained_offline_repair_required",
+    "hypothesis": "m4_stone_pickaxe_progression_goal_granularity_gap",
+    "policy_id": "m4-bm012-stone-pickaxe-frontier-yield-v1",
+    "status": "offline_repair_passed_probe_32_not_authorized",
     "earliest_blocker": "m4_stone_pickaxe_progression_goal_granularity_gap",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -44,6 +44,15 @@
     "bm012_eligible_success_count": 0,
     "bm012_live_episode_count": 31,
     "bm012_latest_failure_layer": "m4_stone_pickaxe_progression_goal_granularity_gap",
+    "bm012_stone_pickaxe_frontier_yield_offline_gate_passed": true,
+    "bm012_stone_pickaxe_frontier_yield_policy_id": "m4-bm012-stone-pickaxe-frontier-yield-v1",
+    "bm012_stone_pickaxe_frontier_yield_boundaries": [
+      "pre_planner",
+      "post_action"
+    ],
+    "bm012_stone_pickaxe_frontier_yield_related_test_count": 3,
+    "bm012_probe_31_stone_pickaxe_frontier_repair_audit_path": "workspace/evals/m4_probe31_stone_pickaxe_frontier_repair_audit.json",
+    "bm012_probe_32_authorized": false,
     "bm012_purpose_phrase_offline_gate_passed": true,
     "bm012_purpose_phrase_focused_test_count": 57,
     "bm012_purpose_phrase_live_validated": true,
@@ -1253,6 +1262,9 @@
     "bm012_probe_31_task_deadline_interrupt_count": 14,
     "bm012_probe_31_dusk_shelter_interrupt_event_index": 874,
     "bm012_probe_31_preplanner_death_recurred": false,
+    "bm012_probe_31_stone_pickaxe_frontier_repair_audit_path": "workspace/evals/m4_probe31_stone_pickaxe_frontier_repair_audit.json",
+    "bm012_probe_31_stone_pickaxe_frontier_yield_offline_gate_passed": true,
+    "bm012_probe_31_stone_pickaxe_frontier_yield_policy_id": "m4-bm012-stone-pickaxe-frontier-yield-v1",
     "bm012_ready_task_next_authorized_episode": null,
     "bm012_ready_task_authorized_episode_count": 0
   },

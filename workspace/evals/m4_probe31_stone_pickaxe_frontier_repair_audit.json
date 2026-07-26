@@ -1,0 +1,89 @@
+{
+  "type": "m4_probe31_stone_pickaxe_frontier_repair_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T10:35:00Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 31,
+  "episode_id": "m4_episode_20260726_170045_375cdbbb",
+  "session_id": "ff7244ee-0d4",
+  "classification": "behavioral_ineligible",
+  "counts_toward_bm012_success": false,
+  "counts_toward_capability": false,
+  "first_unrecovered_transition": {
+    "failure_layer": "m4_stone_pickaxe_progression_goal_granularity_gap",
+    "trigger_goal": "Mine 12 cobblestone for stone tools and furnace",
+    "cobblestone_3_event_index": 543,
+    "cobblestone_3_elapsed_s": 295.82,
+    "cobblestone_3_time_of_day": 5651,
+    "stone_pickaxe_craft_action_count": 0,
+    "cobblestone_goal_cycles": 27,
+    "task_deadline_interrupt_count": 14,
+    "dusk_shelter_interrupt_event_index": 874,
+    "dusk_shelter_elapsed_s": 507.07,
+    "dusk_shelter_time_of_day": 10071,
+    "terminal_stone_pickaxe": 0,
+    "terminal_iron_resource_count": 0,
+    "recovered": false
+  },
+  "offline_repair": {
+    "policy_id": "m4-bm012-stone-pickaxe-frontier-yield-v1",
+    "scope": "strict_m4_bm012_only",
+    "goal_generator_order": "table_ready_toolchain_before_wood_reserve_topup",
+    "protected_exact_frontiers": [
+      "Gather 3 cobblestone with the wooden pickaxe",
+      "Craft a stone pickaxe for mining iron ore",
+      "Collect 8 raw iron from iron ore with the stone pickaxe"
+    ],
+    "frontier_yield_trigger": {
+      "wooden_pickaxe_min": 1,
+      "stone_pickaxe_max": 0,
+      "cobblestone_min": 3
+    },
+    "yield_boundaries": [
+      "pre_planner",
+      "post_action"
+    ],
+    "resume_policy": "regenerate_survival_goal_then_resume_frontier",
+    "survival_interrupt_priority_preserved": true,
+    "non_m4_unchanged": true,
+    "capability_upgrade": false
+  },
+  "offline_validation": {
+    "tests": [
+      "tests/test_curriculum.py::test_m4_bm012_goal_generator_closes_wood_to_stone_pickaxe_frontier",
+      "tests/test_curriculum.py::test_m4_bm012_selector_preserves_stone_pickaxe_frontier_over_stale_tasks",
+      "tests/test_runtime_supervisor.py::test_m4_bm012_runtime_yields_after_third_cobblestone"
+    ],
+    "pytest_results": {
+      "tests/test_curriculum.py": "13 passed",
+      "tests/test_runtime_supervisor.py": "18 passed"
+    }
+  },
+  "evidence_paths": {
+    "probe_report": "workspace/evals/m4_probe31_report.json",
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_170045_375cdbbb/session_ff7244ee-0d4.jsonl"
+  },
+  "evidence_sha256": {
+    "probe_report": "70ff9a66e2b785531271606ee7409d8d80c061771d7def6f1532e7b60c69e96e",
+    "raw_session_jsonl": "80dc078d45028a6e9a0ca43a4e2fb077e1ce81b7023344e6190b655aca5e25a9"
+  },
+  "source_paths": {
+    "agent": "src/singularity/core/agent.py",
+    "goal_generator": "src/singularity/core/goal_generator.py",
+    "curriculum_tests": "tests/test_curriculum.py",
+    "runtime_supervisor_tests": "tests/test_runtime_supervisor.py"
+  },
+  "source_sha256": {
+    "agent": "1bb1769af289e4031c94d92da3c2cbee36506e5065be66e957761c41f4a313f0",
+    "goal_generator": "5d3e9e118c97590e77d1fdd3bbc4ee4971c5c7c961c8cf5c016aa6eaa0fb92c0",
+    "curriculum_tests": "98ccf4fe0195705bf0aac98c2f695982cb49f75a6892792c384fbeaf45a09b75",
+    "runtime_supervisor_tests": "4c0779a490a24a884f04b3b036d2986bc8667414c3618e1cde24016bfc9144c2"
+  },
+  "decision": {
+    "bm012_eligible_success_count": 0,
+    "m4_status": "failing",
+    "probe_32_authorized": false
+  }
+}

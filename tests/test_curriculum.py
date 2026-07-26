@@ -9,9 +9,10 @@ from singularity.core.agent import Agent
 from singularity.core.coach import CoachPolicy
 from singularity.core.config import Config
 from singularity.core.curriculum import CurriculumGoalCandidate, CurriculumManager
+from singularity.core.goal_generator import GoalGenerator
 from singularity.core.memory import MemorySystem
 from singularity.core.skill_library import SkillLibrary
-from singularity.core.task_system import TaskSystem
+from singularity.core.task_system import TaskStatus, TaskSystem
 
 
 def test_curriculum_keeps_emergency_goal():
@@ -294,6 +295,77 @@ def test_m4_bm012_selector_preserves_exact_three_cobblestone_frontier():
     print("PASS: strict BM-012 preserves exact cobblestone and iron frontiers")
 
 
+def test_m4_bm012_goal_generator_closes_wood_to_stone_pickaxe_frontier():
+    generator = GoalGenerator()
+    base = {
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 5000,
+        "inventory": {
+            "oak_log": 3,
+            "oak_planks": 3,
+            "stick": 2,
+            "wooden_pickaxe": 1,
+        },
+        "nearby_entities": [],
+        "nearby_blocks": [{"name": "crafting_table"}, {"name": "stone"}],
+    }
+
+    gather = generator.next_goal(base, task_id="BM-012")
+    ready = dict(base)
+    ready["inventory"] = {**base["inventory"], "cobblestone": 3}
+    craft = generator.next_goal(ready, task_id="BM-012")
+
+    assert gather == "Gather 3 cobblestone with the wooden pickaxe"
+    assert craft == "Craft a stone pickaxe for mining iron ore"
+    print("PASS: strict BM-012 closes wood-to-stone-pickaxe frontier")
+
+
+def test_m4_bm012_selector_preserves_stone_pickaxe_frontier_over_stale_tasks():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.config = Config(
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        planner_protocol="m4-fixed-v1",
+    )
+    agent._m4_task_id = "BM-012"
+    agent.task_system = TaskSystem()
+    agent.curriculum = CurriculumManager()
+    agent.memory = MemorySystem(agent.config.memory_dir, persist=False)
+    agent.skill_library = SkillLibrary(agent.config.skill_dir, persist=False)
+    stale = agent.task_system.create_task(
+        "Mine 12 cobblestone",
+        status=TaskStatus.ACCEPTED,
+        priority=0,
+        preconditions={"inventory": {"wooden_pickaxe": 1}},
+        success_criteria={"inventory": {"cobblestone": 12}},
+    )
+    observation = {
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 6011,
+        "inventory": {
+            "oak_log": 3,
+            "oak_planks": 3,
+            "stick": 2,
+            "wooden_pickaxe": 1,
+            "cobblestone": 3,
+        },
+        "nearby_entities": [],
+        "nearby_blocks": [{"name": "crafting_table"}, {"name": "stone"}],
+    }
+
+    selected = agent._select_autonomous_goal(
+        observation,
+        "Craft a stone pickaxe for mining iron ore",
+    )
+
+    assert selected == "Craft a stone pickaxe for mining iron ore"
+    assert stale in agent.task_system.get_ready_tasks(observation)
+    print("PASS: strict BM-012 stone-pickaxe frontier outranks stale cobblestone tasks")
+
+
 def test_coach_policy_biases_curriculum_candidates_without_mutating_inputs():
     candidates = [
         CurriculumGoalCandidate(
@@ -377,6 +449,9 @@ if __name__ == "__main__":
     test_curriculum_scores_structured_frontiers_with_transfer_memory()
     test_curriculum_penalizes_repeated_failures()
     test_agent_autonomous_selector_uses_curriculum_when_no_ready_task()
+    test_m4_bm012_selector_preserves_exact_three_cobblestone_frontier()
+    test_m4_bm012_goal_generator_closes_wood_to_stone_pickaxe_frontier()
+    test_m4_bm012_selector_preserves_stone_pickaxe_frontier_over_stale_tasks()
     test_coach_policy_biases_curriculum_candidates_without_mutating_inputs()
     test_agent_autonomous_selector_records_coached_curriculum_decision()
     print("\nCurriculum tests PASSED")

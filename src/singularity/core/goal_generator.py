@@ -244,16 +244,16 @@ class GoalGenerator:
                 hunger,
                 shelter_verified,
             )
-        if self._count(inventory.get("oak_log")) < 6:
-            return self._progression(
-                "Gather 6 oak logs for iron-tool progression",
-                "bm012_wood_reserve_below_target",
-                time_of_day,
-                health,
-                hunger,
-                shelter_verified,
-            )
         if not table_nearby:
+            if self._count(inventory.get("oak_log")) < 6:
+                return self._progression(
+                    "Gather 6 oak logs for iron-tool progression",
+                    "bm012_wood_reserve_below_target",
+                    time_of_day,
+                    health,
+                    hunger,
+                    shelter_verified,
+                )
             return self._progression(
                 "Craft and place a crafting table for iron-tool progression",
                 "bm012_crafting_table_missing",

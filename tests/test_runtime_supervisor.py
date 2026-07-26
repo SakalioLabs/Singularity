@@ -996,6 +996,102 @@ def test_m4_autonomous_interrupt_suspends_then_resumes_root_frontier():
     print("PASS: autonomous G4 takeover suspends one root, resolves shelter, and resumes its frontier")
 
 
+def test_m4_bm012_runtime_yields_after_third_cobblestone():
+    agent = runtime_agent(Config(planner_protocol="m4-fixed-v1"))
+    agent.goal_generator = GoalGenerator()
+    agent.curriculum = FakeCurriculum()
+    agent.planner = None
+    agent.reflector = None
+    agent._use_llm = True
+    agent._active_skill_execution = {}
+    agent._skill_fallback_goals = set()
+    agent._skill_episode_start_index = 0
+    stale_goal = "Mine 12 cobblestone for stone tools and furnace"
+    before = {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {
+            "oak_log": 3,
+            "oak_planks": 3,
+            "stick": 2,
+            "wooden_pickaxe": 1,
+            "cobblestone": 2,
+        },
+        "inventory_count": 5,
+        "equipment": [],
+        "nearby_entities": [],
+        "nearby_blocks": [{"name": "crafting_table"}, {"name": "stone"}],
+        "position": {"x": 114, "y": 133, "z": -29},
+        "time_of_day": 5651,
+    }
+    after = {
+        **before,
+        "inventory": {**before["inventory"], "cobblestone": 3},
+        "inventory_count": 6,
+        "time_of_day": 6011,
+    }
+    state = {"value": before, "observe_count": 0}
+
+    def observe():
+        state["observe_count"] += 1
+        return dict(state["value"])
+
+    agent._observe = observe
+    agent._select_autonomous_goal = lambda current, fallback: stale_goal
+    agent._think = lambda current, override_goal=None: {
+        "status": "planning",
+        "reasoning": "legacy oversized cobblestone root",
+        "actions": [{"type": "dig", "parameters": {"block": "stone"}}],
+    }
+    agent._accept_planned_tasks = lambda: None
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent._state_with_causal_context = lambda current, goal="": current
+    agent._select_action_for_execution = lambda action, *args, **kwargs: (action, None)
+    agent._verify_action_for_execution = lambda *args, **kwargs: (None, None)
+    agent._record_action_value = lambda *args, **kwargs: None
+    agent._record_skill_usage = lambda *args, **kwargs: None
+    agent._attempt_failure_correction = lambda *args, **kwargs: (False, state["value"])
+    agent._evaluate_episode_abort = lambda *args, **kwargs: False
+    agent._record_frontier_budget_outcome = lambda *args, **kwargs: None
+    agent._finalize_skill_learning_episode = lambda *args, **kwargs: None
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._write_memory_context = lambda *args, **kwargs: None
+    agent._goal_is_verified = lambda *args, **kwargs: (False, None)
+
+    def feedback(action, result, current, context=None):
+        state["value"] = after
+        return dict(after)
+
+    agent._apply_action_feedback = feedback
+
+    with patch("singularity.core.agent.time.sleep", lambda _seconds: None):
+        result = agent.run_autonomous(
+            max_goals=1,
+            max_cycles_per_goal=3,
+            max_duration_s=30.0,
+            task_id="BM-012",
+        )
+
+    event = next(
+        event["data"]
+        for event in agent.session_logger.events
+        if event["type"] == "m4_bm012_stone_pickaxe_frontier_yield"
+    )
+    interrupted = next(
+        event["data"]
+        for event in agent.session_logger.events
+        if event["type"] == "auto_goal_interrupted"
+    )
+    assert result["goals_interrupted"] == 1
+    assert result["goals_completed"] == 0
+    assert result["goals_failed"] == 0
+    assert event["policy_id"] == "m4-bm012-stone-pickaxe-frontier-yield-v1"
+    assert event["inventory"]["cobblestone"] == 3
+    assert event["recommended_goal"] == "Craft a stone pickaxe for mining iron ore"
+    assert interrupted["termination_reason"] == "runtime_interrupt:bm012_stone_pickaxe_frontier_ready"
+    print("PASS: BM-012 yields oversized cobblestone root after third cobblestone")
+
+
 def test_non_m4_reflection_behavior_is_preserved():
     agent = runtime_agent()
     agent._use_llm = True
@@ -1032,5 +1128,6 @@ if __name__ == "__main__":
     test_agent_expires_all_overdue_tasks_and_interrupts_once()
     test_autonomous_loop_replans_once_then_resumes_actions()
     test_m4_autonomous_interrupt_suspends_then_resumes_root_frontier()
+    test_m4_bm012_runtime_yields_after_third_cobblestone()
     test_non_m4_reflection_behavior_is_preserved()
     print("\nRuntime supervisor tests PASSED")
