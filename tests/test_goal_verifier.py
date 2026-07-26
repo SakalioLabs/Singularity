@@ -70,6 +70,58 @@ def test_goal_verifier_accepts_completed_crafting_goal():
     print("PASS: GoalVerifier accepts completed crafting target")
 
 
+def test_goal_verifier_requires_exact_machine_equipment_for_equip_goal():
+    verifier = GoalVerifier(use_knowledge_base=False)
+    goal = "Equip wooden pickaxe"
+
+    equipped = verifier.verify(
+        goal,
+        {
+            "inventory": {"wooden_pickaxe": 1},
+            "selected_slot": 0,
+            "equipment": [
+                {"slot": 0, "name": "wooden_pickaxe", "count": 1},
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+        },
+    )
+    inventory_only = verifier.verify(
+        goal,
+        {"inventory": {"wooden_pickaxe": 1}},
+        recent_actions=[{"action": {"type": "equip"}, "result": {"success": True}}],
+    )
+    wrong_item = verifier.verify(
+        goal,
+        {
+            "inventory": {"wooden_pickaxe": 1},
+            "equipment": [{"slot": 0, "name": "stone_pickaxe", "count": 1}],
+        },
+    )
+    malformed = verifier.verify(
+        goal,
+        {"inventory": {"wooden_pickaxe": 1}, "equipment": ["wooden_pickaxe"]},
+    )
+
+    assert equipped.achieved
+    assert equipped.confidence == 1.0
+    assert equipped.matched_rules == [
+        "equipment:hand:wooden_pickaxe",
+        "policy:m4-machine-equipment-goal-verifier-v1",
+    ]
+    assert "machine equipment hand slot contains wooden_pickaxe" in equipped.evidence
+    for rejected in (inventory_only, wrong_item, malformed):
+        assert not rejected.achieved
+        assert rejected.status == "failed"
+        assert rejected.missing == [
+            "hand slot does not contain equipped wooden_pickaxe"
+        ]
+    print("PASS: GoalVerifier binds equip goals to exact machine hand state")
+
+
 def test_goal_verifier_uses_recipe_generated_anchor():
     verifier = GoalVerifier()
 

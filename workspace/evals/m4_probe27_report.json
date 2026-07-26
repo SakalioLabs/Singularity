@@ -1,0 +1,170 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T05:08:40Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 27,
+  "episode_id": "m4_episode_20260726_125337_3b868472",
+  "session_id": "5325482a-ef9",
+  "level_name": "m4_episode_20260726_125337_3b868472_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe27_authorization.json",
+    "commit": "e5e7d01f0ee0171787ee99185f734fa70ad221ba",
+    "tree": "8eecc452d3a7592e3cc10f7843f09d0cfad3c313",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_monotonic_s": 791937.031,
+    "probe_28_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "model": "grok-4.5",
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 600.015,
+    "deadline_eligible": false,
+    "planner_call_count": 59,
+    "real_planner_call_count": 57,
+    "schema_valid_real_planner_call_count": 57,
+    "schema_invalid_real_planner_call_count": 0,
+    "non_real_planner_call_count": 2,
+    "action_count": 19,
+    "successful_action_count": 19,
+    "goals_completed": 2,
+    "goals_failed": 2,
+    "maximum_inventory": {
+      "oak_log": 6,
+      "oak_planks": 12,
+      "crafting_table": 1,
+      "stick": 4,
+      "wooden_pickaxe": 1,
+      "coal": 1,
+      "cobblestone": 2,
+      "stone_pickaxe": 0,
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "wooden_pickaxe": 1,
+      "oak_log": 3,
+      "stick": 2,
+      "dirt": 3,
+      "oak_planks": 3,
+      "coal": 1,
+      "cobblestone": 2
+    }
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_to_wooden_pickaxe": true,
+    "wooden_pickaxe_to_cobblestone": true,
+    "cobblestone_to_stone_pickaxe": false,
+    "stone_pickaxe_to_iron": false,
+    "full_stone_pickaxe_loop_completed": false
+  },
+  "planner_envelope_result": {
+    "policy_id": "m4-exact-json-code-fence-envelope-v1",
+    "real_response_count": 57,
+    "schema_valid_real_response_count": 57,
+    "schema_invalid_real_response_count": 0,
+    "normalization_applied_count": 0,
+    "prompt_prevented_fenced_responses": true,
+    "provider_authentication_error_count": 0
+  },
+  "first_unrecovered_transition": {
+    "goal": "Mine 12 cobblestone for stone tools and furnace",
+    "cycle": 22,
+    "event_type": "empty_plan",
+    "reason": "actions_not_array, status_invalid",
+    "real_llm_call": false,
+    "response_byte_count": 0,
+    "reasoning_content_byte_count": 203
+  },
+  "latest_blocker": {
+    "failure_layer": "goal_verifier_missing_machine_equipment_postcondition",
+    "goal": "Equip wooden pickaxe",
+    "cycle_count": 37,
+    "schema_valid_complete_plan_count": 36,
+    "machine_inventory_has_wooden_pickaxe": true,
+    "machine_equipment_hand_slot_has_wooden_pickaxe": true,
+    "deterministic_verifier_status": "unknown",
+    "wasted_completion_cycles": 36
+  },
+  "offline_repair": {
+    "policy_id": "m4-machine-equipment-goal-verifier-v1",
+    "exact_goal_verb_required": true,
+    "exact_target_item_required": true,
+    "machine_hand_slot_required": true,
+    "inventory_only_rejected": true,
+    "recent_action_only_rejected": true,
+    "wrong_item_rejected": true,
+    "malformed_equipment_rejected": true
+  },
+  "eligibility": {
+    "eligible": false,
+    "check_count": 74,
+    "pass_count": 66,
+    "issue_count": 8,
+    "issues": [
+      "event:terminal_resource_verification",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "episode_within_deadline",
+      "result_duration_eligible",
+      "no_post_deadline_execution"
+    ]
+  },
+  "decision": {
+    "value": "behavioral_ineligible",
+    "reason": "wooden_pickaxe_and_two_cobblestone_observed_but_stone_pickaxe_and_iron_targets_not_reached_before_deadline",
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "bm012_eligible_success_count": 0,
+    "m4_status": "failing",
+    "next_authorization": false
+  },
+  "evidence_paths": {
+    "preflight": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/preflight.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/manifest.json",
+    "session": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/session.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/eligibility.json",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/preparation.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/reset.json",
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/session_5325482a-ef9.jsonl",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260726_125337_3b868472/session_5325482a-ef9_summary.json"
+  },
+  "evidence_sha256": {
+    "preflight": "e4ff4ec8b311a410993102d9fbf368e10f5013a955fbb55312e06b67d9db405e",
+    "manifest": "b2a4494ea2067f2e6d1e03c165fc6ab48eb34bcffecea36243e6151ed9d35928",
+    "session": "dc92a82b24d9da7a10ffd8755c2ce7a7a02473274ea82148479c764f0a594cb3",
+    "result": "8bee3cb9bb4493664866b77c9b81965525216d13da38db5bf18b3675eed95d8d",
+    "eligibility": "49b2c3833c4b05edd4984608fa57ddce01d2d919d19b75c5629faa739019ae1d",
+    "preparation": "44f5b860be2acf4cc7b177c5fe43ab2c187982ec9a87b749451a7e613c19e61f",
+    "protocol_status": "5fd1dc0da649b855e6df4b2b13b17e3c4767d38a33043d4cb50681ffd2a49578",
+    "reset": "fa1cdb2371e267ee431ac8cdca7ff87699349aeab1ee59f800bac234d9bcd667",
+    "raw_session_jsonl": "846a128d0a3b8c070ae56806e35c83bcb8302903b3f2265d990fc3bb46929bfe",
+    "session_summary": "4e778806296061a3eaebbc5fc0b3fee7d2e0d06f24554a69777f2b16466920ab"
+  }
+}

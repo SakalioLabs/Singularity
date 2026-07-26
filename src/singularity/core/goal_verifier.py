@@ -137,7 +137,8 @@ class GoalVerificationCritic:
 
     def _safe_observation(self, observation: dict) -> dict:
         allowed = {
-            "inventory", "position", "health", "hunger", "time_of_day", "is_daytime",
+            "inventory", "equipment", "selected_slot", "position", "health", "hunger",
+            "time_of_day", "is_daytime",
             "weather", "flags", "structures", "landmarks", "grounded_resources",
             "nearby_blocks", "nearby_entities", "visual_analysis", "vlm_analysis",
             "screenshot_analysis", "screenshot_path", "screenshot", "image_path",
@@ -190,6 +191,8 @@ class GoalVerificationCritic:
 
 class GoalVerifier:
     """Verify common Minecraft goals from observation and action evidence."""
+
+    EQUIPMENT_POLICY_ID = "m4-machine-equipment-goal-verifier-v1"
 
     LOG_ITEMS = [
         "oak_log", "birch_log", "spruce_log", "jungle_log", "acacia_log",
@@ -253,6 +256,10 @@ class GoalVerifier:
         observation = observation or {}
         recent_actions = recent_actions or []
         checks: list[GoalVerification] = []
+
+        equipment_check = self._equipment_check(goal_text, observation)
+        if equipment_check:
+            checks.append(equipment_check)
 
         crafting_table_placement = self._crafting_table_placement_check(goal_text, observation)
         if crafting_table_placement:
@@ -408,6 +415,68 @@ class GoalVerifier:
             checks.append(self._inventory_check(goal, anchor, have, required, recent_actions=recent_actions))
             seen.add(anchor.canonical)
         return checks
+
+    def _equipment_check(
+        self,
+        goal: str,
+        observation: dict,
+    ) -> Optional[GoalVerification]:
+        goal_lower = goal.lower()
+        if not any(
+            self._phrase_in_goal(verb, goal_lower)
+            for verb in ("equip", "equipped", "wield", "hold")
+        ):
+            return None
+
+        target = next(
+            (
+                anchor
+                for anchor in self._ranked_anchors()
+                if any(self._phrase_in_goal(alias, goal_lower) for alias in anchor.phrases)
+            ),
+            None,
+        )
+        if target is None:
+            return None
+
+        equipment = observation.get("equipment")
+        hand_entry = None
+        if isinstance(equipment, list) and equipment:
+            candidate = equipment[0]
+            if isinstance(candidate, dict) and candidate.get("slot", 0) == 0:
+                hand_entry = candidate
+        elif isinstance(equipment, dict):
+            for key in ("hand", "main_hand", "mainhand", "0", 0):
+                candidate = equipment.get(key)
+                if isinstance(candidate, dict):
+                    hand_entry = candidate
+                    break
+
+        equipped_name = (
+            str(hand_entry.get("name") or "").strip().lower()
+            if isinstance(hand_entry, dict)
+            else ""
+        )
+        target_items = {str(item).lower() for item in target.inventory_items}
+        achieved = equipped_name in target_items
+        return GoalVerification(
+            goal=goal,
+            achieved=achieved,
+            status="achieved" if achieved else "failed",
+            confidence=1.0,
+            evidence=(
+                [f"machine equipment hand slot contains {equipped_name}"]
+                if achieved else []
+            ),
+            missing=(
+                [] if achieved
+                else [f"hand slot does not contain equipped {target.canonical}"]
+            ),
+            matched_rules=[
+                f"equipment:hand:{target.canonical}",
+                f"policy:{self.EQUIPMENT_POLICY_ID}",
+            ],
+        )
 
     def _crafting_table_placement_check(
         self,
