@@ -1575,6 +1575,9 @@ The `bounded_shelter_partial_failure_atomicity` hypothesis passed live in Probe 
 - Client retries and local proxy retries are both zero.
 - The formal no-Minecraft health request passed in 2936 ms. A separate,
   parent-bound one-use authorization is required before Probe 25.
+- Probe 25 authorization is parent-bound to health commit `385d851` and permits
+  one fresh fixed-limit BM-012 episode. It is consumed at `autonomous_start`;
+  no retry or second episode is authorized.
 
 - One live episode per round.
 - One root-cause hypothesis per round.

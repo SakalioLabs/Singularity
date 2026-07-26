@@ -578,3 +578,7 @@ The material below is retained as historical context and is not active work whil
   `stop`, 113 reasoning bytes, 306 total tokens, and 2936 ms duration.
 - No Minecraft process started. Probe 25 remains unauthorized until a separate
   one-use authorization commit is synchronized.
+- Probe 25 is authorized in a separate parent-bound transaction after the v2
+  health commit. It permits exactly one fresh BM-012 episode with fixed limits,
+  skill execution off, and zero client/proxy retries; it grants no M4 credit
+  before independent verification.
