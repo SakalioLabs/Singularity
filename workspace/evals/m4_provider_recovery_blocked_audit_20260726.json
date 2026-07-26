@@ -1,0 +1,74 @@
+{
+  "type": "m4_provider_recovery_blocked_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T00:23:53.520634Z",
+  "source_commit": "c674ac46e1bf7da08b13320eb3ba5e052fb41c95",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "policy_id": "m4-fixed-provider-recovery-probe-v1",
+  "blocking_condition": "fixed_provider_unavailable_before_planner_response",
+  "consecutive_goal_turn_count": 3,
+  "observations": [
+    {
+      "goal_turn": 1,
+      "path": "workspace/evals/m4_provider_recovery_probe_20260726_r1.json",
+      "sha256": "8c0101c305d6557e2d71a4319df181026e1365323e7715681f4395b840217c80",
+      "classification": "fixed_provider_unavailable",
+      "provider_result_observed": true,
+      "http_status": 401,
+      "credit_error": true,
+      "supervisor_terminated_worker": false
+    },
+    {
+      "goal_turn": 2,
+      "path": "workspace/evals/m4_provider_recovery_probe_20260726_r2.json",
+      "sha256": "33d49dcb08511c2bb3a4fd5bf0f9e9601342b47ab78f4bd787bb0970d47b58be",
+      "classification": "fixed_provider_unavailable",
+      "provider_result_observed": true,
+      "http_status": 401,
+      "credit_error": true,
+      "supervisor_terminated_worker": false
+    },
+    {
+      "goal_turn": 3,
+      "path": "workspace/evals/m4_provider_recovery_probe_20260726_r3.json",
+      "sha256": "b3568af61454e25d9fcf9264d06f1a28848291edfb42d48362197183b9cf7b8c",
+      "classification": "probe_indeterminate",
+      "provider_result_observed": false,
+      "http_status": null,
+      "credit_error": false,
+      "supervisor_terminated_worker": true
+    }
+  ],
+  "shared_proof": {
+    "same_fixed_provider": true,
+    "same_fixed_model": true,
+    "same_protocol": true,
+    "usable_planner_response_count": 0,
+    "automatic_retry_count": 0,
+    "minecraft_started_count": 0,
+    "gameplay_action_count": 0,
+    "error_subtypes_identical": false,
+    "http401_credit_error_count": 2,
+    "supervisor_timeout_count": 1,
+    "same_blocking_condition_across_three_goal_turns": true
+  },
+  "blocked_audit": {
+    "fixed_provider_recovery_proven": false,
+    "meaningful_code_only_progress_remaining": false,
+    "external_state_change_required": "restore_fixed_provider_availability_and_credit",
+    "alternate_provider_substitution_allowed": false,
+    "probe_25_authorized": false,
+    "bm012_eligible_success_count": 0,
+    "m4_status": "failing",
+    "goal_status": "blocked"
+  },
+  "safety": {
+    "credential_value_retained": false,
+    "response_body_retained": false,
+    "minecraft_ports_closed_after_r3": true,
+    "known_unrelated_python_process_untouched": true,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false
+  }
+}
