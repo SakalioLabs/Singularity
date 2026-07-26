@@ -21,7 +21,7 @@
   "current_gate": {
     "hypothesis": "preplanner_explosive_hostile_horizon_gap",
     "policy_id": "m4-preplanner-explosive-hostile-horizon-v1",
-    "status": "probe_30_retained_offline_repair_under_validation",
+    "status": "probe_31_authorized_one_fresh_bm012_episode",
     "earliest_blocker": "preplanner_explosive_hostile_horizon_gap",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -1237,8 +1237,12 @@
     "bm012_probe_30_creeper_distance": 12.7,
     "bm012_probe_30_planner_duration_ms": 14938,
     "bm012_probe_30_preplanner_repair_audit_path": "workspace/evals/m4_probe30_preplanner_explosive_hostile_repair_audit.json",
-    "bm012_ready_task_next_authorized_episode": null,
-    "bm012_ready_task_authorized_episode_count": 0
+    "bm012_probe_31_authorized": true,
+    "bm012_probe_31_authorization_path": "workspace/evals/m4_probe31_authorization.json",
+    "bm012_probe_31_authorization_sha256": "c423a7b268078bb6d7a1aaaa5543f9980e3686c753f3f1b0547212f2a9c0b4db",
+    "bm012_probe_31_authorization_parent_commit": "79e84651388617b2907a68f1923efb35344adfe7",
+    "bm012_ready_task_next_authorized_episode": "probe_31_one_fresh_bm012_episode",
+    "bm012_ready_task_authorized_episode_count": 1
   },
   "entries": [
     {
