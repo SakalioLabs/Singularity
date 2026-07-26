@@ -2159,7 +2159,7 @@ Plan the steps to achieve this goal."""
             equip_subtask_count += 1
 
             candidate_items: list[dict] = []
-            for key in ("equipment_has", "equipment_contains", "equipped"):
+            for key in ("equipment_has", "equipment_contains", "equipped", "held_item"):
                 if key not in criteria:
                     continue
                 value = criteria.get(key)
@@ -2180,18 +2180,41 @@ Plan the steps to achieve this goal."""
                     "source_value": criteria.get("flags"),
                 })
             equipment = criteria.get("equipment")
-            if isinstance(equipment, dict) and "name" in equipment:
-                value = equipment.get("name")
-                if isinstance(value, str) and value.strip():
-                    candidate_items.append({
-                        "item": value.strip(),
-                        "source_field": "success_criteria.equipment.name",
-                        "source_value": equipment,
-                    })
+            if isinstance(equipment, dict):
+                if "name" in equipment:
+                    value = equipment.get("name")
+                    if isinstance(value, str) and value.strip():
+                        candidate_items.append({
+                            "item": value.strip(),
+                            "source_field": "success_criteria.equipment.name",
+                            "source_value": equipment,
+                        })
+                    else:
+                        issues.append(
+                            f"subtask[{subtask_index}]:equip_success_criteria_grounding_failed"
+                        )
                 else:
-                    issues.append(
-                        f"subtask[{subtask_index}]:equip_success_criteria_grounding_failed"
-                    )
+                    equipment_items = [
+                        str(item).strip()
+                        for item, count in equipment.items()
+                        if (
+                            isinstance(item, str)
+                            and item.strip()
+                            and isinstance(count, int)
+                            and not isinstance(count, bool)
+                            and count >= 1
+                        )
+                    ]
+                    if len(equipment) == 1 and len(equipment_items) == 1:
+                        candidate_items.append({
+                            "item": equipment_items[0],
+                            "source_field": "success_criteria.equipment",
+                            "source_value": equipment,
+                        })
+                    else:
+                        issues.append(
+                            f"subtask[{subtask_index}]:equip_success_criteria_grounding_failed"
+                        )
 
             if not candidate_items:
                 grounded_subtasks.append(grounded_subtask)
@@ -2232,9 +2255,14 @@ Plan the steps to achieve this goal."""
                 grounded_criteria.pop("equipment_contains", None)
             if "success_criteria.equipped" in normalized_source_fields:
                 grounded_criteria.pop("equipped", None)
+            if "success_criteria.held_item" in normalized_source_fields:
+                grounded_criteria.pop("held_item", None)
             if "success_criteria.flags" in normalized_source_fields:
                 grounded_criteria.pop("flags", None)
-            if "success_criteria.equipment.name" in normalized_source_fields:
+            if (
+                "success_criteria.equipment.name" in normalized_source_fields
+                or "success_criteria.equipment" in normalized_source_fields
+            ):
                 grounded_criteria.pop("equipment", None)
             grounded_criteria["action"] = {"type": "equip"}
             grounded_criteria["result"] = {"success": True}
@@ -2255,9 +2283,20 @@ Plan the steps to achieve this goal."""
                 })
 
         equip_dependency_items: dict[str, str] = {}
+        dependency_graph: dict[str, list[str]] = {}
         for subtask in grounded_subtasks:
             if not isinstance(subtask, dict):
                 continue
+            dependencies = subtask.get("depends_on")
+            dependency_names = [
+                dependency
+                for dependency in dependencies
+                if isinstance(dependency, str) and dependency.strip()
+            ] if isinstance(dependencies, list) else []
+            for key in ("id", "title"):
+                value = str(subtask.get(key) or "").strip()
+                if value:
+                    dependency_graph[value] = list(dependency_names)
             criteria = subtask.get("success_criteria")
             if not (
                 isinstance(criteria, dict)
@@ -2290,6 +2329,15 @@ Plan the steps to achieve this goal."""
                 if value:
                     equip_dependency_items[value] = items[0]
 
+        def dependency_items_for(name: str, visited: set[str]) -> set[str]:
+            if name in visited:
+                return set()
+            visited.add(name)
+            items = {equip_dependency_items[name]} if name in equip_dependency_items else set()
+            for dependency in dependency_graph.get(name, []):
+                items.update(dependency_items_for(dependency, visited))
+            return items
+
         final_subtasks = []
         precondition_normalizations = []
         removed_precondition_count = 0
@@ -2315,11 +2363,11 @@ Plan the steps to achieve this goal."""
                 final_subtasks.append(subtask)
                 continue
             dependencies = subtask.get("depends_on")
-            dependency_items = {
-                equip_dependency_items[dependency]
-                for dependency in dependencies
-                if isinstance(dependency, str) and dependency in equip_dependency_items
-            } if isinstance(dependencies, list) else set()
+            dependency_items = set()
+            if isinstance(dependencies, list):
+                for dependency in dependencies:
+                    if isinstance(dependency, str) and dependency.strip():
+                        dependency_items.update(dependency_items_for(dependency, set()))
             unbound_flags = [
                 flag for flag, item in equipped_flags
                 if item not in dependency_items

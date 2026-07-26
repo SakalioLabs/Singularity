@@ -1,0 +1,208 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T12:18:54Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 37,
+  "episode_id": "m4_episode_20260726_200240_407e60d0",
+  "session_id": "dbcb2bfd-0f1",
+  "level_name": "m4_episode_20260726_200240_407e60d0_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe37_authorization.json",
+    "commit": "f317b316848ff0bacf317e9062d4f20bb46dd107",
+    "tree": "6856351da520573ea9f4030b2ed112d1a7f5c4a6",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_monotonic_s": 817567.781,
+    "probe_38_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/session_dbcb2bfd-0f1.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260726_200240_407e60d0/session_dbcb2bfd-0f1_summary.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "b4c3612122bdb2b8e40daa16d800a07b99712d53c512fedc896b74df76bf69c5",
+    "preparation": "6a4277dea9ac3035a30aa7ea535ee5459f53064af2ff44fcd3bf30e6ee633c34",
+    "result": "0e9f388fdf1e12ccbf4025b5ab75f8c076698c827f9198f09a6674b5046f0c84",
+    "eligibility": "61a3ee19ffdb02ab6759193af1db1dac33954afdd3204ab46d515ebefd3112b8",
+    "manifest": "2c6867b6475d7a02bf403c7a794b7dbdb186df68511d1b522e5744be9118f91f",
+    "preflight": "4d0782827656df9f46f1082513be808633d2224c0fdd1813ce607a3de00419b2",
+    "session_summary": "b4dd0d7c5136d71a1c07236c53db3d347abfe027979d7c565a9a6e44cdc4e28a"
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 600.031,
+    "session_duration_s": 602.46,
+    "deadline_eligible": false,
+    "goals_completed": 8,
+    "goals_failed": 5,
+    "goals_interrupted": 0,
+    "planner_call_count": 34,
+    "real_planner_call_count": 32,
+    "schema_valid_real_planner_call_count": 29,
+    "schema_invalid_real_planner_call_count": 3,
+    "schema_invalid_nonreal_call_count": 2,
+    "transport_error_call_count": 1,
+    "action_count": 29,
+    "successful_action_count": 27,
+    "failed_action_count": 2,
+    "maximum_inventory": {
+      "oak_log": 6,
+      "oak_planks": 8,
+      "crafting_table": 1,
+      "stick": 4,
+      "wooden_pickaxe": 1,
+      "cobblestone": 3,
+      "stone_pickaxe": 1,
+      "coal": 0,
+      "raw_iron": 0,
+      "iron_ore": 0,
+      "dirt": 3
+    },
+    "terminal_inventory": {
+      "oak_log": 2,
+      "oak_planks": 3,
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "cobblestone": 1,
+      "dirt": 3
+    },
+    "terminal_health": 20,
+    "terminal_hunger": 20,
+    "terminal_time_of_day": 12127,
+    "death_count": 0,
+    "respawn_count": 0
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_placed": true,
+    "crafting_table_to_wooden_pickaxe": true,
+    "wooden_pickaxe_to_three_cobblestone": true,
+    "station_access_goal_completed": true,
+    "station_access_table_placed": true,
+    "cobblestone_to_stone_pickaxe": true,
+    "full_stone_pickaxe_loop_completed": true,
+    "equipment_object_grounding_live_exercised": false,
+    "equipment_map_gap_exposed": true,
+    "transitive_equip_precondition_gap_exposed": true,
+    "stone_pickaxe_to_raw_iron": false,
+    "raw_iron_to_eight": false
+  },
+  "intervention_review": {
+    "probe_36_equipment_object_repair_live_exercised": false,
+    "yield_result": "intervention_not_exercised_new_blocker",
+    "maximum_stone_pickaxe_observed": 1,
+    "health_preserved": true,
+    "terminal_health": 20
+  },
+  "recovered_nonterminal_findings": {
+    "place_replan_repeated_reference_line": 248,
+    "place_replan_empty_plan_line": 253,
+    "table_collision_rejection_action_lines": [
+      239,
+      279
+    ],
+    "successful_table_place_line_after_recovery": 305,
+    "recovered": true
+  },
+  "principal_blocker": {
+    "failure_layer": "m4_equipment_map_transitive_equip_precondition_grounding_gap",
+    "first_raw_iron_goal_line": 586,
+    "first_equipment_map_plan_line": 619,
+    "unsupported_success_criteria": {
+      "equipment": {
+        "stone_pickaxe": 1
+      }
+    },
+    "first_equipment_map_task_deadline_line": 699,
+    "first_transitive_equip_precondition_schema_rejection_line": 654,
+    "second_transitive_equip_precondition_schema_rejection_line": 671,
+    "raw_iron_goal_attempt_count": 4,
+    "raw_iron_dig_action_count": 0,
+    "stone_search_dig_count_after_raw_iron_goal": 1,
+    "equip_deadline_interrupt_count_after_raw_iron_goal": 3,
+    "equipment_map_unbounded_task_deadline_recovered": false,
+    "actions_not_array_schema_rejection_line": 637,
+    "episode_deadline_timeout_line": 805,
+    "terminal_raw_iron": 0,
+    "terminal_stone_pickaxe": 1,
+    "recovered": false
+  },
+  "offline_repair": {
+    "policy_id": "m4-equip-equipment-map-transitive-precondition-grounding-v1",
+    "extends_policy_id": "m4-equip-success-criteria-grounding-v1",
+    "scope": "strict_m4_planner_task_grounding_only",
+    "implemented_after_probe": true,
+    "normalizes_success_criteria_aliases": [
+      "held_item",
+      "equipment.item_count_map"
+    ],
+    "normalizes_transitive_equip_flag_preconditions": true,
+    "fail_closed_for_unbound_equipment_map": true,
+    "fail_closed_for_unbound_transitive_flags": true,
+    "source_sha256": {
+      "planner": "55d47b79cf0303c47e4e76f1c82bde8f0b0f6d555ce8a8b014e568866e80224e",
+      "m4_deadline_tests": "4929e02207a8cc2a44098e7e3835092d7014cb2e6cc1134ceacdbec1c8b8aee9",
+      "agent": "b9e336feeb9339899b8df0e17c759d95da42f28b563ecd19b5188e9eb4019e92",
+      "goal_generator": "845c1706f8eec862930c1cf4d25ef9aa62477c523102473a22c6cfa6ce802d81"
+    },
+    "validated_offline": true,
+    "probe_38_authorized": false
+  },
+  "eligibility": {
+    "eligible": false,
+    "progress_gate_passed": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "issues": [
+      "event:terminal_resource_verification",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "episode_within_deadline",
+      "result_duration_eligible",
+      "no_post_deadline_execution"
+    ]
+  },
+  "decision": {
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "bm012_success_count_after": 0,
+    "next_live_probe_locked_until_offline_repair_commit": true
+  }
+}

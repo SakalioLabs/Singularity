@@ -1748,7 +1748,9 @@ def test_m4_planner_grounds_probe33_equip_criteria_aliases_to_action_result():
         ("equipment_has", {"equipment_has": "wooden_pickaxe"}),
         ("equipment_contains", {"equipment_contains": "wooden_pickaxe"}),
         ("equipment_name", {"equipment": {"name": "wooden_pickaxe"}}),
+        ("equipment_map", {"equipment": {"wooden_pickaxe": 1}}),
         ("equipped", {"equipped": "wooden_pickaxe"}),
+        ("held_item", {"held_item": "wooden_pickaxe"}),
         ("equipped_flag", {"flags": ["wooden_pickaxe_equipped"]}),
     ]
     for label, criteria in cases:
@@ -1799,6 +1801,14 @@ def test_m4_planner_grounds_probe33_equip_criteria_aliases_to_action_result():
         assert grounding["normalizations"][0]["source_field"].startswith(
             "success_criteria."
         )
+        if label == "equipment_name":
+            assert grounding["normalizations"][0]["source_field"] == (
+                "success_criteria.equipment.name"
+            )
+        if label == "equipment_map":
+            assert grounding["normalizations"][0]["source_field"] == (
+                "success_criteria.equipment"
+            )
         assert grounding["precondition_normalizations"][0]["source_field"] == (
             "preconditions.flags"
         )
@@ -1827,6 +1837,56 @@ def test_m4_planner_grounds_probe33_equip_criteria_aliases_to_action_result():
         )
         assert task.status == TaskStatus.COMPLETED
         assert task.result["completed_by"] == "action_result"
+
+    transitive = {
+        "status": "planning",
+        "subtasks": [
+            {
+                "title": "Equip stone pickaxe",
+                "type": "equip",
+                "priority": 1,
+                "preconditions": {"inventory": {"stone_pickaxe": 1}, "flags": []},
+                "success_criteria": {"equipment": {"stone_pickaxe": 1}},
+                "depends_on": [],
+            },
+            {
+                "title": "Locate and approach iron ore",
+                "type": "explore",
+                "priority": 2,
+                "preconditions": {
+                    "inventory": {"stone_pickaxe": 1},
+                    "flags": ["stone_pickaxe_equipped"],
+                },
+                "success_criteria": {"nearby_block_present": "iron_ore"},
+                "depends_on": ["Equip stone pickaxe"],
+            },
+            {
+                "title": "Mine 8 raw iron",
+                "type": "mine",
+                "priority": 3,
+                "preconditions": {
+                    "inventory": {"stone_pickaxe": 1},
+                    "flags": ["stone_pickaxe_equipped"],
+                },
+                "success_criteria": {"inventory": {"raw_iron": 8}},
+                "depends_on": ["Locate and approach iron ore"],
+            },
+        ],
+        "actions": [{
+            "type": "equip",
+            "parameters": {"item": "stone_pickaxe"},
+        }],
+    }
+    grounded, report = Planner._ground_m4_equip_success_criteria(transitive)
+    assert report["passed"] is True
+    assert report["normalizations"][0]["source_field"] == "success_criteria.equipment"
+    assert report["removed_equipped_precondition_count"] == 2
+    assert grounded["subtasks"][1]["preconditions"] == {
+        "inventory": {"stone_pickaxe": 1},
+    }
+    assert grounded["subtasks"][2]["preconditions"] == {
+        "inventory": {"stone_pickaxe": 1},
+    }
     print("PASS: M4 grounds Probe 33 equip criteria aliases to action-result proof")
 
 
@@ -1863,11 +1923,16 @@ def test_m4_equip_success_criteria_grounding_fails_closed_for_unbound_aliases():
         fixture(criteria={"equipment_has": "wooden_pickaxe"}, action_item="stone_pickaxe"),
         fixture(criteria={"equipment_contains": "wooden_pickaxe"}, action_item="stone_pickaxe"),
         fixture(criteria={"equipment": {"name": "wooden_pickaxe"}}, action_item="stone_pickaxe"),
+        fixture(criteria={"equipment": {"wooden_pickaxe": 1}}, action_item="stone_pickaxe"),
+        fixture(criteria={"held_item": "wooden_pickaxe"}, action_item="stone_pickaxe"),
         fixture(criteria={"equipped": "wooden_pickaxe"}, preconditions={"inventory": {}}),
         fixture(criteria={"flags": ["wooden_pickaxe_equipped"]}, action_item="stone_pickaxe"),
         fixture(criteria={"equipment_has": ""}),
         fixture(criteria={"equipment_contains": ""}),
         fixture(criteria={"equipment": {"name": ""}}),
+        fixture(criteria={"equipment": {"wooden_pickaxe": 0}}),
+        fixture(criteria={"equipment": {"wooden_pickaxe": 1, "stone_pickaxe": 1}}),
+        fixture(criteria={"held_item": ""}),
         {
             "status": "planning",
             "subtasks": [{
@@ -1887,7 +1952,7 @@ def test_m4_equip_success_criteria_grounding_fails_closed_for_unbound_aliases():
             }],
         },
     ]
-    for plan in controls[:8]:
+    for plan in controls[:13]:
         unchanged, report = Planner._ground_m4_equip_success_criteria(plan)
         assert report["passed"] is False
         assert report["issues"] == [
@@ -1895,7 +1960,7 @@ def test_m4_equip_success_criteria_grounding_fails_closed_for_unbound_aliases():
         ]
         assert unchanged["subtasks"][0]["success_criteria"] == plan["subtasks"][0]["success_criteria"]
 
-    unchanged, report = Planner._ground_m4_equip_success_criteria(controls[8])
+    unchanged, report = Planner._ground_m4_equip_success_criteria(controls[13])
     assert report["passed"] is False
     assert report["issues"] == [
         "subtask[0]:equip_precondition_grounding_failed"
