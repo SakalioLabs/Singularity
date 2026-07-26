@@ -1,0 +1,367 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T16:44:15Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 44,
+  "episode_id": "m4_episode_20260727_001750_6df281a2",
+  "session_id": "2138ef81-fe5",
+  "level_name": "m4_episode_20260727_001750_6df281a2_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe44_authorization.json",
+    "commit": "dfbb998a4491504a865e27ab8844763224af7ef2",
+    "tree": "00915a7c8d6a1e9228d83eb9c52b28aade73c1bd",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_at_utc": "2026-07-26T16:18:16.365513Z",
+    "consumed_monotonic_s": 832880.343,
+    "consumed_event_line": 2,
+    "probe_45_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/session_2138ef81-fe5.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/session_2138ef81-fe5_summary.json",
+    "session_json": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/session.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260727_001750_6df281a2/reset.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "bbb2d16e517b75fdb978bfb5ef78f4e040e54f4181be4412241cb3b1ed0165ab",
+    "preparation": "8457b36e27212323fc9b7a62786defffd471532fa127045d4645ee57bdee65da",
+    "result": "0dd911f1df690ef9448da2acae9c771b84b51448363603a9ed0298cf59537ec3",
+    "eligibility": "84d61f75d9cbf916fc9ef2eea96a510562988246cef7f650c79ef92271591bb0",
+    "manifest": "13161ee31412fb0b21935b3ac708c062d73a23125cf41b7ee00c0f1ebdd8f2a1",
+    "preflight": "e186464f6c8a94451fe674f05970cf186a803bcd658a08a8233363d039c74273",
+    "session_summary": "7882b2ca7ab1c6678a223192cad3a7176c76f088f2dc4b99e2caf7f34a1f01d8",
+    "session_json": "06b85207310e8109b26bf4e8b032f29637240c190b3560a92ecb8b0cf93d3093",
+    "protocol_status": "d98fc6b9deff4534a2b54a8fb005b716f831c0865b78a4b028cadd8310942ec9",
+    "reset": "004ccd31136846d162955b77e839e25de4cb8e54d4836f7718a1a59af753c9ca"
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 600.094,
+    "episode_duration_s": 600.563,
+    "session_duration_s": 602.85,
+    "deadline_eligible": false,
+    "goals_completed": 2,
+    "goals_failed": 6,
+    "goals_interrupted": 1,
+    "total_cycles": 249,
+    "planner_call_count": 9,
+    "real_planner_call_count": 9,
+    "schema_valid_real_planner_call_count": 9,
+    "schema_invalid_real_planner_call_count": 0,
+    "schema_invalid_nonreal_call_count": 0,
+    "planner_timeout_call_count": 0,
+    "transport_error_call_count": 0,
+    "planner_total_token_usage": 44222,
+    "planner_max_call_duration_ms": 38890,
+    "machine_step_plan_count": 240,
+    "post_place_machine_observation_count": 237,
+    "failure_reflection_suppressed_count": 237,
+    "action_count": 249,
+    "successful_action_count": 11,
+    "failed_action_count": 238,
+    "action_verifier_accept_count": 249,
+    "action_verifier_reject_count": 0,
+    "action_type_counts": {
+      "move_to": 1,
+      "dig": 6,
+      "craft": 3,
+      "place": 237,
+      "build_shelter_cell": 1,
+      "wait": 1
+    },
+    "action_success_by_type": {
+      "build_shelter_cell": {
+        "attempted": 1,
+        "successful": 1
+      },
+      "craft": {
+        "attempted": 3,
+        "successful": 3
+      },
+      "dig": {
+        "attempted": 6,
+        "successful": 6
+      },
+      "move_to": {
+        "attempted": 1,
+        "successful": 1
+      },
+      "place": {
+        "attempted": 237,
+        "successful": 0
+      },
+      "wait": {
+        "attempted": 1,
+        "successful": 0
+      }
+    },
+    "session_event_count": 3854,
+    "eligibility_event_count": 3854,
+    "memory_write_count": 1515,
+    "memory_read_count": 250,
+    "goal_verification_count": 2,
+    "goal_verification_accepted_count": 2,
+    "maximum_inventory": {
+      "oak_log": 6,
+      "oak_planks": 20,
+      "crafting_table": 1
+    },
+    "preparation_after_state_inventory": {},
+    "result_terminal_inventory": {
+      "crafting_table": 1,
+      "oak_planks": 11
+    },
+    "result_terminal_health": 20,
+    "result_terminal_food": 20,
+    "result_terminal_bot_connected": true
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_placed": false,
+    "crafting_table_to_wooden_pickaxe": false,
+    "wooden_pickaxe_equipped": false,
+    "wooden_pickaxe_to_positive_cobblestone": false,
+    "wooden_pickaxe_to_three_cobblestone": false,
+    "cobblestone_to_stone_pickaxe": false,
+    "full_stone_pickaxe_loop_completed": false,
+    "stone_pickaxe_to_raw_iron": false,
+    "raw_iron_to_eight": false,
+    "terminal_resource_verification_passed": false,
+    "first_action_lines": {
+      "oak_log_dig": 37,
+      "oak_planks_craft": 162,
+      "crafting_table_craft": 174,
+      "crafting_table_place_attempt": 187,
+      "crafting_table_place_success": null,
+      "wooden_pickaxe_craft": null,
+      "stone_dig": null,
+      "stone_pickaxe_craft": null,
+      "terminal_resource_verification": null
+    }
+  },
+  "principal_blocker": {
+    "failure_layer": "m4_bm012_machine_step_place_candidate_drift_gap",
+    "secondary_failure_layer": "m4_bm012_backend_target_occupancy_feedback_gap",
+    "first_machine_step_line": 154,
+    "first_place_machine_step_line": 178,
+    "first_failed_place_action_line": 187,
+    "repeated_failed_place_action_count": 237,
+    "unique_place_reference_count": 167,
+    "max_repeated_reference_count": 3,
+    "top_repeated_references": [
+      {
+        "x": 203,
+        "y": 133,
+        "z": -34,
+        "count": 3
+      },
+      {
+        "x": 204,
+        "y": 133,
+        "z": -34,
+        "count": 3
+      },
+      {
+        "x": 205,
+        "y": 133,
+        "z": -34,
+        "count": 3
+      },
+      {
+        "x": 204,
+        "y": 133,
+        "z": -33,
+        "count": 2
+      },
+      {
+        "x": 204,
+        "y": 133,
+        "z": -35,
+        "count": 2
+      },
+      {
+        "x": 205,
+        "y": 133,
+        "z": -35,
+        "count": 2
+      },
+      {
+        "x": 206,
+        "y": 133,
+        "z": -35,
+        "count": 2
+      },
+      {
+        "x": 205,
+        "y": 133,
+        "z": -36,
+        "count": 2
+      },
+      {
+        "x": 206,
+        "y": 133,
+        "z": -36,
+        "count": 2
+      },
+      {
+        "x": 204,
+        "y": 133,
+        "z": -36,
+        "count": 2
+      }
+    ],
+    "place_error_counts": {
+      "placement target is occupied by dirt": 5,
+      "placement target is occupied by coal_ore": 16,
+      "placement target is occupied by stone": 201,
+      "Event blockUpdate:(201, 134, -30) did not fire within timeout of 5000ms": 1,
+      "Event blockUpdate:(200, 134, -29) did not fire within timeout of 5000ms": 1,
+      "Event blockUpdate:(202, 134, -31) did not fire within timeout of 5000ms": 1,
+      "Event blockUpdate:(203, 134, -32) did not fire within timeout of 5000ms": 1,
+      "Event blockUpdate:(204, 134, -33) did not fire within timeout of 5000ms": 2,
+      "Event blockUpdate:(205, 134, -34) did not fire within timeout of 5000ms": 3,
+      "Event blockUpdate:(206, 134, -35) did not fire within timeout of 5000ms": 2,
+      "Event blockUpdate:(206, 134, -36) did not fire within timeout of 5000ms": 2,
+      "Event blockUpdate:(175, 134, -36) did not fire within timeout of 5000ms": 2
+    },
+    "occupied_target_error_count": 222,
+    "blockupdate_timeout_count": 15,
+    "backend_error_first": "placement target is occupied by dirt",
+    "action_verifier_accepted_failed_places": true,
+    "place_feedback_policy_exercised": true,
+    "probe43_same_reference_failure_recurred": false,
+    "near_ground_sorting_missing_before_repair": true,
+    "target_occupancy_feedback_consumed_before_repair": false,
+    "dusk_interrupt_line": 3767,
+    "episode_deadline_exceeded_line": 3840,
+    "terminal_raw_iron": 0,
+    "terminal_cobblestone": 0,
+    "terminal_stone_pickaxe": 0,
+    "terminal_wooden_pickaxe": 0,
+    "terminal_crafting_table": 1,
+    "recovered": false
+  },
+  "intervention_review": {
+    "probe_43_machine_step_place_feedback_repair_exercised": true,
+    "probe_43_failure_recurred": false,
+    "machine_step_plan_count": 240,
+    "llm_call_count_reduced_from_probe43": true,
+    "yield_result": "intervention_exercised_new_blocker",
+    "stone_pickaxe_loop_completed": false,
+    "health_preserved_in_result_terminal_state": true
+  },
+  "offline_repair": {
+    "policy_id": "m4-bm012-machine-step-place-candidate-bound-v1",
+    "extends_policy_ids": [
+      "m4-bm012-machine-step-place-feedback-v1",
+      "m4-bm012-toolchain-machine-step-plan-v1",
+      "m4-bm012-toolchain-progression-fallback-lock-v1"
+    ],
+    "scope": "strict_m4_bm012_machine_step_crafting_table_place_reference_candidate_selection",
+    "implemented_after_probe": true,
+    "place_candidates_source_limited": true,
+    "excluded_source_families": [
+      "m4_resource_scan",
+      "grounded_resources"
+    ],
+    "candidate_distance_limit_blocks": 6.0,
+    "failed_place_references_excluded": true,
+    "failed_place_targets_excluded": true,
+    "non_replaceable_target_blocks_fail_closed": true,
+    "player_collision_cells_excluded": true,
+    "sort_distance_first": true,
+    "near_ground_priority_before_wall_resources": true,
+    "machine_step_evidence_policy_field_added": true,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "deadline_policy_changed": false,
+    "success_threshold_changed": false,
+    "source_sha256": {
+      "agent": "00af9ab367d5fc35bd52fd7d884ae4182a7ed791685b130c7f47d6f14c2a3a6a",
+      "m4_deadline_tests": "7738aef2942b351afaf6227b49a179a91ba1715b2f6d9a49db9c72001914fc2f"
+    },
+    "validated_offline": true,
+    "focused_test_files": [
+      "tests/test_m4_deadline.py"
+    ],
+    "focused_test_count": 66,
+    "probe_45_authorized": false
+  },
+  "eligibility": {
+    "eligible": false,
+    "success": false,
+    "progress_gate_passed": false,
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "check_count": 74,
+    "pass_count": 55,
+    "issue_count": 19,
+    "issues": [
+      "event:terminal_resource_verification",
+      "player_lifecycle_observation_complete",
+      "player_lifecycle_observation_valid",
+      "player_lifecycle_baseline_consistent",
+      "player_lifecycle_event_valid",
+      "player_lifecycle_event_baseline_consistent",
+      "player_lifecycle_event_counts_monotonic",
+      "active_episode_death_absent",
+      "active_episode_respawn_absent",
+      "uninterrupted_survival",
+      "natural_time_progression",
+      "terminal_player_lifecycle",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "episode_within_deadline",
+      "result_duration_eligible",
+      "no_post_deadline_execution"
+    ]
+  },
+  "decision": {
+    "counts_toward_bm012_success": false,
+    "counts_toward_capability": false,
+    "bm012_success_count_after": 1,
+    "required_success_count": 3,
+    "remaining_success_count": 2,
+    "next_live_probe_locked_until_offline_repair_commit": true,
+    "probe_45_authorized": false
+  }
+}

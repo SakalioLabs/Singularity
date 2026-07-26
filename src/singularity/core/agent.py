@@ -124,6 +124,9 @@ M4_BM012_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID = (
 M4_BM012_MACHINE_STEP_PLACE_FEEDBACK_POLICY_ID = (
     "m4-bm012-machine-step-place-feedback-v1"
 )
+M4_BM012_MACHINE_STEP_PLACE_CANDIDATE_BOUND_POLICY_ID = (
+    "m4-bm012-machine-step-place-candidate-bound-v1"
+)
 M4_BM012_RESOURCE_SCAN_POLICY_ID = "m4-bm012-resource-scan-v1"
 M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID = "m4-bm012-raw-iron-dig-stone-pickaxe-v1"
 M4_BM012_RESOURCE_SCAN_RADIUS = 16
@@ -170,6 +173,20 @@ M4_BM012_PLACE_REFERENCE_BLOCKS = frozenset({
     "deepslate",
     "tuff",
 })
+M4_BM012_PLACE_REFERENCE_MAX_DISTANCE = 6.0
+M4_BM012_PLACE_REFERENCE_PRIORITY = {
+    "grass_block": 0,
+    "dirt": 0,
+    "cobblestone": 1,
+    "gravel": 2,
+    "stone": 3,
+    "andesite": 3,
+    "granite": 3,
+    "diorite": 3,
+    "deepslate": 4,
+    "tuff": 4,
+    "feedback_reference": 5,
+}
 
 
 class Agent:
@@ -8660,6 +8677,11 @@ class Agent:
                 if action.get("type") == "place"
                 else None
             ),
+            "place_candidate_bound_policy_id": (
+                M4_BM012_MACHINE_STEP_PLACE_CANDIDATE_BOUND_POLICY_ID
+                if action.get("type") == "place"
+                else None
+            ),
             "task_id": str(getattr(self, "_m4_task_id", "") or ""),
             "source": "machine_state_pre_llm",
         }
@@ -9152,21 +9174,43 @@ class Agent:
         return math.sqrt(sum(value * value for value in values))
 
     def _m4_bm012_place_reference(self, observation: dict) -> dict:
-        feedback_candidates, failed_references = self._m4_bm012_recent_place_feedback(
+        feedback_candidates, failed_references, failed_targets = self._m4_bm012_recent_place_feedback(
             "crafting_table",
         )
-        candidates = self._m4_bm012_block_candidates(
+        candidates = feedback_candidates + self._m4_bm012_place_reference_candidates(
             observation,
-            M4_BM012_PLACE_REFERENCE_BLOCKS,
         )
-        candidates = feedback_candidates + candidates
         if not candidates:
             return {}
         occupied = self._m4_bm012_occupied_block_positions(observation)
         player_cells = self._m4_bm012_player_collision_cells(observation)
+        player_position = (
+            observation.get("position")
+            if isinstance(observation.get("position"), dict)
+            else {}
+        )
+        candidates.sort(
+            key=lambda item: (
+                self._m4_bm012_place_reference_distance(item, player_position),
+                M4_BM012_PLACE_REFERENCE_PRIORITY.get(
+                    str(item.get("name") or ""),
+                    99,
+                ),
+                int(item.get("source_priority", 999)),
+                item["position"]["x"],
+                item["position"]["y"],
+                item["position"]["z"],
+            )
+        )
         seen = set()
         for candidate in candidates:
             reference = dict(candidate["position"])
+            distance = self._m4_bm012_distance_from_player(reference, player_position)
+            if (
+                distance is None
+                or distance > M4_BM012_PLACE_REFERENCE_MAX_DISTANCE
+            ):
+                continue
             reference_key = (reference["x"], reference["y"], reference["z"])
             if reference_key in seen or reference_key in failed_references:
                 continue
@@ -9177,17 +9221,78 @@ class Agent:
                 "z": reference["z"],
             }
             key = (target["x"], target["y"], target["z"])
-            if key in occupied or key in player_cells:
+            if key in occupied or key in failed_targets or key in player_cells:
                 continue
             return reference
         return {}
 
+    def _m4_bm012_place_reference_candidates(self, observation: dict) -> list[dict]:
+        observation = observation if isinstance(observation, dict) else {}
+        sources = []
+        for key in ("nearby_blocks", "blocks", "visible_blocks"):
+            blocks = observation.get(key)
+            if isinstance(blocks, list):
+                sources.append((key, blocks))
+        ground_block = observation.get("ground_block")
+        if isinstance(ground_block, dict):
+            sources.append(("ground_block", [ground_block]))
+
+        candidates = []
+        seen = set()
+        for source_index, (source_name, blocks) in enumerate(sources):
+            for block in blocks:
+                if not isinstance(block, dict):
+                    continue
+                name = str(block.get("name") or "").strip()
+                if name not in M4_BM012_PLACE_REFERENCE_BLOCKS:
+                    continue
+                position = self._m4_integral_block_position(
+                    block.get("position")
+                    if isinstance(block.get("position"), dict)
+                    else block
+                )
+                if not position:
+                    continue
+                key = (position["x"], position["y"], position["z"])
+                if key in seen:
+                    continue
+                seen.add(key)
+                distance = self._m4_bm012_finite_float(block.get("distance"))
+                candidates.append(
+                    {
+                        "name": name,
+                        "position": position,
+                        "distance": (
+                            round(distance, 3)
+                            if distance is not None
+                            else 999999.0
+                        ),
+                        "source": source_name,
+                        "source_priority": source_index,
+                    }
+                )
+        return candidates
+
+    def _m4_bm012_place_reference_distance(
+        self,
+        candidate: dict,
+        player_position: dict,
+    ) -> float:
+        position = candidate.get("position") if isinstance(candidate, dict) else {}
+        if not isinstance(position, dict):
+            return 999999.0
+        distance = self._m4_bm012_distance_from_player(position, player_position)
+        if distance is None:
+            distance = self._m4_bm012_finite_float(candidate.get("distance"))
+        return distance if distance is not None else 999999.0
+
     def _m4_bm012_recent_place_feedback(
         self,
         item: str,
-    ) -> tuple[list[dict], set[tuple[int, int, int]]]:
+    ) -> tuple[list[dict], set[tuple[int, int, int]], set[tuple[int, int, int]]]:
         events = list(getattr(getattr(self, "session_logger", None), "events", []) or [])
         failed_references: set[tuple[int, int, int]] = set()
+        failed_targets: set[tuple[int, int, int]] = set()
         candidates: list[dict] = []
         seen_candidates: set[tuple[int, int, int]] = set()
         item = str(item or "").strip()
@@ -9215,6 +9320,20 @@ class Agent:
             reference = self._m4_integral_block_position(params)
             if reference:
                 failed_references.add((reference["x"], reference["y"], reference["z"]))
+            target = self._m4_integral_block_position(result.get("placed_position"))
+            if target:
+                failed_targets.add((target["x"], target["y"], target["z"]))
+            before = (
+                result.get("target_block_before")
+                if isinstance(result.get("target_block_before"), dict)
+                else {}
+            )
+            before_position = before.get("position") if isinstance(before, dict) else None
+            target = self._m4_integral_block_position(before_position)
+            if target and not self._m4_bm012_block_name_replaceable(
+                str(before.get("name") or ""),
+            ):
+                failed_targets.add((target["x"], target["y"], target["z"]))
             error_text = str(result.get("error") or "").lower()
             if "occupied" not in error_text and "target" not in error_text:
                 continue
@@ -9245,15 +9364,11 @@ class Agent:
                         "source_priority": -1,
                     }
                 )
-        return candidates, failed_references
+        return candidates, failed_references, failed_targets
 
-    def _m4_bm012_occupied_block_positions(
-        self,
-        observation: dict,
-    ) -> set[tuple[int, int, int]]:
-        observation = observation if isinstance(observation, dict) else {}
-        occupied = set()
-        replaceable = {
+    @staticmethod
+    def _m4_bm012_block_name_replaceable(name: str) -> bool:
+        return str(name or "").strip() in {
             "air",
             "cave_air",
             "void_air",
@@ -9265,11 +9380,18 @@ class Agent:
             "snow",
             "water",
         }
+
+    def _m4_bm012_occupied_block_positions(
+        self,
+        observation: dict,
+    ) -> set[tuple[int, int, int]]:
+        observation = observation if isinstance(observation, dict) else {}
+        occupied = set()
         for block in observation.get("nearby_blocks", []) or []:
             if not isinstance(block, dict):
                 continue
             name = str(block.get("name") or "").strip()
-            if not name or name in replaceable:
+            if not name or self._m4_bm012_block_name_replaceable(name):
                 continue
             position = self._m4_integral_block_position(
                 block.get("position")

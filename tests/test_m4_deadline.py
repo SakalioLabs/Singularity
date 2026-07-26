@@ -4707,6 +4707,9 @@ def test_m4_bm012_machine_step_place_uses_failed_target_feedback():
     assert plan["machine_step_plan"]["place_feedback_policy_id"] == (
         "m4-bm012-machine-step-place-feedback-v1"
     )
+    assert plan["machine_step_plan"]["place_candidate_bound_policy_id"] == (
+        "m4-bm012-machine-step-place-candidate-bound-v1"
+    )
     assert plan["actions"] == [
         {
             "type": "place",
@@ -4718,6 +4721,96 @@ def test_m4_bm012_machine_step_place_uses_failed_target_feedback():
             },
         }
     ]
+
+
+def test_m4_bm012_machine_step_place_prefers_near_ground_over_resource_wall():
+    agent = _bm012_machine_step_agent()
+    observation = {
+        "inventory": {"crafting_table": 1},
+        "position": {"x": 111.5, "y": 136, "z": -27.5},
+        "nearby_blocks": [
+            {"name": "dirt", "position": {"x": 111, "y": 135, "z": -28}},
+            {"name": "grass_block", "position": {"x": 110, "y": 135, "z": -28}},
+            {"name": "stone", "position": {"x": 114, "y": 133, "z": -29}},
+            {"name": "coal_ore", "position": {"x": 115, "y": 134, "z": -29}},
+        ],
+    }
+
+    plan = agent._think(
+        observation,
+        override_goal="Place the crafting table nearby for iron-tool progression",
+    )
+
+    assert plan["machine_step_plan"]["target"] == {
+        "reference_position": {"x": 110, "y": 135, "z": -28}
+    }
+    assert plan["machine_step_plan"]["place_candidate_bound_policy_id"] == (
+        "m4-bm012-machine-step-place-candidate-bound-v1"
+    )
+    assert plan["actions"] == [
+        {
+            "type": "place",
+            "parameters": {
+                "item": "crafting_table",
+                "x": 110,
+                "y": 135,
+                "z": -28,
+            },
+        }
+    ]
+
+
+def test_m4_bm012_machine_step_place_rejects_far_feedback_drift():
+    agent = _bm012_machine_step_agent()
+    agent.session_logger.log(
+        "action",
+        {
+            "action": {
+                "type": "place",
+                "parameters": {
+                    "item": "crafting_table",
+                    "x": 200,
+                    "y": 133,
+                    "z": -36,
+                },
+            },
+            "result": {
+                "success": False,
+                "error": "placement target is occupied by stone",
+                "placed_position": {"x": 200, "y": 134, "z": -36},
+                "target_block_before": {
+                    "name": "stone",
+                    "position": {"x": 200, "y": 134, "z": -36},
+                },
+                "action_verification": {
+                    "required": {
+                        "adjacent_reference_candidates": [
+                            {"x": 201, "y": 133, "z": -36},
+                            {"x": 199, "y": 133, "z": -36},
+                        ]
+                    }
+                },
+            },
+        },
+    )
+    observation = {
+        "inventory": {"crafting_table": 1},
+        "position": {"x": 111.5, "y": 136, "z": -27.5},
+        "nearby_blocks": [
+            {"name": "dirt", "position": {"x": 111, "y": 135, "z": -28}},
+            {"name": "grass_block", "position": {"x": 110, "y": 135, "z": -28}},
+        ],
+    }
+
+    plan = agent._think(
+        observation,
+        override_goal="Place the crafting table nearby for iron-tool progression",
+    )
+
+    assert plan["machine_step_plan"]["target"] == {
+        "reference_position": {"x": 110, "y": 135, "z": -28}
+    }
+    assert plan["actions"][0]["parameters"]["x"] == 110
 
 
 def test_m4_planner_prompt_surfaces_resource_scan_and_tool_rule():
@@ -4814,5 +4907,7 @@ if __name__ == "__main__":
     test_m4_bm012_machine_step_plan_uses_resource_scan_for_raw_iron()
     test_m4_bm012_machine_step_plan_fails_closed_outside_scope_or_state()
     test_m4_bm012_machine_step_place_uses_failed_target_feedback()
+    test_m4_bm012_machine_step_place_prefers_near_ground_over_resource_wall()
+    test_m4_bm012_machine_step_place_rejects_far_feedback_drift()
     test_m4_planner_prompt_surfaces_resource_scan_and_tool_rule()
     print("\nM4 deadline runtime tests PASSED")
