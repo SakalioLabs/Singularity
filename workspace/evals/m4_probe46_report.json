@@ -1,0 +1,346 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-26T17:33:24Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-012",
+  "probe_number": 46,
+  "episode_id": "m4_episode_20260727_012016_7ef19ad6",
+  "session_id": "f7232b31-ec3",
+  "level_name": "m4_episode_20260727_012016_7ef19ad6_bm012",
+  "authorization": {
+    "path": "workspace/evals/m4_probe46_authorization.json",
+    "commit": "3da4e84b40f5fdba64ee7691403238520bd65d3a",
+    "tree": "04aecc1f93430cbc501a2ead726813c2608588cc",
+    "one_use": true,
+    "maximum_retry_count": 0,
+    "consumed": true,
+    "consumed_at": "autonomous_start",
+    "consumed_at_utc": "2026-07-26T17:20:39.647532Z",
+    "consumed_monotonic_s": 836623.625,
+    "consumed_event_line": 2,
+    "next_authorization": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_sha256": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": [
+      "text",
+      "image"
+    ],
+    "runtime_modalities": [
+      "text"
+    ],
+    "max_duration_s": 600,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/session_f7232b31-ec3.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/session_f7232b31-ec3_summary.json",
+    "session_json": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/session.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260727_012016_7ef19ad6/reset.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "98b3c7ea0d78547d998f1f12dd6e9a33a4090dd6b7c7c9933b9a6f1e34cb053b",
+    "preparation": "a48781a65e3e82f84ec28125106f6904697eb86037b71a584b19d42b80a85e3d",
+    "result": "09bc928209871c5fc7e4debda2d40f46dae45ccf65f791db41797e904fe180df",
+    "eligibility": "2f12e35a4476d9d5a296aa7cd48ef831b01147a46ed99357bcaa692acfbd51ae",
+    "manifest": "ab2ca43f9070969d5809200f952ad5516b36ebc339596d29c4a52ff8df73a58c",
+    "preflight": "c25284b7e0f0ea6e6c26f579930a8279d71c1d305f3462c97b2d544d5d766620",
+    "session_summary": "ad51d6bda6dd1ba84ea2f7706eff59eeb5a94fc73f85849aa4c64e29d57a8cab",
+    "session_json": "c6b3c30b59b43531954279bab4ff6ea1eade70b68c105a5fb3fe7af8b605235b",
+    "protocol_status": "a66af8de908db3e8e0443986ec0179afc6b01f6cb3175fd2accf769462639b19",
+    "reset": "96ac789a8610726b5f9f5c5dbe75df10ef0254a7534faae3cd66dd5db1f137bd"
+  },
+  "episode_result": {
+    "completed": true,
+    "termination_reason": "terminal_task_verified",
+    "elapsed_s": 353.687,
+    "episode_duration_s": 353.75,
+    "session_duration_s": 356.19,
+    "deadline_eligible": true,
+    "deadline_margin_s": 246.313,
+    "goals_completed": 8,
+    "goals_failed": 12,
+    "goals_interrupted": 0,
+    "total_cycles": 53,
+    "planner_call_count": 20,
+    "real_planner_call_count": 8,
+    "schema_valid_real_planner_call_count": 8,
+    "schema_invalid_real_planner_call_count": 0,
+    "schema_invalid_nonreal_call_count": 12,
+    "planner_timeout_call_count": 0,
+    "transport_error_call_count": 0,
+    "planner_total_token_usage": 35662,
+    "planner_max_call_duration_ms": 11827.0,
+    "machine_step_plan_count": 33,
+    "post_place_machine_observation_count": 8,
+    "failure_reflection_suppressed_count": 7,
+    "action_count": 40,
+    "successful_action_count": 33,
+    "failed_action_count": 7,
+    "action_verifier_accept_count": 40,
+    "action_verifier_reject_count": 0,
+    "action_type_counts": {
+      "move_to": 3,
+      "dig": 17,
+      "craft": 9,
+      "place": 8,
+      "equip": 3
+    },
+    "action_success_by_type": {
+      "craft": {
+        "attempted": 9,
+        "successful": 9
+      },
+      "dig": {
+        "attempted": 17,
+        "successful": 17
+      },
+      "equip": {
+        "attempted": 3,
+        "successful": 3
+      },
+      "move_to": {
+        "attempted": 3,
+        "successful": 2
+      },
+      "place": {
+        "attempted": 8,
+        "successful": 2
+      }
+    },
+    "session_event_count": 886,
+    "eligibility_event_count": 885,
+    "memory_write_count": 311,
+    "memory_read_count": 66,
+    "goal_verification_count": 8,
+    "goal_verification_accepted_count": 8,
+    "terminal_inventory": {
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "oak_log": 2,
+      "dirt": 9,
+      "cobblestone": 13,
+      "oak_planks": 3,
+      "raw_iron": 8
+    },
+    "terminal_health": 20,
+    "terminal_food": 20,
+    "terminal_bot_connected": true,
+    "maximum_inventory": {
+      "cobblestone": 13,
+      "crafting_table": 1,
+      "dirt": 9,
+      "oak_log": 6,
+      "oak_planks": 7,
+      "raw_iron": 8,
+      "stick": 4,
+      "stone_pickaxe": 1,
+      "wooden_pickaxe": 1
+    }
+  },
+  "behavioral_progression": {
+    "empty_hand_to_logs": true,
+    "logs_to_planks": true,
+    "planks_to_crafting_table": true,
+    "crafting_table_placed": true,
+    "crafting_table_to_wooden_pickaxe": true,
+    "wooden_pickaxe_equipped": true,
+    "wooden_pickaxe_to_positive_cobblestone": true,
+    "wooden_pickaxe_to_three_cobblestone": true,
+    "cobblestone_to_stone_pickaxe": true,
+    "stone_pickaxe_equipped": true,
+    "full_stone_pickaxe_loop_completed": true,
+    "stone_pickaxe_to_raw_iron": true,
+    "raw_iron_to_eight": true,
+    "terminal_resource_verification_passed": true,
+    "first_action_lines": {
+      "oak_log_dig": 37,
+      "oak_planks_craft": 415,
+      "crafting_table_craft": 427,
+      "crafting_table_place_success": 440,
+      "wooden_pickaxe_craft": 496,
+      "wooden_pickaxe_equip": 516,
+      "stone_dig": 529,
+      "stone_pickaxe_craft": 730,
+      "stone_pickaxe_equip": 750,
+      "raw_iron_dig": 778,
+      "terminal_resource_verification": 880
+    }
+  },
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 8,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [
+      "raw_iron"
+    ],
+    "terminal_target_passed": true,
+    "positive_inventory_delta": {
+      "raw_iron": 8,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": true,
+    "successful_source_action_count": 8,
+    "successful_source_actions": [
+      {
+        "event_index": 777,
+        "jsonl_line": 778,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 134,
+          "z": -38
+        }
+      },
+      {
+        "event_index": 789,
+        "jsonl_line": 790,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 133,
+          "z": -38
+        }
+      },
+      {
+        "event_index": 802,
+        "jsonl_line": 803,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 133,
+          "z": -39
+        }
+      },
+      {
+        "event_index": 814,
+        "jsonl_line": 815,
+        "block": "iron_ore",
+        "position": {
+          "x": 119,
+          "y": 133,
+          "z": -39
+        }
+      },
+      {
+        "event_index": 826,
+        "jsonl_line": 827,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 134,
+          "z": -39
+        }
+      },
+      {
+        "event_index": 839,
+        "jsonl_line": 840,
+        "block": "iron_ore",
+        "position": {
+          "x": 120,
+          "y": 133,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 851,
+        "jsonl_line": 852,
+        "block": "iron_ore",
+        "position": {
+          "x": 119,
+          "y": 133,
+          "z": -40
+        }
+      },
+      {
+        "event_index": 863,
+        "jsonl_line": 864,
+        "block": "iron_ore",
+        "position": {
+          "x": 119,
+          "y": 132,
+          "z": -40
+        }
+      }
+    ]
+  },
+  "intervention_review": {
+    "policy_id": "m4-bm012-machine-step-place-candidate-bound-v1",
+    "candidate_bound_repair_live_exercised": true,
+    "probe_44_candidate_drift_recurred": false,
+    "machine_step_place_policy_field_present": true,
+    "first_place_machine_step_line": 431,
+    "first_place_reference": {
+      "reference_position": {
+        "x": 112,
+        "y": 135,
+        "z": -27
+      }
+    },
+    "successful_table_place_lines": [
+      440,
+      710
+    ],
+    "yield_result": "intervention_exercised_success",
+    "full_stone_pickaxe_loop_completed": true
+  },
+  "recovered_noise": {
+    "schema_invalid_nonreal_call_count": 12,
+    "empty_plan_rejection_count": 12,
+    "first_empty_plan_line": 69,
+    "failed_action_count": 7,
+    "failed_place_count": 6,
+    "failed_move_to_count": 1,
+    "terminal_success_despite_failures": true
+  },
+  "eligibility": {
+    "eligible": true,
+    "success": true,
+    "progress_gate_passed": true,
+    "counts_toward_bm012_success": true,
+    "counts_toward_capability": false,
+    "check_count": 74,
+    "pass_count": 74,
+    "issue_count": 0,
+    "issues": []
+  },
+  "decision": {
+    "counts_toward_bm012_success": true,
+    "counts_toward_capability": false,
+    "bm012_success_count_after": 3,
+    "required_success_count": 3,
+    "remaining_success_count": 0,
+    "bm012_repeat_verified_after_probe": true,
+    "next_task_id": "BM-013",
+    "next_live_probe_locked_until_evidence_commit": true,
+    "next_authorization": false
+  }
+}

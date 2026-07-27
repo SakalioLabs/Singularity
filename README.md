@@ -6,7 +6,7 @@
 [![M1: MVB](https://img.shields.io/badge/M1-Repeat%20Verified-brightgreen)]()
 [![M2: LLM](https://img.shields.io/badge/M2-Repeat%20Verified-brightgreen)]()
 [![M3: Memory](https://img.shields.io/badge/M3-Repeat%20Verified-brightgreen)]()
-[![M4: Survival](https://img.shields.io/badge/M4-Live%20Failing-critical)]()
+[![M4: Survival](https://img.shields.io/badge/M4-Partial-yellow)]()
 [![M5: Explore](https://img.shields.io/badge/M5-Live%20Failing-critical)]()
 [![M6: Vision](https://img.shields.io/badge/M6-Live%20Failing-critical)]()
 [![M7: Multi--Agent](https://img.shields.io/badge/M7-Not%20Run-yellow)]()
