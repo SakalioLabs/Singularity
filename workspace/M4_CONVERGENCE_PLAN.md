@@ -10,7 +10,7 @@
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 45 live-validated the candidate-bound crafting-table repair and completed BM-012 in 256.391 seconds. Probe 46 independently replicated the full chain in 353.687 seconds, mined eight distinct machine-proven iron-ore sources, preserved health and hunger at 20, and passed all 74 eligibility checks with 246.313 seconds remaining. BM-012 is therefore `repeat_verified` at 3/3. BM-013 is the current gate at 0/3; BM-014 remains sequentially locked until BM-013 reaches 3/3.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 45 live-validated the candidate-bound crafting-table repair and completed BM-012 in 256.391 seconds. Probe 46 independently replicated the full chain in 353.687 seconds, mined eight distinct machine-proven iron-ore sources, preserved health and hunger at 20, and passed all 74 eligibility checks with 246.313 seconds remaining. BM-012 is therefore `repeat_verified` at 3/3. BM-013 is the current gate at 0/3, and Probe 47 has one parent-bound, zero-retry authorization in `workspace/evals/m4_probe47_authorization.json`; BM-014 remains sequentially locked until BM-013 reaches 3/3.
 
 ## Probe 44 Machine-Step Place Candidate Drift Gap
 
@@ -46,6 +46,14 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - Machine evidence: 33 machine-step plans and eight real schema-valid Planner calls; twelve non-real empty envelopes and seven failed actions recovered without false completion
 - Lifecycle: terminal health and hunger were 20, the bot remained connected, and active-episode deaths and respawns stayed zero
 - Decision: counts as the third BM-012 success, closes BM-012 as `repeat_verified` at 3/3, and unlocks BM-013 after this evidence is committed and pushed; M4 remains `partial` until BM-013 and BM-014 each reach 3/3
+
+## Probe 47 BM-013 Smelting Gate
+
+- Target: fresh empty-inventory BM-013 episode, `Smelt an iron ingot`, fixed 300-second deadline
+- Authorization: `workspace/evals/m4_probe47_authorization.json`, bound to pushed implementation commit `abb0c8fa` and tree `6a098daf`; exactly one episode, zero retries, skills off
+- Offline gate: production bridge smelting, BM-013 task provenance, machine-step toolchain, terminal source-action verification, and fail-closed controls pass focused Python and Node regressions
+- Required live proof: at least one successful `smelt` source action consumes episode-acquired `raw_iron` with allowed coal/charcoal fuel, produces a positive `iron_ingot` inventory delta, preserves uninterrupted survival, and terminates as `terminal_task_verified`
+- Capability decision before run: BM-013 remains 0/3 and M4 remains `partial`
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 

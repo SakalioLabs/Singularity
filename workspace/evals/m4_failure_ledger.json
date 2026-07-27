@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-26T17:33:24Z",
+  "generated_at": "2026-07-27T00:40:38Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -25,9 +25,9 @@
   ],
   "live_episode_count_under_current_protocol": 19,
   "current_gate": {
-    "hypothesis": "bm013_smelt_iron_ingot_pending_gate",
-    "policy_id": "",
-    "status": "bm012_repeat_verified_probe46_success_evidence_retained_pending_push",
+    "hypothesis": "bm013_smelt_iron_ingot_probe47",
+    "policy_id": "m4-bm013-bm014-toolchain-machine-step-plan-v1",
+    "status": "bm013_probe47_authorized_pending_run",
     "earliest_blocker": "",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -1657,7 +1657,17 @@
     "bm012_probe_46_candidate_drift_recurred": false,
     "bm012_probe_46_success_count_after": 3,
     "bm012_repeat_verified": true,
-    "bm013_authorized": false
+    "bm013_task_contract_id": "m4-bm013-smelting-contract-v1",
+    "bm013_task_contract_sha256": "98dd5b46f859343e7e96bda43a3b8b624099143037bf1208ffbfe3dc6f8f7ad0",
+    "bm013_offline_gate_passed": true,
+    "bm013_authorized": true,
+    "bm013_probe_47_authorization_path": "workspace/evals/m4_probe47_authorization.json",
+    "bm013_probe_47_authorization_parent_commit": "abb0c8fae8fc46875216872dc8676b68ff0c2afb",
+    "bm013_probe_47_authorization_tree": "6a098dafd729b2c7291a746bfcb4e75041519ec8",
+    "bm013_probe_47_authorization_policy_id": "m4-bm013-bm014-toolchain-machine-step-plan-v1",
+    "bm013_probe_47_authorization_one_use": true,
+    "bm013_probe_47_authorization_maximum_retry_count": 0,
+    "bm013_probe_47_authorization_sha256": "6280c8857669b02204d62f56d498f4977f5e006ad8ec3a7395f5449c41a08f66"
   },
   "entries": [
     {

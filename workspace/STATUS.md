@@ -59,6 +59,7 @@
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
 - BM-012 is `repeat_verified` at 3/3 after Probe 46. Probe 38 episode `m4_episode_20260726_202651_d80a4946` completed the full empty-hand-to-stone-pickaxe loop and mined eight machine-proven iron-ore sources into `raw_iron:8`. Probe 45 episode `m4_episode_20260727_010123_3a9ca67f` live-validated the candidate-bound table-placement repair and passed in 256.391 seconds. Probe 46 episode `m4_episode_20260727_012016_7ef19ad6` independently replicated the full chain, mined eight distinct verified iron-ore sources into `raw_iron:8`, preserved health/hunger at 20, passed all 74 eligibility checks, and finished in 353.687 seconds with 246.313 seconds remaining. The forty-three ineligible attempts remain retained failure evidence. BM-013 is now the active gate at 0/3; BM-014 remains locked until BM-013 reaches 3/3.
+- BM-013 Probe 47 has one parent-bound authorization from pushed gate `abb0c8fa`, permits exactly one fresh fixed-limit episode with zero retries and skills off, and grants no capability credit before independent evidence verification.
 
 ## Evidence Policy
 
