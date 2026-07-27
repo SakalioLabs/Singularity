@@ -1,15 +1,40 @@
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REPORT_PATH = ROOT / "workspace" / "evals" / "m4_probe47_report.json"
+REPORT_RELATIVE = "workspace/evals/m4_probe47_report.json"
+REPORT_PATH = ROOT / REPORT_RELATIVE
 AUTHORIZATION_PATH = ROOT / "workspace" / "evals" / "m4_probe47_authorization.json"
 
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _report_origin_commit() -> str:
+    return subprocess.check_output(
+        [
+            "git",
+            "log",
+            "--diff-filter=A",
+            "--format=%H",
+            "--",
+            REPORT_RELATIVE,
+        ],
+        cwd=ROOT,
+        text=True,
+    ).splitlines()[-1]
+
+
+def _git_sha256(commit: str, path: str) -> str:
+    payload = subprocess.check_output(
+        ["git", "show", f"{commit}:{Path(path).as_posix()}"],
+        cwd=ROOT,
+    )
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _events(report: dict) -> list[dict]:
@@ -79,8 +104,9 @@ def test_m4_probe47_report_binds_first_bm013_failure():
     assert repair["policy_id"] == "m4-inventory-purpose-clause-grounding-v1"
     assert repair["validated_offline"] is True
     assert repair["explicit_followup_actions_remain_binding"] is True
+    origin_commit = _report_origin_commit()
     for path, expected_sha256 in repair["source_sha256"].items():
-        assert _sha256(ROOT / path) == expected_sha256
+        assert _git_sha256(origin_commit, path) == expected_sha256
 
 
 def test_probe47_jsonl_exposes_purpose_clause_inventory_binding_gap():

@@ -1,19 +1,27 @@
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-AUDIT_PATH = (
-    ROOT
-    / "workspace"
-    / "evals"
-    / "m4_probe31_stone_pickaxe_frontier_repair_audit.json"
+AUDIT_RELATIVE = (
+    "workspace/evals/m4_probe31_stone_pickaxe_frontier_repair_audit.json"
 )
+AUDIT_PATH = ROOT / AUDIT_RELATIVE
+SOURCE_SNAPSHOT_COMMIT = "efa4226a44b7e72618bb7f92e46453a7d7f25710"
 
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _git_sha256(commit: str, path: str) -> str:
+    payload = subprocess.check_output(
+        ["git", "show", f"{commit}:{Path(path).as_posix()}"],
+        cwd=ROOT,
+    )
+    return hashlib.sha256(payload).hexdigest()
 
 
 def test_probe31_stone_pickaxe_audit_binds_immutable_evidence():
@@ -51,9 +59,9 @@ def test_probe31_stone_pickaxe_repair_is_bounded_and_grants_no_credit():
     assert audit["decision"]["probe_32_authorized"] is False
 
 
-def test_probe31_repair_source_hashes_are_current():
+def test_probe31_repair_source_hashes_are_bound_to_the_repair_commit():
     audit = json.loads(AUDIT_PATH.read_text(encoding="utf-8"))
     assert {
-        key: _sha256(ROOT / path)
+        key: _git_sha256(SOURCE_SNAPSHOT_COMMIT, path)
         for key, path in audit["source_paths"].items()
     } == audit["source_sha256"]

@@ -1,0 +1,364 @@
+{
+  "type": "m4_episode_result",
+  "schema_version": 1,
+  "task_id": "BM-014",
+  "profile": "m4-fixed-v1",
+  "completed": false,
+  "termination_reason": "episode_deadline",
+  "elapsed_s": 300.015,
+  "deadline_eligible": false,
+  "external_step_script": false,
+  "terminal_state": {
+    "health": 0,
+    "food": null,
+    "time_of_day": null,
+    "position": {},
+    "inventory": {},
+    "nearby_blocks": [],
+    "nearby_entities": [],
+    "player_lifecycle": {},
+    "bot_connected": false
+  },
+  "autonomous_result": {
+    "mode": "autonomous",
+    "goals_completed": 8,
+    "goals_failed": 1,
+    "goals_interrupted": 0,
+    "total_cycles": 70,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 300.015,
+    "max_duration_s": 300.0,
+    "episode_started_monotonic": 892493.828,
+    "episode_ended_monotonic": 892793.843,
+    "episode_deadline_monotonic": 892793.828,
+    "deadline_eligible": false,
+    "active_runtime_interrupt": {},
+    "landmarks_discovered": 0,
+    "curriculum": {
+      "recent_goals": [
+        {
+          "goal": "Gather 6 oak logs for iron-tool progression",
+          "success": true,
+          "cycles": 8
+        },
+        {
+          "goal": "Craft a crafting table for iron-tool progression",
+          "success": true,
+          "cycles": 2
+        },
+        {
+          "goal": "Craft a wooden pickaxe for cobblestone acquisition",
+          "success": true,
+          "cycles": 5
+        },
+        {
+          "goal": "Gather 11 cobblestone for stone pickaxe and furnace",
+          "success": true,
+          "cycles": 13
+        },
+        {
+          "goal": "Craft a stone pickaxe for ore acquisition",
+          "success": true,
+          "cycles": 14
+        },
+        {
+          "goal": "Collect 3 raw iron from iron ore with the stone pickaxe",
+          "success": true,
+          "cycles": 5
+        },
+        {
+          "goal": "Collect 1 coal for furnace fuel with the stone pickaxe",
+          "success": true,
+          "cycles": 2
+        },
+        {
+          "goal": "Craft a furnace for iron smelting",
+          "success": true,
+          "cycles": 18
+        },
+        {
+          "goal": "Smelt 3 iron ingots from 3 raw iron using coal",
+          "success": false,
+          "cycles": 3
+        }
+      ],
+      "goal_stats": {
+        "Gather 6 oak logs for iron-tool progression": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 8
+        },
+        "Craft a crafting table for iron-tool progression": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 2
+        },
+        "Craft a wooden pickaxe for cobblestone acquisition": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 5
+        },
+        "Gather 11 cobblestone for stone pickaxe and furnace": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 13
+        },
+        "Craft a stone pickaxe for ore acquisition": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 14
+        },
+        "Collect 3 raw iron from iron ore with the stone pickaxe": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 5
+        },
+        "Collect 1 coal for furnace fuel with the stone pickaxe": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 2
+        },
+        "Craft a furnace for iron smelting": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 18
+        },
+        "Smelt 3 iron ingots from 3 raw iron using coal": {
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "last_cycles": 3
+        }
+      },
+      "last_decision": {},
+      "exploration_feedback": {
+        "discovered_blocks": [],
+        "discovered_resources": [],
+        "discovered_entities": [],
+        "action_failure_categories": {},
+        "low_movement_log_count": 0,
+        "hostile_encounter_count": 0,
+        "path_distance": 0.0
+      },
+      "world_model_feedback": {
+        "suggested_goals": [],
+        "frontiers": [],
+        "resource_hotspots": [],
+        "danger_cells": [],
+        "frontier_count": 0,
+        "resource_hotspot_count": 0,
+        "danger_cell_count": 0
+      }
+    },
+    "summary": {
+      "session_id": "c44dd8a6-38f",
+      "duration_s": 302.06,
+      "total_events": 1038,
+      "action_count": 70,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 70,
+        "action_verification_status_counts": {
+          "accept": 70
+        },
+        "action_verification_action_types": {
+          "move_to": 4,
+          "dig": 21,
+          "craft": 12,
+          "place": 29,
+          "equip": 3,
+          "smelt": 1
+        },
+        "action_verification_blocked_count": 0,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 70,
+        "action_verification_status_counts": {
+          "accept": 70
+        },
+        "action_verification_action_types": {
+          "move_to": 4,
+          "dig": 21,
+          "craft": 12,
+          "place": 29,
+          "equip": 3,
+          "smelt": 1
+        },
+        "action_verification_blocked_count": 0
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 8,
+        "achieved": 8,
+        "failed": 0,
+        "unknown": 0,
+        "accepted": 8,
+        "rejected": 0,
+        "acceptance_reasons": {}
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 417,
+        "memory_read_count": 70,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 278,
+          "context": 139
+        },
+        "memory_write_types": {
+          "autonomous_start": 1,
+          "auto_goal": 9,
+          "context": 139,
+          "opportunity_task": 8,
+          "action_verification": 70,
+          "task_state_update": 8,
+          "action": 70,
+          "m4_bm013_bm014_toolchain_machine_step_plan": 69,
+          "failure_reflection_suppressed": 26,
+          "goal_verification": 8,
+          "auto_goal_complete": 8,
+          "auto_goal_failed": 1
+        },
+        "memory_read_types": {
+          "opportunity_context": 70
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 417,
+          "read_allowed": 70
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "logs/benchmarks/m4/m4_episode_20260727_165036_f689d87b\\session_c44dd8a6-38f.jsonl"
+    }
+  },
+  "evidence_hashes": {
+    "preflight_sha256": "ef12442338a4583c3e8d4a659c278d5e0eaa571cbecd4d85b013a07ee7f8ba06",
+    "manifest_sha256": "2075da50a7383c76ced8c6f5a5c655bb6074d1a87aab2b5612100712700050a6",
+    "session_sha256": "8af4d5445d78c8111d3818ea4a5e10e289f3cd246122ed861cdb51d872d0c816",
+    "result_sha256": "6c7d5a5bca21d5fae523860961f206bfdfca9568576c8d1f3a67f30126224491"
+  }
+}

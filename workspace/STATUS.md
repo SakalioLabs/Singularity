@@ -84,7 +84,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Live observed (`live_observed`)** | BM-011, BM-012, and BM-013 repeat_verified 3/3; BM-014 live_observed 1/3 after eligible Probe 52, Probe 53 authorization pending its own push/readback, Probe 54 unauthorized |
+| M4 | Autonomous Survival | **Live observed (`live_observed`)** | BM-011, BM-012, and BM-013 repeat_verified 3/3; BM-014 live_observed 1/3 after 3 attempts (Probe 53 retained as failure 2), bounded owned-table repair pending evidence push/readback, Probe 54 unauthorized |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |

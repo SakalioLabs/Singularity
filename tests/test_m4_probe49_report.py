@@ -117,9 +117,12 @@ def test_m4_probe49_report_binds_second_eligible_bm013_success():
     assert _sha256(
         ROOT / authorization["prior_probe_report_path"]
     ) == authorization["prior_probe_report_sha256"]
-    assert authorization["repair_source_sha256"] == _sha256(
-        ROOT / "src" / "singularity" / "core" / "goal_verifier.py"
-    )
+    assert authorization["repair_source_sha256"] == hashlib.sha256(
+        _git_blob(
+            authorization["commit"],
+            "src/singularity/core/goal_verifier.py",
+        )
+    ).hexdigest()
 
     for name, path in report["evidence_paths"].items():
         assert _sha256(ROOT / path) == report["evidence_sha256"][name]

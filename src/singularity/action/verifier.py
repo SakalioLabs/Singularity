@@ -50,9 +50,18 @@ class ActionVerifier:
     M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID = (
         "m4-bm013-bm014-furnace-place-local-snapshot-v1"
     )
+    M4_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID = (
+        "m4-bm013-bm014-crafting-table-place-local-snapshot-v1"
+    )
+    M4_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_KEY = (
+        "m4_crafting_table_place_candidates"
+    )
     M4_FURNACE_PLACE_SNAPSHOT_POSITION_COUNT = 36
     M4_FURNACE_PLACE_CANDIDATE_LIMIT = 27
     M4_FURNACE_PLACE_MAX_SNAPSHOT_AGE_MS = 5000.0
+    M4_CRAFTING_TABLE_PLACE_SNAPSHOT_POSITION_COUNT = 36
+    M4_CRAFTING_TABLE_PLACE_CANDIDATE_LIMIT = 27
+    M4_CRAFTING_TABLE_PLACE_MAX_SNAPSHOT_AGE_MS = 5000.0
     M4_FURNACE_REFERENCE_BLOCKS = {
         "grass_block",
         "dirt",
@@ -65,6 +74,22 @@ class ActionVerifier:
         "deepslate",
         "tuff",
         "crafting_table",
+        "coal_ore",
+        "deepslate_coal_ore",
+        "iron_ore",
+        "deepslate_iron_ore",
+    }
+    M4_CRAFTING_TABLE_REFERENCE_BLOCKS = {
+        "grass_block",
+        "dirt",
+        "stone",
+        "cobblestone",
+        "gravel",
+        "andesite",
+        "granite",
+        "diorite",
+        "deepslate",
+        "tuff",
         "coal_ore",
         "deepslate_coal_ore",
         "iron_ore",
@@ -294,6 +319,35 @@ class ActionVerifier:
             item == "furnace"
             and str(task_id or "").upper().strip() in {"BM-013", "BM-014"}
         )
+        strict_crafting_table_snapshot = (
+            item == "crafting_table"
+            and str(task_id or "").upper().strip() in {"BM-013", "BM-014"}
+        )
+        strict_local_snapshot = (
+            strict_furnace_snapshot or strict_crafting_table_snapshot
+        )
+        if strict_crafting_table_snapshot:
+            local_snapshot_policy_id = (
+                self.M4_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+            )
+            local_snapshot_key = self.M4_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_KEY
+            local_snapshot_position_count = (
+                self.M4_CRAFTING_TABLE_PLACE_SNAPSHOT_POSITION_COUNT
+            )
+            local_snapshot_candidate_limit = (
+                self.M4_CRAFTING_TABLE_PLACE_CANDIDATE_LIMIT
+            )
+        else:
+            local_snapshot_policy_id = (
+                self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+            )
+            local_snapshot_key = "m4_local_place_candidates"
+            local_snapshot_position_count = (
+                self.M4_FURNACE_PLACE_SNAPSHOT_POSITION_COUNT
+            )
+            local_snapshot_candidate_limit = (
+                self.M4_FURNACE_PLACE_CANDIDATE_LIMIT
+            )
         reference = self._finite_block_position(params)
         if reference is None:
             return self._decision(
@@ -306,19 +360,19 @@ class ActionVerifier:
                 policy_id=policy_id,
             )
         if (
-            strict_furnace_snapshot
+            strict_local_snapshot
             and self._integral_block_position(params) != reference
         ):
             return self._decision(
                 "place",
                 "reject",
                 0.0,
-                "M4 furnace place requires exact integral reference coordinates",
+                f"M4 {item} place requires exact integral reference coordinates",
                 missing=["integral x", "integral y", "integral z"],
                 evidence=[
-                    f"policy:{self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID}",
+                    f"policy:{local_snapshot_policy_id}",
                 ],
-                policy_id=self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID,
+                policy_id=local_snapshot_policy_id,
             )
 
         target = {
@@ -326,20 +380,24 @@ class ActionVerifier:
             "y": reference["y"] + 1,
             "z": reference["z"],
         }
-        furnace_snapshot = None
-        if strict_furnace_snapshot:
-            furnace_snapshot = self._m4_valid_furnace_local_snapshot(state)
+        local_snapshot = None
+        if strict_local_snapshot:
+            local_snapshot = (
+                self._m4_valid_crafting_table_local_snapshot(state)
+                if strict_crafting_table_snapshot
+                else self._m4_valid_furnace_local_snapshot(state)
+            )
             matching_pair = (
                 next(
                     (
                         candidate
-                        for candidate in furnace_snapshot["candidates"]
+                        for candidate in local_snapshot["candidates"]
                         if candidate["reference_position"] == reference
                         and candidate["target_position"] == target
                     ),
                     None,
                 )
-                if furnace_snapshot is not None
+                if local_snapshot is not None
                 else None
             )
             if matching_pair is None:
@@ -348,26 +406,24 @@ class ActionVerifier:
                     "reject",
                     0.0,
                     (
-                        "M4 furnace place requires a complete fresh local snapshot "
+                        f"M4 {item} place requires a complete fresh local snapshot "
                         "with the exact reference/target pair"
                     ),
-                    missing=["m4_local_place_candidates.exact_pair"],
+                    missing=[f"{local_snapshot_key}.exact_pair"],
                     evidence=[
-                        f"policy:{self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID}",
+                        f"policy:{local_snapshot_policy_id}",
                     ],
                     required={
                         "reference_position": reference,
                         "target_position": target,
-                        "snapshot_position_count": (
-                            self.M4_FURNACE_PLACE_SNAPSHOT_POSITION_COUNT
-                        ),
-                        "candidate_limit": self.M4_FURNACE_PLACE_CANDIDATE_LIMIT,
+                        "snapshot_position_count": local_snapshot_position_count,
+                        "candidate_limit": local_snapshot_candidate_limit,
                     },
-                    policy_id=self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID,
+                    policy_id=local_snapshot_policy_id,
                 )
 
         observed = self._observed_blocks_at(state, target)
-        if furnace_snapshot is not None:
+        if local_snapshot is not None:
             observed.append(dict(matching_pair["target_block"]))
         occupied = [
             block for block in observed
@@ -379,21 +435,21 @@ class ActionVerifier:
         }
         player_policy_id = self.M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID
         raw_player_position = (
-            furnace_snapshot["player_position"]
-            if furnace_snapshot is not None
+            local_snapshot["player_position"]
+            if local_snapshot is not None
             else state.get("position")
         )
         if (
-            furnace_snapshot is None
+            local_snapshot is None
             and not isinstance(raw_player_position, dict)
         ):
             raw_player_position = state.get("player_position")
         player_collision = self._m4_player_collision_evidence(raw_player_position)
         current_player_collision = (
             self._m4_player_collision_evidence(
-                furnace_snapshot["current_player_position"],
+                local_snapshot["current_player_position"],
             )
-            if furnace_snapshot is not None
+            if local_snapshot is not None
             else None
         )
         collision_cells = []
@@ -497,9 +553,9 @@ class ActionVerifier:
             f"policy:{policy_id}",
             f"policy:{player_policy_id}",
         ]
-        if furnace_snapshot is not None:
+        if local_snapshot is not None:
             policy_evidence.append(
-                f"policy:{self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID}",
+                f"policy:{local_snapshot_policy_id}",
             )
         return self._decision(
             "place",
@@ -808,20 +864,60 @@ class ActionVerifier:
     @classmethod
     def _m4_valid_furnace_local_snapshot(cls, state: dict) -> Optional[dict]:
         """Validate and normalize one furnace placement snapshot envelope."""
+        return cls._m4_valid_local_place_snapshot(
+            state,
+            snapshot_key="m4_local_place_candidates",
+            policy_id=cls.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID,
+            snapshot_position_count=cls.M4_FURNACE_PLACE_SNAPSHOT_POSITION_COUNT,
+            candidate_limit=cls.M4_FURNACE_PLACE_CANDIDATE_LIMIT,
+            max_snapshot_age_ms=cls.M4_FURNACE_PLACE_MAX_SNAPSHOT_AGE_MS,
+            reference_blocks=cls.M4_FURNACE_REFERENCE_BLOCKS,
+        )
+
+    @classmethod
+    def _m4_valid_crafting_table_local_snapshot(
+        cls,
+        state: dict,
+    ) -> Optional[dict]:
+        """Validate the independent owned-table placement snapshot envelope."""
+        return cls._m4_valid_local_place_snapshot(
+            state,
+            snapshot_key=cls.M4_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_KEY,
+            policy_id=cls.M4_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID,
+            snapshot_position_count=(
+                cls.M4_CRAFTING_TABLE_PLACE_SNAPSHOT_POSITION_COUNT
+            ),
+            candidate_limit=cls.M4_CRAFTING_TABLE_PLACE_CANDIDATE_LIMIT,
+            max_snapshot_age_ms=(
+                cls.M4_CRAFTING_TABLE_PLACE_MAX_SNAPSHOT_AGE_MS
+            ),
+            reference_blocks=cls.M4_CRAFTING_TABLE_REFERENCE_BLOCKS,
+        )
+
+    @classmethod
+    def _m4_valid_local_place_snapshot(
+        cls,
+        state: dict,
+        *,
+        snapshot_key: str,
+        policy_id: str,
+        snapshot_position_count: int,
+        candidate_limit: int,
+        max_snapshot_age_ms: float,
+        reference_blocks: set[str],
+    ) -> Optional[dict]:
+        """Validate and normalize one item-specific local placement envelope."""
         if not isinstance(state, dict):
             return None
-        snapshot = state.get("m4_local_place_candidates")
+        snapshot = state.get(snapshot_key)
         if (
             not isinstance(snapshot, dict)
             or snapshot.get("schema_version") != 1
-            or snapshot.get("policy_id")
-            != cls.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+            or snapshot.get("policy_id") != policy_id
             or snapshot.get("machine_snapshot_passed") is not True
             or snapshot.get("source") != "get_shelter_state.blocks"
-            or snapshot.get("snapshot_position_count")
-            != cls.M4_FURNACE_PLACE_SNAPSHOT_POSITION_COUNT
-            or snapshot.get("candidate_limit")
-            != cls.M4_FURNACE_PLACE_CANDIDATE_LIMIT
+            or snapshot.get("snapshot_position_count") != snapshot_position_count
+            or snapshot.get("candidate_limit") != candidate_limit
         ):
             return None
 
@@ -832,7 +928,7 @@ class ActionVerifier:
             or isinstance(candidate_count, bool)
             or not isinstance(candidate_count, int)
             or candidate_count != len(candidates)
-            or candidate_count > cls.M4_FURNACE_PLACE_CANDIDATE_LIMIT
+            or candidate_count > candidate_limit
         ):
             return None
 
@@ -845,7 +941,7 @@ class ActionVerifier:
             and (
                 observed_at_ms > state_observed_at_ms
                 or state_observed_at_ms - observed_at_ms
-                > cls.M4_FURNACE_PLACE_MAX_SNAPSHOT_AGE_MS
+                > max_snapshot_age_ms
             )
         ):
             return None
@@ -907,12 +1003,11 @@ class ActionVerifier:
                     block.get("machine_observed") is not True
                     or block.get("machine_state_source")
                     != "get_shelter_state.blocks"
-                    or block.get("grounding_policy_id")
-                    != cls.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+                    or block.get("grounding_policy_id") != policy_id
                 ):
                     return None
             if (
-                reference_name not in cls.M4_FURNACE_REFERENCE_BLOCKS
+                reference_name not in reference_blocks
                 or reference_block.get("solid") is not True
                 or str(reference_block.get("collision") or "") != "block"
                 or target_name not in cls.M4_REPLACEABLE_BLOCKS

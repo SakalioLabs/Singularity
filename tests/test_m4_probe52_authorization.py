@@ -93,7 +93,7 @@ def test_probe52_authorization_hashes_probe51_repair_and_capability_state():
 
     for key, relative_path in authorization["repair_source_paths"].items():
         expected = authorization["repair_source_sha256"][key]
-        assert expected == _sha256(ROOT / relative_path)
+        # Probe 52 freezes the pushed Probe 51 repair, not any later repair.
         assert expected == hashlib.sha256(
             _git_blob(GATE_PARENT_COMMIT, relative_path)
         ).hexdigest()

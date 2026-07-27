@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-27T07:51:10.936211+00:00",
+  "generated_at": "2026-07-27T10:07:37.125877+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -93,6 +93,7 @@
       "logs/benchmarks/m4/m4_episode_20260727_111149_e1794e58/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260727_165036_f689d87b/eligibility.json",
       "logs/benchmarks/m1_benchmark_20260710_174239.json",
       "logs/benchmarks/m1_benchmark_20260710_174806.json",
       "logs/benchmarks/m1_benchmark_20260710_175231.json",
@@ -4816,6 +4817,48 @@
       ]
     },
     {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260727_165036_f689d87b/eligibility.json",
+      "session_id": "c44dd8a6-38f",
+      "session_ids": [
+        "c44dd8a6-38f"
+      ],
+      "content_sha256": "49e8336f2697d780ed88771c9681bd8947d74becfe3fef4fdcb99266dc8e833f",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260727_165036_f689d87b/session.json",
+      "session_id": "c44dd8a6-38f",
+      "session_ids": [
+        "c44dd8a6-38f"
+      ],
+      "content_sha256": "8c9ba343761680f0ede771b3b01a4b128c54ca4b433972698f42fa52aaeffa35",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
       "repo_relative_path": "logs/benchmarks/visual_action_ablation_current.json",
       "session_id": "not_applicable",
       "session_ids": [],
@@ -7818,7 +7861,7 @@
       "declared": {
         "name": "Autonomous Survival",
         "status": "Live observed (liveobserved)",
-        "progress": "BM-011, BM-012, and BM-013 repeatverified 3/3; BM-014 liveobserved 1/3 after eligible Probe 52, Probe 53 locked pending evidence push/readback"
+        "progress": "BM-011, BM-012, and BM-013 repeatverified 3/3; BM-014 liveobserved 1/3 after 3 attempts (Probe 53 retained as failure 2), bounded owned-table repair pending evidence push/readback, Probe 54 unauthorized"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -7943,15 +7986,16 @@
         {
           "task_id": "BM-014",
           "status": "live_observed",
-          "attempts": 2,
+          "attempts": 3,
           "successes": 1,
-          "failures": 1,
+          "failures": 2,
           "ineligible_successes": 0,
           "ineligibility_reasons": [],
           "repeats_required": 3,
           "evidence_refs": [
             "270c762e-bb7:logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/session.json",
-            "08c52d82-068:logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/session.json"
+            "08c52d82-068:logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/session.json",
+            "c44dd8a6-38f:logs/benchmarks/m4/m4_episode_20260727_165036_f689d87b/session.json"
           ]
         }
       ],

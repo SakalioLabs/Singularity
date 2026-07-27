@@ -142,6 +142,12 @@ M4_BM013_BM014_LLM_GATE_POLICY_ID = (
 M4_BM013_BM014_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID = (
     "m4-bm013-bm014-furnace-place-local-snapshot-v1"
 )
+M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID = (
+    "m4-bm013-bm014-crafting-table-place-local-snapshot-v1"
+)
+M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_KEY = (
+    "m4_crafting_table_place_candidates"
+)
 M4_BM013_BM014_LOCAL_PLACE_CANDIDATE_LIMIT = 27
 M4_BM012_RESOURCE_SCAN_RADIUS = 16
 M4_BM012_RESOURCE_SCAN_NAMES = frozenset({
@@ -217,6 +223,15 @@ M4_BM013_BM014_FURNACE_REFERENCE_BLOCKS = frozenset(
     set(M4_BM012_PLACE_REFERENCE_BLOCKS)
     | {
         "crafting_table",
+        "coal_ore",
+        "deepslate_coal_ore",
+        "iron_ore",
+        "deepslate_iron_ore",
+    }
+)
+M4_BM013_BM014_CRAFTING_TABLE_REFERENCE_BLOCKS = frozenset(
+    set(M4_BM012_PLACE_REFERENCE_BLOCKS)
+    | {
         "coal_ore",
         "deepslate_coal_ore",
         "iron_ore",
@@ -8936,6 +8951,46 @@ class Agent:
             )
         if not isinstance(action, dict) or not isinstance(action.get("parameters"), dict):
             if (
+                reason == "crafting_table_place_local_snapshot_unavailable"
+                and self._m4_inventory_count(inventory.get("crafting_table")) >= 1
+                and not self._m4_bm012_nearby_block_present(
+                    observation,
+                    "crafting_table",
+                )
+            ):
+                return {
+                    "schema_version": "m4-machine-step-plan-v1",
+                    "plan_kind": "machine_step",
+                    "goal": goal_text,
+                    "status": "blocked",
+                    "reasoning": (
+                        f"{task_id} bounded machine-state step withheld crafting-table "
+                        "placement because no complete matching local snapshot "
+                        "candidate is available"
+                    ),
+                    "reason_code": (
+                        "crafting_table_place_local_snapshot_unavailable"
+                    ),
+                    "subtasks": [],
+                    "actions": [],
+                    "bounded_block": {
+                        "policy_id": (
+                            M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+                        ),
+                        "candidate_limit": (
+                            M4_BM013_BM014_LOCAL_PLACE_CANDIDATE_LIMIT
+                        ),
+                        "fallback_suppressed": True,
+                        "suppressed_paths": [
+                            "learned_skill",
+                            "bm012_machine_step",
+                            "llm_plan",
+                            "rule_plan",
+                            "visual_action_grounding",
+                        ],
+                    },
+                }
+            if (
                 reason == "furnace_place_reference_missing"
                 and goal_lower.startswith(
                     ("smelt an iron ingot", "smelt 3 iron ingots"),
@@ -9011,6 +9066,15 @@ class Agent:
                 == "furnace"
                 and target.get("policy_id")
                 == M4_BM013_BM014_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+                else None
+            ),
+            "crafting_table_place_local_snapshot_policy_id": (
+                M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+                if action.get("type") == "place"
+                and str(action.get("parameters", {}).get("item") or "")
+                == "crafting_table"
+                and target.get("policy_id")
+                == M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
                 else None
             ),
             "llm_gate_policy_id": M4_BM013_BM014_LLM_GATE_POLICY_ID,
@@ -9272,6 +9336,53 @@ class Agent:
         if self._m4_bm012_nearby_block_present(observation, "crafting_table"):
             return None, "crafting_table_already_nearby", {}
         if self._m4_inventory_count(inventory.get("crafting_table")) >= 1:
+            strict_local_snapshot = (
+                str(
+                    getattr(
+                        getattr(self, "config", None),
+                        "planner_protocol",
+                        "",
+                    )
+                    or ""
+                )
+                == "m4-fixed-v1"
+                and str(getattr(self, "_m4_task_id", "") or "")
+                in {"BM-013", "BM-014"}
+            )
+            if strict_local_snapshot:
+                placement = (
+                    self._m4_bm013_bm014_crafting_table_place_reference(
+                        observation,
+                    )
+                )
+                reference = (
+                    dict(placement.get("reference_position") or {})
+                    if isinstance(placement, dict)
+                    else {}
+                )
+                if reference:
+                    return (
+                        {
+                            "type": "place",
+                            "parameters": {
+                                "item": "crafting_table",
+                                **reference,
+                            },
+                        },
+                        (
+                            "place_owned_crafting_table_at_machine_verified_"
+                            "local_air_target"
+                        ),
+                        {
+                            **placement,
+                            "item": "crafting_table",
+                        },
+                    )
+                return (
+                    None,
+                    "crafting_table_place_local_snapshot_unavailable",
+                    {},
+                )
             reference = self._m4_bm012_place_reference(observation)
             if reference:
                 return (
@@ -9897,6 +10008,114 @@ class Agent:
                 return None
             values.append(block_value - player_value)
         return math.sqrt(sum(value * value for value in values))
+
+    def _m4_bm013_bm014_crafting_table_place_reference(
+        self,
+        observation: dict,
+    ) -> dict:
+        """Select an owned table reference from its own complete local snapshot."""
+        task_id = str(getattr(self, "_m4_task_id", "") or "")
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+            or task_id not in {"BM-013", "BM-014"}
+            or not isinstance(observation, dict)
+        ):
+            return {}
+        snapshot = observation.get(
+            M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_KEY,
+        )
+        validated_snapshot = (
+            ActionVerifier._m4_valid_crafting_table_local_snapshot(
+                observation,
+            )
+        )
+        if validated_snapshot is None:
+            return {}
+
+        _, failed_references, failed_targets = self._m4_bm012_recent_place_feedback(
+            "crafting_table",
+        )
+        occupied = self._m4_bm012_occupied_block_positions(observation)
+        player_position = validated_snapshot["player_position"]
+        player_collision = ActionVerifier._m4_player_collision_evidence(
+            player_position,
+        )
+        current_player_collision = ActionVerifier._m4_player_collision_evidence(
+            validated_snapshot["current_player_position"],
+        )
+        if player_collision is None or current_player_collision is None:
+            return {}
+        player_cells = {
+            (cell["x"], cell["y"], cell["z"])
+            for collision in (player_collision, current_player_collision)
+            for cell in collision["cells"]
+        }
+        candidates = []
+        seen = set()
+        for raw_candidate in validated_snapshot["candidates"]:
+            reference_block = raw_candidate["reference_block"]
+            target_block = raw_candidate["target_block"]
+            reference = raw_candidate["reference_position"]
+            target = raw_candidate["target_position"]
+            reference_name = str(reference_block.get("name") or "").strip()
+            distance = self._m4_bm012_distance_from_player(
+                reference,
+                player_position,
+            )
+            reference_key = (
+                reference["x"],
+                reference["y"],
+                reference["z"],
+            )
+            target_key = (target["x"], target["y"], target["z"])
+            if (
+                distance is None
+                or distance > M4_BM012_PLACE_REFERENCE_MAX_DISTANCE
+                or reference_key in seen
+                or reference_key in failed_references
+                or target_key in failed_targets
+                or target_key in occupied
+                or target_key in player_cells
+            ):
+                continue
+            seen.add(reference_key)
+            candidates.append({
+                "reference_name": reference_name,
+                "reference_position": reference,
+                "target_position": target,
+                "distance": distance,
+                "reference_block": copy.deepcopy(reference_block),
+                "target_block": copy.deepcopy(target_block),
+            })
+
+        if not candidates:
+            return {}
+        candidates.sort(
+            key=lambda candidate: (
+                candidate["distance"],
+                M4_BM012_PLACE_REFERENCE_PRIORITY.get(
+                    candidate["reference_name"],
+                    99,
+                ),
+                candidate["reference_position"]["x"],
+                candidate["reference_position"]["y"],
+                candidate["reference_position"]["z"],
+            )
+        )
+        selected = candidates[0]
+        return {
+            "policy_id": (
+                M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+            ),
+            "source": snapshot["source"],
+            "snapshot_observed_at_ms": validated_snapshot["observed_at_ms"],
+            "snapshot_player_position": copy.deepcopy(player_position),
+            "reference_position": selected["reference_position"],
+            "target_position": selected["target_position"],
+            "reference_block": selected["reference_block"],
+            "target_block": selected["target_block"],
+        }
 
     def _m4_bm013_bm014_furnace_place_reference(
         self,
@@ -10759,9 +10978,23 @@ class Agent:
         self,
         machine_state: dict,
         report: dict,
+        *,
+        policy_id: str = M4_BM013_BM014_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID,
     ) -> dict:
         """Derive bounded solid-reference/clear-target pairs from one raw snapshot."""
         task_id = str(getattr(self, "_m4_task_id", "") or "")
+        policy_id = str(policy_id or "")
+        if policy_id == M4_BM013_BM014_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID:
+            reference_blocks = M4_BM013_BM014_FURNACE_REFERENCE_BLOCKS
+            preferred_reference = "crafting_table"
+        elif (
+            policy_id
+            == M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+        ):
+            reference_blocks = M4_BM013_BM014_CRAFTING_TABLE_REFERENCE_BLOCKS
+            preferred_reference = ""
+        else:
+            return {}
         if (
             str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
             != "m4-fixed-v1"
@@ -10846,9 +11079,7 @@ class Agent:
                 "passable": raw_block.get("passable"),
                 "machine_observed": True,
                 "machine_state_source": "get_shelter_state.blocks",
-                "grounding_policy_id": (
-                    M4_BM013_BM014_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
-                ),
+                "grounding_policy_id": policy_id,
             }
 
         candidates = []
@@ -10857,7 +11088,7 @@ class Agent:
             target_block = blocks_by_position.get(target_key)
             if (
                 reference_block["name"]
-                not in M4_BM013_BM014_FURNACE_REFERENCE_BLOCKS
+                not in reference_blocks
                 or reference_block["solid"] is not True
                 or reference_block["collision"] != "block"
                 or not isinstance(target_block, dict)
@@ -10874,7 +11105,8 @@ class Agent:
         candidates.sort(
             key=lambda candidate: (
                 0
-                if candidate["reference_block"]["name"] == "crafting_table"
+                if preferred_reference
+                and candidate["reference_block"]["name"] == preferred_reference
                 else 1,
                 candidate["reference_block"]["position"]["x"],
                 candidate["reference_block"]["position"]["y"],
@@ -10884,7 +11116,7 @@ class Agent:
         candidates = candidates[:M4_BM013_BM014_LOCAL_PLACE_CANDIDATE_LIMIT]
         return {
             "schema_version": 1,
-            "policy_id": M4_BM013_BM014_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID,
+            "policy_id": policy_id,
             "source": "get_shelter_state.blocks",
             "machine_snapshot_passed": True,
             "player_position": player_position,
@@ -10895,6 +11127,20 @@ class Agent:
             "candidate_count": len(candidates),
             "candidates": candidates,
         }
+
+    def _m4_bm013_bm014_crafting_table_place_candidate_snapshot(
+        self,
+        machine_state: dict,
+        report: dict,
+    ) -> dict:
+        """Derive the independent owned-table placement envelope."""
+        return self._m4_bm013_bm014_local_place_candidate_snapshot(
+            machine_state,
+            report,
+            policy_id=(
+                M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+            ),
+        )
 
     def _attach_m4_shelter_verification(self, observation: dict) -> dict:
         if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
@@ -10922,6 +11168,16 @@ class Agent:
         )
         if local_place_candidates:
             enriched["m4_local_place_candidates"] = local_place_candidates
+        crafting_table_place_candidates = (
+            self._m4_bm013_bm014_crafting_table_place_candidate_snapshot(
+                machine_state,
+                report,
+            )
+        )
+        if crafting_table_place_candidates:
+            enriched[
+                M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_KEY
+            ] = crafting_table_place_candidates
 
         fingerprint = json.dumps({
             "passed": report.get("passed"),
@@ -11441,6 +11697,7 @@ class Agent:
             "visual_resources",
             "resources",
             "m4_local_place_candidates",
+            M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_KEY,
             "nearby_entities",
             "entities",
             "dangers",

@@ -1,0 +1,233 @@
+{
+  "type": "m4_task_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-014",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_contract_id": "m4-bm014-iron-pickaxe-contract-v1",
+  "task_contract_sha256": "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "progress_gate_passed": false,
+  "counts_toward_task_success": false,
+  "episode_id": "m4_episode_20260727_165036_f689d87b",
+  "session_id": "c44dd8a6-38f",
+  "level_name": "m4_episode_20260727_165036_f689d87b_bm014",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for iron-tool progression",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm014_wood_reserve_below_target",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft a crafting table for iron-tool progression",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm014_crafting_table_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft a wooden pickaxe for cobblestone acquisition",
+      "goal_index": 3,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm014_wooden_pickaxe_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Gather 11 cobblestone for stone pickaxe and furnace",
+      "goal_index": 4,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm014_cobblestone_below_toolchain_requirement",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft a stone pickaxe for ore acquisition",
+      "goal_index": 5,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm014_stone_pickaxe_ready_to_craft",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Collect 3 raw iron from iron ore with the stone pickaxe",
+      "goal_index": 6,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm014_raw_iron_below_target",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Collect 1 coal for furnace fuel with the stone pickaxe",
+      "goal_index": 7,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm014_furnace_fuel_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft a furnace for iron smelting",
+      "goal_index": 8,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm014_furnace_missing",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Smelt 3 iron ingots from 3 raw iron using coal",
+      "goal_index": 9,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "bm014_iron_ready_to_smelt",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 1,
+    "real_call_count": 1,
+    "schema_valid_real_call_count": 1,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 65536,
+    "reasoning_content_consumed": false,
+    "reasoning_content_retained": false,
+    "max_call_duration_ms": 18640.0,
+    "total_token_usage": 3969,
+    "violations": []
+  },
+  "action_count": 70,
+  "successful_action_count": 43,
+  "task_provenance": {
+    "target_items": [
+      "iron_pickaxe"
+    ],
+    "output_item": "iron_pickaxe",
+    "required_count": 1,
+    "initial_inventory": {
+      "iron_pickaxe": 0
+    },
+    "terminal_inventory": {
+      "iron_pickaxe": 0
+    },
+    "initial_target_count": 0,
+    "terminal_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "iron_pickaxe": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_action_candidate_count": 12,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "resource_acquisition": {},
+  "output_provenance": {
+    "target_items": [
+      "iron_pickaxe"
+    ],
+    "output_item": "iron_pickaxe",
+    "required_count": 1,
+    "initial_inventory": {
+      "iron_pickaxe": 0
+    },
+    "terminal_inventory": {
+      "iron_pickaxe": 0
+    },
+    "initial_target_count": 0,
+    "terminal_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "iron_pickaxe": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_action_candidate_count": 12,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 113,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 118.50040089225264,
+      "y": 123,
+      "z": -49.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "oak_log": 1,
+      "oak_planks": 3,
+      "cobblestone": 55,
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "furnace": 1,
+      "dirt": 3,
+      "raw_iron": 4,
+      "clay_ball": 32,
+      "coal": 1
+    },
+    "time_of_day": 5413,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 0.0,
+  "first_unrecovered_transition": {
+    "event_type": "episode_deadline_exceeded",
+    "goal": "Smelt 3 iron ingots from 3 raw iron using coal",
+    "detail": {
+      "policy_id": "m4-absolute-episode-deadline-v1",
+      "phase": "post_action",
+      "episode_deadline_monotonic": 892793.828,
+      "elapsed_s": 300.015,
+      "max_duration_s": 300.0,
+      "new_goal_suppressed": true,
+      "new_action_suppressed": true,
+      "skill_suppressed": true
+    },
+    "monotonic_s": 892793.843
+  },
+  "deadline_eligible": false,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_task_verification",
+    "terminal_player_lifecycle",
+    "terminal_bot_connected",
+    "output_terminal_inventory_target",
+    "output_successful_source_actions",
+    "output_positive_inventory_delta",
+    "terminal_machine_verification",
+    "episode_within_deadline",
+    "result_duration_eligible",
+    "no_post_deadline_execution"
+  ]
+}

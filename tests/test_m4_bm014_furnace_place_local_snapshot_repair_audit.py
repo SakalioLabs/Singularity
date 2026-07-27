@@ -143,7 +143,9 @@ def test_furnace_place_repair_audit_binds_probe51_consumed_auth_and_sources():
     )
     assert bindings["capability_evidence_sha256"] == _sha256_bytes(capability_blob)
     for key, relative_path in audit["source_paths"].items():
-        assert audit["source_sha256"][key] == _sha256(ROOT / relative_path)
+        assert audit["source_sha256"][key] == _sha256_bytes(
+            _git_blob(REPAIR_COMMIT, relative_path)
+        )
 
     report = _json(report_path)
     authorization = _json(authorization_path)

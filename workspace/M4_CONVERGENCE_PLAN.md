@@ -151,8 +151,12 @@ The Probe 51 offline repair accepts furnace placement only from a complete 36-ce
 - Authorization: `workspace/evals/m4_probe53_authorization.json`, SHA-256 `5ceee6d5d9e0868bf5397693a27a0dec263f590b658661e4a1bd9e06df21b6f6`; its four fail-closed tests pass from `tests/test_m4_probe53_authorization.py`, SHA-256 `5f85759375a6d7bb2b8a00d668755edbb3699eabc0aa8a478fb5c44035e741e1`
 - Scope: exactly one fresh BM-014 episode, fixed 300-second task limit, skills off, one Planner transport attempt, zero client/proxy retries, and credential/provider preflight before Minecraft
 - Prior state: two BM-014 attempts, one retained failure, one independently eligible success, and two eligible successes still required; authorization issuance adds no episode, attempt, success, or capability credit
-- Consumption state: `consumed=false`; no consumption fields exist, no automatic retry is permitted, and Probe 54 remains unauthorized
-- Transaction gate: Probe 53 remains unusable until this authorization and its test/docs/ledger are committed separately, pushed, and independently read back
+- Authorization transaction: commit `af479de53c8c3332eae96354ef5f5b51d7c93209`, tree `816b5efd5efbaeb6bf94d925536ab254d6f835ef`, pushed and independently read back with all 6/6 expected blobs exact and a clean-checkout 12/12 authorization/capability test pass
+- Consumption: exactly once at `autonomous_start` line 2 / monotonic `892493.828` / `2026-07-27T08:51:49.862732Z` by episode `m4_episode_20260727_165036_f689d87b`, session `c44dd8a6-38f`; no automatic retry or second episode ran
+- Result: ineligible `episode_deadline` at 300.015 seconds. Eight goals completed, the repaired furnace selector recovered one backend timeout and physically placed the furnace, but the sole three-ingot smelt began with only 3.453 seconds remaining and was clamped to the episode deadline. The run passes 64/74 checks and counts as attempt 3 / failure 2, while BM-014 remains 1/3 `live_observed`
+- Retained cause: 24 generic crafting-table placements selected targets that the backend observed as occupied stone. Their scheduling cost left an impossible smelt window; this is a capability failure, not an infrastructure exclusion
+- Offline repair: policy `m4-bm013-bm014-crafting-table-place-local-snapshot-v1` gives BM-013/014 owned-table placement its own complete 36-cell machine snapshot envelope and exact-pair ActionVerifier gate. Missing, forged, stale, unbound, occupied, player-colliding, or failed candidates return a zero-action bounded block with all fallbacks suppressed. BM-012 generic placement, the existing furnace policy, the 300-second limit, model, task contract, smelt physics, and zero-retry rule remain unchanged
+- Transaction gate: Probe 54 is unauthorized and remains locked until the Probe 53 failure evidence and offline repair are committed, pushed, and independently read back
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 

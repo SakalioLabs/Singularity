@@ -1,17 +1,18 @@
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import jsonschema
 
 
 ROOT = Path(__file__).resolve().parents[1]
-AUDIT_PATH = (
-    ROOT
-    / "workspace"
-    / "evals"
-    / "m4_probe23_failed_bound_ready_task_offline_audit.json"
+AUDIT_RELATIVE = (
+    "workspace/evals/"
+    "m4_probe23_failed_bound_ready_task_offline_audit.json"
 )
+AUDIT_PATH = ROOT / AUDIT_RELATIVE
+SOURCE_SNAPSHOT_COMMIT = "47ec2053345e2f4a710c848fdda9d34b7dc66d87"
 SCHEMA_PATH = (
     ROOT
     / "workspace"
@@ -25,6 +26,14 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _git_sha256(commit: str, path: str) -> str:
+    payload = subprocess.check_output(
+        ["git", "show", f"{commit}:{Path(path).as_posix()}"],
+        cwd=ROOT,
+    )
+    return hashlib.sha256(payload).hexdigest()
+
+
 def test_m4_probe23_failed_bound_ready_task_offline_audit_is_bound_and_fail_closed():
     audit = json.loads(AUDIT_PATH.read_text(encoding="utf-8"))
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
@@ -34,7 +43,10 @@ def test_m4_probe23_failed_bound_ready_task_offline_audit_is_bound_and_fail_clos
     assert _sha256(ROOT / source["path"]) == source["sha256"]
     assert source["modified"] is False
     for record in audit["implementation"]:
-        assert _sha256(ROOT / record["path"]) == record["sha256"]
+        assert _git_sha256(
+            SOURCE_SNAPSHOT_COMMIT,
+            record["path"],
+        ) == record["sha256"]
 
     contract = audit["repair_contract"]
     assert contract["scope"] == "selected_bound_ready_task"

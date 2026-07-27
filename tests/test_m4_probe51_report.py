@@ -13,6 +13,7 @@ from singularity.evaluation.m4_protocol import evaluate_m4_episode
 ROOT = Path(__file__).resolve().parent.parent
 REPORT_PATH = ROOT / "workspace/evals/m4_probe51_report.json"
 AUTHORIZATION_PATH = ROOT / "workspace/evals/m4_probe51_authorization.json"
+FURNACE_REPAIR_COMMIT = "0d97e4314c454fa8408b6ad56d8aff263f07d28e"
 
 
 def _json(path: Path):
@@ -341,7 +342,17 @@ def test_probe51_furnace_failure_root_cause_and_decision_are_bounded():
     }
     assert repair["probe_52_authorized"] is False
     for key, relative_path in repair["source_paths"].items():
-        assert repair["source_sha256"][key] == _sha256(ROOT / relative_path)
+        source_bytes = subprocess.check_output(
+            [
+                "git",
+                "show",
+                f"{FURNACE_REPAIR_COMMIT}:{relative_path}",
+            ],
+            cwd=ROOT,
+        )
+        assert repair["source_sha256"][key] == hashlib.sha256(
+            source_bytes
+        ).hexdigest()
     audit = _json(ROOT / failure["repair_audit_path"])
     execution = audit["offline_repair"]["execution_path_gates"]
     assert execution["suppressed_execution_paths"] == (

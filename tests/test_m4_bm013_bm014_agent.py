@@ -102,8 +102,12 @@ def _machine_snapshot_check(*, passed=True):
     }
 
 
-def _local_place_snapshot(reference_block, target_block):
-    policy_id = "m4-bm013-bm014-furnace-place-local-snapshot-v1"
+def _local_place_snapshot(
+    reference_block,
+    target_block,
+    *,
+    policy_id="m4-bm013-bm014-furnace-place-local-snapshot-v1",
+):
     reference = {
         **copy.deepcopy(reference_block),
         "machine_observed": True,
@@ -132,6 +136,16 @@ def _local_place_snapshot(reference_block, target_block):
             "target_block": target,
         }],
     }
+
+
+def _crafting_table_local_place_snapshot(reference_block, target_block):
+    return _local_place_snapshot(
+        reference_block,
+        target_block,
+        policy_id=(
+            "m4-bm013-bm014-crafting-table-place-local-snapshot-v1"
+        ),
+    )
 
 
 def _machine_agent(task_id):
@@ -611,6 +625,11 @@ def test_furnace_local_place_candidates_attach_only_after_machine_snapshot_passe
             {"x": 118, "y": 123, "z": -49},
             solid=False,
         ),
+        _machine_block(
+            "stone",
+            {"x": 119, "y": 123, "z": -50},
+            solid=True,
+        ),
     )
     report = {
         "passed": False,
@@ -634,7 +653,11 @@ def test_furnace_local_place_candidates_attach_only_after_machine_snapshot_passe
         )
     )
     assert attached["shelter_verification"]["passed"] is False
-    assert attached["m4_local_place_candidates"]["candidate_count"] == 1
+    assert attached["m4_local_place_candidates"]["candidate_count"] == 2
+    assert attached["m4_crafting_table_place_candidates"]["candidate_count"] == 1
+    assert attached["m4_crafting_table_place_candidates"]["policy_id"] == (
+        "m4-bm013-bm014-crafting-table-place-local-snapshot-v1"
+    )
 
     failed_report = copy.deepcopy(report)
     failed_report["checks"][0]["passed"] = False
@@ -648,6 +671,7 @@ def test_furnace_local_place_candidates_attach_only_after_machine_snapshot_passe
         )
     )
     assert "m4_local_place_candidates" not in not_attached
+    assert "m4_crafting_table_place_candidates" not in not_attached
 
 
 def test_furnace_local_snapshot_selection_fails_closed_on_incomplete_or_unsafe_evidence():
@@ -1066,6 +1090,519 @@ def test_exact_smelt_without_valid_local_candidate_blocks_full_think_fallbacks()
     ]
     assert calls == []
     assert visual_calls == []
+
+
+def test_probe53_owned_table_place_uses_independent_complete_snapshot_pair():
+    agent = _machine_agent("BM-014")
+    reference_position = {"x": 118, "y": 122, "z": -51}
+    target_position = {"x": 118, "y": 123, "z": -51}
+    reference = _machine_block(
+        "coal_ore",
+        reference_position,
+        solid=True,
+    )
+    target = _machine_block(
+        "air",
+        target_position,
+        solid=False,
+    )
+    machine_state = _complete_local_machine_state(
+        reference,
+        target,
+        _machine_block(
+            "stone",
+            {"x": 119, "y": 122, "z": -49},
+            solid=True,
+        ),
+        _machine_block(
+            "clay",
+            {"x": 119, "y": 123, "z": -49},
+            solid=True,
+        ),
+    )
+    report = {"checks": [_machine_snapshot_check()]}
+
+    table_snapshot = (
+        agent._m4_bm013_bm014_crafting_table_place_candidate_snapshot(
+            machine_state,
+            report,
+        )
+    )
+    furnace_snapshot = agent._m4_bm013_bm014_local_place_candidate_snapshot(
+        machine_state,
+        report,
+    )
+    assert table_snapshot["policy_id"] == (
+        "m4-bm013-bm014-crafting-table-place-local-snapshot-v1"
+    )
+    assert table_snapshot["candidate_count"] == 1
+    assert table_snapshot["candidates"][0]["reference_block"]["position"] == (
+        reference_position
+    )
+    assert table_snapshot["candidates"][0]["target_block"]["position"] == (
+        target_position
+    )
+    assert table_snapshot["candidates"][0]["reference_block"][
+        "grounding_policy_id"
+    ] == table_snapshot["policy_id"]
+    assert furnace_snapshot["policy_id"] == (
+        "m4-bm013-bm014-furnace-place-local-snapshot-v1"
+    )
+    assert table_snapshot != furnace_snapshot
+
+    observation = _observation(
+        {"crafting_table": 1, "cobblestone": 8},
+        [{"name": "coal_ore", "position": reference_position, "distance": 1.414}],
+        position={"x": 118.5, "y": 123, "z": -49.5},
+        m4_crafting_table_place_candidates=table_snapshot,
+    )
+    plan = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        observation,
+        "Craft a furnace for iron smelting",
+    )
+    action = plan["actions"][0]
+    assert action == {
+        "type": "place",
+        "parameters": {
+            "item": "crafting_table",
+            **reference_position,
+        },
+    }
+    assert plan["machine_step_plan"]["reason"] == (
+        "place_owned_crafting_table_at_machine_verified_local_air_target"
+    )
+    assert plan["machine_step_plan"][
+        "crafting_table_place_local_snapshot_policy_id"
+    ] == table_snapshot["policy_id"]
+    assert plan["machine_step_plan"][
+        "furnace_place_local_snapshot_policy_id"
+    ] is None
+    assert plan["machine_step_plan"]["target"]["target_position"] == target_position
+
+    decision = ActionVerifier().verify(
+        action,
+        observation,
+        protocol="m4-fixed-v1",
+        task_id="BM-014",
+    )
+    assert decision.status == "accept"
+    assert f"policy:{table_snapshot['policy_id']}" in decision.evidence
+    assert "target:air" in decision.evidence
+    assert "target:not_observed_occupied" not in decision.evidence
+
+
+def test_table_place_verifier_rejects_missing_forged_stale_wrong_or_fractional():
+    verifier = ActionVerifier()
+    action = {
+        "type": "place",
+        "parameters": {"item": "crafting_table", "x": 1, "y": 63, "z": 0},
+    }
+    reference = _machine_block(
+        "stone",
+        {"x": 1, "y": 63, "z": 0},
+        solid=True,
+    )
+    target = _machine_block(
+        "air",
+        {"x": 1, "y": 64, "z": 0},
+        solid=False,
+    )
+    valid_snapshot = _crafting_table_local_place_snapshot(reference, target)
+    base = _observation(
+        {"crafting_table": 1},
+        [],
+        observed_at_ms=1785125823000,
+        m4_crafting_table_place_candidates=valid_snapshot,
+    )
+    accepted = verifier.verify(
+        action,
+        base,
+        protocol="m4-fixed-v1",
+        task_id="BM-014",
+    )
+    assert accepted.status == "accept"
+    assert (
+        "policy:m4-bm013-bm014-crafting-table-place-local-snapshot-v1"
+        in accepted.evidence
+    )
+    assert "target:air" in accepted.evidence
+
+    invalid_states = []
+    missing = copy.deepcopy(base)
+    missing.pop("m4_crafting_table_place_candidates")
+    missing["m4_local_place_candidates"] = _local_place_snapshot(
+        _machine_block(
+            "crafting_table",
+            reference["position"],
+            solid=True,
+        ),
+        target,
+    )
+    invalid_states.append(missing)
+
+    forged = copy.deepcopy(base)
+    forged["m4_crafting_table_place_candidates"]["candidate_count"] = 2
+    invalid_states.append(forged)
+
+    wrong_policy = copy.deepcopy(base)
+    wrong_policy["m4_crafting_table_place_candidates"]["policy_id"] = (
+        "m4-bm013-bm014-furnace-place-local-snapshot-v1"
+    )
+    invalid_states.append(wrong_policy)
+
+    stale = copy.deepcopy(base)
+    stale["observed_at_ms"] += (
+        ActionVerifier.M4_CRAFTING_TABLE_PLACE_MAX_SNAPSHOT_AGE_MS + 1
+    )
+    invalid_states.append(stale)
+
+    unbound = copy.deepcopy(base)
+    unbound["position"] = {"x": 1.0, "y": 64.0, "z": 0.0}
+    invalid_states.append(unbound)
+
+    zero_candidates = copy.deepcopy(base)
+    zero_candidates["m4_crafting_table_place_candidates"]["candidates"] = []
+    zero_candidates["m4_crafting_table_place_candidates"]["candidate_count"] = 0
+    invalid_states.append(zero_candidates)
+
+    wrong_pair = copy.deepcopy(base)
+    wrong_pair["m4_crafting_table_place_candidates"]["candidates"][0][
+        "reference_block"
+    ]["position"] = {"x": 2, "y": 63, "z": 0}
+    wrong_pair["m4_crafting_table_place_candidates"]["candidates"][0][
+        "target_block"
+    ]["position"] = {"x": 2, "y": 64, "z": 0}
+    invalid_states.append(wrong_pair)
+
+    visible_table_bypass = copy.deepcopy(missing)
+    visible_table_bypass["nearby_blocks"] = [_table()]
+    invalid_states.append(visible_table_bypass)
+
+    for state in invalid_states:
+        decision = verifier.verify(
+            action,
+            state,
+            protocol="m4-fixed-v1",
+            task_id="BM-014",
+        )
+        assert decision.status == "reject"
+        assert decision.policy_id == (
+            ActionVerifier.M4_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+        )
+        assert "target:not_observed_occupied" not in decision.evidence
+
+    wrong_pair_decision = verifier.verify(
+        action,
+        wrong_pair,
+        protocol="m4-fixed-v1",
+        task_id="BM-014",
+    )
+    assert wrong_pair_decision.missing == [
+        "m4_crafting_table_place_candidates.exact_pair",
+    ]
+    assert wrong_pair_decision.required["reference_position"] == {
+        "x": 1,
+        "y": 63,
+        "z": 0,
+    }
+    assert wrong_pair_decision.required["target_position"] == {
+        "x": 1,
+        "y": 64,
+        "z": 0,
+    }
+
+    fractional_action = copy.deepcopy(action)
+    fractional_action["parameters"]["x"] = 1.5
+    fractional = verifier.verify(
+        fractional_action,
+        base,
+        protocol="m4-fixed-v1",
+        task_id="BM-014",
+    )
+    assert fractional.status == "reject"
+    assert fractional.policy_id == (
+        ActionVerifier.M4_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+    )
+    assert "exact integral reference coordinates" in fractional.reason
+
+    furnace_cannot_borrow_table_envelope = verifier.verify(
+        {
+            "type": "place",
+            "parameters": {"item": "furnace", "x": 1, "y": 63, "z": 0},
+        },
+        _observation(
+            {"furnace": 1},
+            [],
+            observed_at_ms=1785125823000,
+            m4_crafting_table_place_candidates=valid_snapshot,
+        ),
+        protocol="m4-fixed-v1",
+        task_id="BM-014",
+    )
+    assert furnace_cannot_borrow_table_envelope.status == "reject"
+    assert furnace_cannot_borrow_table_envelope.policy_id == (
+        ActionVerifier.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+    )
+
+
+def test_table_selector_rejects_current_occupancy_player_collision_and_feedback():
+    agent = _machine_agent("BM-014")
+    verifier = ActionVerifier()
+    reference = _machine_block(
+        "stone",
+        {"x": 1, "y": 63, "z": 0},
+        solid=True,
+    )
+    target = _machine_block(
+        "air",
+        {"x": 1, "y": 64, "z": 0},
+        solid=False,
+    )
+    snapshot = _crafting_table_local_place_snapshot(reference, target)
+    action = {
+        "type": "place",
+        "parameters": {
+            "item": "crafting_table",
+            **reference["position"],
+        },
+    }
+
+    occupied = _observation(
+        {"crafting_table": 1, "cobblestone": 8},
+        [{"name": "stone", "position": target["position"]}],
+        m4_crafting_table_place_candidates=snapshot,
+    )
+    assert (
+        agent._m4_bm013_bm014_crafting_table_place_reference(occupied)
+        == {}
+    )
+    occupied_decision = verifier.verify(
+        action,
+        occupied,
+        protocol="m4-fixed-v1",
+        task_id="BM-014",
+    )
+    assert occupied_decision.status == "reject"
+    assert "observed_target:stone" in occupied_decision.evidence
+
+    collision = _observation(
+        {"crafting_table": 1, "cobblestone": 8},
+        [],
+        position={"x": 0.95, "y": 64.0, "z": 0.5},
+        m4_crafting_table_place_candidates=snapshot,
+    )
+    assert (
+        agent._m4_bm013_bm014_crafting_table_place_reference(collision)
+        == {}
+    )
+    collision_decision = verifier.verify(
+        action,
+        collision,
+        protocol="m4-fixed-v1",
+        task_id="BM-014",
+    )
+    assert collision_decision.status == "reject"
+    assert "intersects the player's collision cells" in collision_decision.reason
+    assert collision_decision.required["current_player_position"] == (
+        collision["position"]
+    )
+
+    failed_event = {
+        "type": "action",
+        "data": {
+            "action": action,
+            "result": {
+                "success": False,
+                "error": "placement target is occupied by stone",
+                "placed_position": target["position"],
+                "target_block_before": {
+                    "name": "stone",
+                    "position": target["position"],
+                },
+            },
+        },
+    }
+    alternate_reference = _machine_block(
+        "stone",
+        {"x": -2, "y": 63, "z": 0},
+        solid=True,
+    )
+    alternate_target = _machine_block(
+        "air",
+        {"x": -2, "y": 64, "z": 0},
+        solid=False,
+    )
+    alternate_snapshot = _crafting_table_local_place_snapshot(
+        alternate_reference,
+        alternate_target,
+    )
+    retry_snapshot = copy.deepcopy(snapshot)
+    retry_snapshot["candidates"].append(
+        copy.deepcopy(alternate_snapshot["candidates"][0]),
+    )
+    retry_snapshot["candidate_count"] = 2
+    agent.session_logger.events = [failed_event]
+    retry_observation = _observation(
+        {"crafting_table": 1, "cobblestone": 8},
+        [],
+        m4_crafting_table_place_candidates=retry_snapshot,
+    )
+    retry_selection = (
+        agent._m4_bm013_bm014_crafting_table_place_reference(
+            retry_observation,
+        )
+    )
+    assert retry_selection["reference_position"] == (
+        alternate_reference["position"]
+    )
+    assert retry_selection["target_position"] == alternate_target["position"]
+
+    furnace_feedback_agent = _machine_agent("BM-014")
+    furnace_feedback = copy.deepcopy(failed_event)
+    furnace_feedback["data"]["action"]["parameters"]["item"] = "furnace"
+    furnace_feedback_agent.session_logger.events = [furnace_feedback]
+    unaffected_selection = (
+        furnace_feedback_agent._m4_bm013_bm014_crafting_table_place_reference(
+            _observation(
+                {"crafting_table": 1, "cobblestone": 8},
+                [],
+                m4_crafting_table_place_candidates=snapshot,
+            )
+        )
+    )
+    assert unaffected_selection["reference_position"] == reference["position"]
+
+    feedback = _observation(
+        {"crafting_table": 1, "cobblestone": 8},
+        [],
+        m4_crafting_table_place_candidates=snapshot,
+    )
+    assert (
+        agent._m4_bm013_bm014_crafting_table_place_reference(feedback)
+        == {}
+    )
+    blocked = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        feedback,
+        "Craft a furnace for iron smelting",
+    )
+    assert blocked["status"] == "blocked"
+    assert blocked["actions"] == []
+    assert blocked["reason_code"] == (
+        "crafting_table_place_local_snapshot_unavailable"
+    )
+    assert blocked["bounded_block"]["policy_id"] == (
+        "m4-bm013-bm014-crafting-table-place-local-snapshot-v1"
+    )
+    assert blocked["bounded_block"]["fallback_suppressed"] is True
+
+
+def test_owned_table_without_valid_snapshot_blocks_all_think_fallbacks():
+    agent = _machine_agent("BM-014")
+    calls = []
+    visual_calls = []
+    agent.visual_action_advisor = SimpleNamespace(
+        suggest=lambda *args, **kwargs: (
+            visual_calls.append("suggest")
+            or [{
+                "kind": "resource_crafting_table",
+                "reason": "forged visual table suggestion",
+                "action": {
+                    "type": "place",
+                    "parameters": {
+                        "item": "crafting_table",
+                        "x": 1,
+                        "y": 63,
+                        "z": 0,
+                    },
+                },
+            }]
+        ),
+    )
+    agent._learned_skill_plan = lambda *args, **kwargs: calls.append("learned")
+    agent._m4_bm012_toolchain_machine_step_plan = (
+        lambda *args, **kwargs: calls.append("bm012")
+    )
+    agent._think_llm = lambda *args, **kwargs: calls.append("llm")
+    agent._think_rule = lambda *args, **kwargs: calls.append("rule")
+    agent._apply_visual_action_grounding = (
+        lambda *args, **kwargs: visual_calls.append("grounding")
+    )
+    agent._use_llm = True
+    agent.current_goal = "Craft a furnace for iron smelting"
+
+    plan = agent._think(
+        _observation(
+            {"crafting_table": 1, "cobblestone": 8},
+            [],
+        ),
+    )
+
+    assert plan["status"] == "blocked"
+    assert plan["actions"] == []
+    assert plan["reason_code"] == (
+        "crafting_table_place_local_snapshot_unavailable"
+    )
+    assert plan["bounded_block"]["suppressed_paths"] == [
+        "learned_skill",
+        "bm012_machine_step",
+        "llm_plan",
+        "rule_plan",
+        "visual_action_grounding",
+    ]
+    assert calls == []
+    assert visual_calls == []
+
+
+def test_bm012_table_and_furnace_place_controls_remain_generic():
+    agent = _machine_agent("BM-012")
+    observation = _observation(
+        {"crafting_table": 1},
+        [{
+            "name": "grass_block",
+            "position": {"x": 1, "y": 63, "z": 0},
+            "distance": 1.5,
+        }],
+    )
+    action, reason, target = agent._m4_bm012_crafting_table_access_action(
+        observation,
+        observation["inventory"],
+    )
+    assert action == {
+        "type": "place",
+        "parameters": {
+            "item": "crafting_table",
+            "x": 1,
+            "y": 63,
+            "z": 0,
+        },
+    }
+    assert reason == "place_owned_crafting_table_at_verified_reference"
+    assert target == {
+        "reference_position": {"x": 1, "y": 63, "z": 0},
+    }
+
+    verifier = ActionVerifier()
+    for item in ("crafting_table", "furnace"):
+        generic = verifier.verify(
+            {
+                "type": "place",
+                "parameters": {
+                    "item": item,
+                    "x": 1,
+                    "y": 63,
+                    "z": 0,
+                },
+            },
+            _observation({item: 1}, []),
+            protocol="m4-fixed-v1",
+            task_id="BM-012",
+        )
+        assert generic.status == "accept"
+        assert "target:not_observed_occupied" in generic.evidence
+        assert all(
+            "bm013-bm014" not in evidence
+            for evidence in generic.evidence
+        )
 
 
 def test_planner_smelt_grounding_requires_exact_integer_furnace_coordinates():
