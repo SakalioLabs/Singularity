@@ -209,7 +209,7 @@ class GoalVerifier:
     ]
 
     DEFAULT_VERBS = ["craft", "gather", "collect", "mine", "obtain", "get", "smelt"]
-    INVENTORY_GOAL_VERBS = [*DEFAULT_VERBS, "find", "build", "place"]
+    INVENTORY_GOAL_VERBS = [*DEFAULT_VERBS, "find", "build", "place", "ensure"]
     PURPOSE_MARKER_PATTERN = re.compile(r"\b(?:for|to|so\s+that)\b")
     EXPLICIT_FOLLOWUP_PATTERN = re.compile(
         r"(?:[;,]|\bthen\b)\s*(?:and\s+)?"
@@ -227,7 +227,7 @@ class GoalVerifier:
         VerifierAnchor("raw_iron", ["raw iron", "iron ore"], ["raw_iron", "iron_ore"], ["mine", "gather", "collect", "obtain", "get"]),
         VerifierAnchor("coal", ["coal", "charcoal"], ["coal", "charcoal"], ["mine", "gather", "collect", "obtain", "get", "find"]),
         VerifierAnchor("cobblestone", ["cobblestone blocks", "cobblestone", "stone blocks"], ["cobblestone", "stone"], ["mine", "gather", "collect", "obtain", "get"]),
-        VerifierAnchor("stick", ["sticks", "stick"], ["stick"], ["craft", "gather", "collect", "obtain", "get"]),
+        VerifierAnchor("stick", ["sticks", "stick"], ["stick"], ["craft", "gather", "collect", "obtain", "get", "ensure"]),
         VerifierAnchor("planks", ["wooden planks", "planks"], PLANK_ITEMS, ["craft", "obtain", "get"]),
         VerifierAnchor("oak_log", ["oak logs", "oak log", "logs", "log", "wood"], LOG_ITEMS, ["gather", "collect", "mine", "obtain", "get"]),
     ]

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from singularity.core.agent import Agent
 from singularity.core.goal_generator import GoalGenerator
+from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.planner import Planner
 from singularity.evaluation.m4_protocol import PROTOCOL, PROTOCOL_SHA256
 
@@ -196,6 +197,87 @@ def test_bm014_goal_generator_batches_three_iron_then_finishes_pickaxe_chain():
     ) == "Craft an iron pickaxe"
 
 
+def test_bm014_stick_machine_step_closes_goal_before_iron_pickaxe_frontier():
+    generator = GoalGenerator()
+    verifier = GoalVerifier()
+    agent = _machine_agent("BM-014")
+    before = _observation(
+        {"iron_ingot": 3, "oak_planks": 2},
+        [_table(), _furnace()],
+    )
+    goal = generator.next_goal(before, task_id="BM-014")
+    assert goal == "Ensure 2 sticks for crafting the iron pickaxe"
+
+    plan = agent._m4_bm013_bm014_toolchain_machine_step_plan(before, goal)
+    assert plan["actions"] == [
+        {"type": "craft", "parameters": {"item": "stick", "count": 4}}
+    ]
+    assert plan["machine_step_plan"]["reason"] == "craft_sticks_for_iron_pickaxe"
+
+    after = _observation(
+        {"iron_ingot": 3, "stick": 4},
+        [_table(), _furnace()],
+    )
+    verification = verifier.verify(
+        goal,
+        after,
+        recent_actions=[{
+            "action": plan["actions"][0],
+            "result": {"success": True},
+            "before_observation": before,
+            "after_observation": after,
+        }],
+    )
+    assert verification.achieved
+    assert verification.target_inventory == {"stick": 2}
+    assert verification.inventory_delta == {"stick": 4}
+    assert "inventory:iron_pickaxe" not in verification.matched_rules
+    assert generator.next_goal(after, task_id="BM-014") == "Craft an iron pickaxe"
+
+
+def test_bm014_stick_frontier_preserves_two_step_log_to_planks_to_sticks():
+    generator = GoalGenerator()
+    verifier = GoalVerifier()
+    agent = _machine_agent("BM-014")
+    goal = "Ensure 2 sticks for crafting the iron pickaxe"
+    log_state = _observation(
+        {"iron_ingot": 3, "oak_log": 1},
+        [_table(), _furnace()],
+    )
+    assert generator.next_goal(log_state, task_id="BM-014") == goal
+
+    planks_plan = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        log_state,
+        goal,
+    )
+    assert planks_plan["actions"] == [
+        {"type": "craft", "parameters": {"item": "oak_planks", "count": 4}}
+    ]
+    assert (
+        planks_plan["machine_step_plan"]["reason"]
+        == "craft_oak_planks_for_iron_pickaxe_sticks"
+    )
+
+    planks_state = _observation(
+        {"iron_ingot": 3, "oak_planks": 4},
+        [_table(), _furnace()],
+    )
+    assert not verifier.verify(goal, planks_state).achieved
+    assert generator.next_goal(planks_state, task_id="BM-014") == goal
+
+    sticks_plan = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        planks_state,
+        goal,
+    )
+    assert sticks_plan["actions"] == [
+        {"type": "craft", "parameters": {"item": "stick", "count": 4}}
+    ]
+    assert (
+        sticks_plan["machine_step_plan"]["reason"]
+        == "craft_sticks_for_iron_pickaxe"
+    )
+
+
 def test_bm013_bm014_machine_steps_require_real_schema_valid_llm_gate():
     agent = _machine_agent("BM-013")
     state = _observation(
@@ -206,6 +288,15 @@ def test_bm013_bm014_machine_steps_require_real_schema_valid_llm_gate():
     assert agent._m4_bm013_bm014_toolchain_machine_step_plan(
         state,
         "Gather 6 oak logs for iron-tool progression",
+    ) is None
+    bm014 = _machine_agent("BM-014")
+    bm014._m4_real_schema_valid_llm_call_observed = False
+    assert bm014._m4_bm013_bm014_toolchain_machine_step_plan(
+        _observation(
+            {"iron_ingot": 3, "oak_planks": 2},
+            [_table(), _furnace()],
+        ),
+        "Ensure 2 sticks for crafting the iron pickaxe",
     ) is None
 
     agent._m4_real_schema_valid_llm_call_observed = True

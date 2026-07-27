@@ -403,6 +403,37 @@ def test_bm013_cobblestone_goal_ignores_tool_and_furnace_purpose_nouns():
     print("PASS: BM-013 cobblestone title binds only its primary inventory target")
 
 
+def test_bm014_ensure_sticks_goal_binds_only_primary_inventory_target():
+    verifier = _purpose_clause_contaminated_verifier()
+
+    achieved = verifier.verify(
+        "Ensure 2 sticks for crafting the iron pickaxe",
+        {"inventory": {"stick": 2}},
+    )
+    assert achieved.achieved
+    assert achieved.status == "achieved"
+    assert achieved.target_inventory == {"stick": 2}
+    assert achieved.missing == []
+    assert "inventory:stick" in achieved.matched_rules
+    assert "inventory:iron_pickaxe" not in achieved.matched_rules
+    assert "intent:inventory_purpose_phrase" in achieved.matched_rules
+    assert (
+        f"policy:{GoalVerifier.INVENTORY_PURPOSE_POLICY_ID}"
+        in achieved.matched_rules
+    )
+
+    missing = verifier.verify(
+        "Ensure 2 sticks for crafting the iron pickaxe",
+        {"inventory": {"stick": 1, "iron_pickaxe": 1}},
+    )
+    assert not missing.achieved
+    assert missing.status == "failed"
+    assert missing.target_inventory == {"stick": 2}
+    assert missing.missing == ["need 2 stick, have 1"]
+    assert "inventory:iron_pickaxe" not in missing.matched_rules
+    print("PASS: BM-014 ensure-sticks goal closes only on the stick postcondition")
+
+
 def test_inventory_purpose_scoping_preserves_explicit_followup_actions():
     verifier = _purpose_clause_contaminated_verifier()
     to_goal = "Gather coal to craft a wooden pickaxe"
@@ -436,6 +467,17 @@ def test_inventory_purpose_scoping_preserves_explicit_followup_actions():
             "coal" if "coal" in goal else "cobblestone",
             "wooden_pickaxe",
         }
+        assert any(missing_item in missing for missing in result.missing)
+        assert "intent:inventory_purpose_phrase" not in result.matched_rules
+
+    ensure_followup = "Ensure sticks, then craft an iron pickaxe"
+    for inventory, missing_item in (
+        ({"stick": 1}, "iron_pickaxe"),
+        ({"iron_pickaxe": 1}, "stick"),
+    ):
+        result = verifier.verify(ensure_followup, {"inventory": inventory})
+        assert not result.achieved
+        assert result.target_inventory == {"iron_pickaxe": 1, "stick": 1}
         assert any(missing_item in missing for missing in result.missing)
         assert "intent:inventory_purpose_phrase" not in result.matched_rules
     print("PASS: explicit to/then inventory actions remain binding multi-target goals")

@@ -1,0 +1,106 @@
+{
+  "type": "m4_bm014_stick_goal_verifier_repair_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-27T03:56:01Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_id": "BM-014",
+  "task_contract_id": "m4-bm014-iron-pickaxe-contract-v1",
+  "task_contract_sha256": "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f",
+  "classification": "offline_repair",
+  "counts_toward_bm014_success": false,
+  "counts_toward_capability": false,
+  "repair_parent": {
+    "commit": "84b9817dd7f65f4c001314874592bc096fc82c36",
+    "tree": "adf8399f0857c41095e80e9e57ed43842e3e238e",
+    "probe_50_report_path": "workspace/evals/m4_probe50_report.json",
+    "probe_50_report_sha256": "fb53537d6a6eced512479425ccdc9ee8d48d99c572b875bf8d6d8b3fd59657fd",
+    "capability_evidence_path": "workspace/evals/capability_evidence_current.json",
+    "capability_evidence_sha256": "4ed3713a063350aca364a3656c770beef90932b53e45b4eed0280c8d2e5d9b9a",
+    "bm013_eligible_success_count": 3,
+    "bm013_repeat_verified": true
+  },
+  "blocker_before_repair": {
+    "goal": "Ensure 2 sticks for crafting the iron pickaxe",
+    "failure_layer": "m4_bm014_ensure_sticks_inventory_goal_not_grounded",
+    "inventory_goal_gate_recognized_ensure": false,
+    "stick_anchor_recognized_ensure": false,
+    "result_with_two_sticks": "unknown",
+    "consequence": "the exact intermediate goal could not close and the iron-pickaxe frontier could not advance"
+  },
+  "offline_repair": {
+    "policy_id": "m4-inventory-purpose-clause-grounding-v1",
+    "scope": "inventory_gate_plus_stick_anchor_only",
+    "inventory_goal_verbs_added": [
+      "ensure"
+    ],
+    "manual_anchor_verbs_added": {
+      "stick": [
+        "ensure"
+      ]
+    },
+    "default_verbs_unchanged": true,
+    "other_manual_anchor_verbs_unchanged": true,
+    "goal_title_unchanged": true,
+    "agent_dispatch_unchanged": true,
+    "machine_step_policy_unchanged": true,
+    "llm_gate_policy_unchanged": true,
+    "purpose_clause_behavior": {
+      "primary_target": {
+        "stick": 2
+      },
+      "nonbinding_suffix": "for crafting the iron pickaxe",
+      "iron_pickaxe_bound_by_exact_goal": false,
+      "explicit_then_followup_remains_binding": true
+    },
+    "known_out_of_scope_behavior": "the existing first-number propagation for explicit multi-target inventory goals is unchanged"
+  },
+  "offline_validation": {
+    "focused_python": {
+      "command": "python -m pytest tests/test_goal_verifier.py tests/test_m4_bm013_bm014_agent.py -q",
+      "passed": 35,
+      "failed": 0
+    },
+    "selected_python": {
+      "command": "python -m pytest tests/test_goal_verifier.py tests/test_goal_generator.py tests/test_m4_bm013_bm014_agent.py tests/test_m4_task_outputs.py tests/test_m4_deadline.py tests/test_m4_protocol.py tests/test_capability_evidence.py tests/test_m4_probe50_report.py tests/test_m4_bm014_stick_goal_verifier_repair_audit.py -q",
+      "passed": 147,
+      "failed": 0
+    },
+    "selected_node": {
+      "command": "node --test tests/test_bot_server_m4_protocol.js tests/test_bot_server_smelt.js",
+      "suite_files_passed": 2,
+      "internal_cases_passed": 19,
+      "failed": 0
+    },
+    "covered_boundaries": [
+      "two sticks close the exact ensure goal",
+      "one stick fails even when an iron pickaxe is present",
+      "the purpose suffix does not bind iron_pickaxe",
+      "an explicit then-followup still binds both inventory targets",
+      "a real stick craft records stick:+4 delta and advances the generator",
+      "oak log to planks to sticks remains a two-step frontier",
+      "the exact ensure goal cannot use a machine step before a real schema-valid LLM call"
+    ]
+  },
+  "source_paths": {
+    "goal_verifier": "src/singularity/core/goal_verifier.py",
+    "goal_verifier_tests": "tests/test_goal_verifier.py",
+    "bm013_bm014_agent_tests": "tests/test_m4_bm013_bm014_agent.py"
+  },
+  "source_sha256": {
+    "goal_verifier": "d6db252f98de2d6dbd876116ea2902b1c394abac483cedc30b946f7f5b438cc4",
+    "goal_verifier_tests": "d7f3442545a1be660137b434db832205b88d2c3cb732711fd65d904e66dbd05a",
+    "bm013_bm014_agent_tests": "af62cb0911ae519edbb55802ecda357be376d1419f3b833776bb33a4dc7989ce"
+  },
+  "decision": {
+    "repair_offline_gate_passed": true,
+    "bm014_eligible_success_count": 0,
+    "required_bm014_eligible_success_count": 3,
+    "m4_status": "partial",
+    "bm014_authorized": false,
+    "bm014_live_locked": true,
+    "probe_51_authorized": false,
+    "next_required_transaction": "commit and push this repair, verify the remote commit and tree, then create and push a separate parent-bound one-use Probe 51 authorization"
+  }
+}

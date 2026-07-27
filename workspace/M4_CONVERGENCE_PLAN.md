@@ -4,13 +4,13 @@
 
 - Protocol: `m4-fixed-v1`
 - Protocol SHA-256: `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`
-- Current target: BM-014 Craft iron pickaxe, sequentially locked pending Probe 50 evidence push and an offline verifier repair
+- Current target: BM-014 Craft iron pickaxe, live-locked pending the offline verifier repair commit/push and a later separate one-use authorization commit/push
 - Current-target eligible successes: 0/3
 - Completed targets: BM-011 Survive the first night, BM-012 Get 8 iron resources, and BM-013 Smelt iron ingot, all `repeat_verified` at 3/3
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 47 remains retained ineligible BM-013 failure evidence. Probes 48, 49, and 50 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031, 238.140, and 271.922 seconds. BM-013 is therefore `repeat_verified` at 3/3 after Probe 50 evidence is committed and pushed. BM-014 is the only remaining M4 target and stays locked until that push and a bounded offline repair for its `Ensure 2 sticks for crafting the iron pickaxe` verifier gap.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 47 remains retained ineligible BM-013 failure evidence. Probes 48, 49, and 50 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031, 238.140, and 271.922 seconds. Probe 50 evidence is pushed at `84b9817d` / tree `adf8399f`, so BM-013 is `repeat_verified` at 3/3. BM-014 is the only remaining M4 target. Its exact `Ensure 2 sticks for crafting the iron pickaxe` verifier gap is repaired and passing offline, but live execution stays locked until this repair is committed/pushed and a separate parent-bound one-use authorization is later committed/pushed.
 
 ## Probe 44 Machine-Step Place Candidate Drift Gap
 
@@ -91,13 +91,15 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - Terminal proof: smelt action line 874 made one attempt with zero retries, consumed `raw_iron:1` and `coal:1`, produced `iron_ingot:1`, settled output, emptied and closed the furnace, and terminal verification passed at line 878
 - Actions/lifecycle: 42/60 actions succeeded; 18 failures were recovered noise. All 120 observations retained health/hunger `20/20`, with zero deaths or respawns
 - Evidence: `workspace/evals/m4_probe50_report.json`, SHA-256 `fb53537d6a6eced512479425ccdc9ee8d48d99c572b875bf8d6d8b3fd59657fd`
-- Decision: counts as BM-013 success 3/3 and closes BM-013 as `repeat_verified` after this evidence commit is pushed; BM-014 remains locked
+- Decision: counts as BM-013 success 3/3 and closes BM-013 as `repeat_verified`; evidence is committed and pushed at `84b9817d`, tree `adf8399f`; BM-014 remains live-locked
 
-## BM-014 Pre-Authorization Verifier Blocker
+## BM-014 Pre-Authorization Verifier Repair
 
-- GoalGenerator currently emits `Ensure 2 sticks for crafting the iron pickaxe` after three iron ingots are available
-- GoalVerifier has no deterministic inventory-intent match for `ensure`, so even `stick >= 2` returns `unknown`; this would prevent the intermediate goal from closing after a successful stick craft
-- No BM-014 live authorization exists. After the Probe 50 evidence push, the exact stick-goal verifier boundary must be repaired and covered by positive, negative, purpose-clause, and Agent progression tests before a separate one-use authorization is created
+- GoalGenerator emits `Ensure 2 sticks for crafting the iron pickaxe` after three iron ingots are available. Before this repair, GoalVerifier had no deterministic inventory-intent match for `ensure`, so even `stick >= 2` returned `unknown`
+- The bounded repair adds `ensure` only to the inventory-goal gate and the manual stick anchor. It does not change default verbs, other anchors, the goal title, Agent dispatch, the machine-step policy, the LLM gate, the frozen task contract, or the 300-second deadline
+- The exact goal now binds only `stick:2`; the iron-pickaxe purpose suffix remains non-binding, while an explicit `then craft an iron pickaxe` followup still binds both targets
+- Offline validation passes 147 selected Python cases and 19 Node M4 protocol/smelt cases, including real `stick:+4` delta, log-to-plank-to-stick progression, and no machine step before a real schema-valid LLM call
+- Audit: `workspace/evals/m4_bm014_stick_goal_verifier_repair_audit.json`. It grants no BM-014 success or capability credit. Probe 51 remains unauthorized until this repair is committed/pushed and remote commit/tree identity is independently confirmed
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
