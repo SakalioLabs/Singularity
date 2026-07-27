@@ -31,6 +31,15 @@
   "required_bm013_eligible_success_count": 3,
   "remaining_bm013_eligible_success_count_before_probe": 1,
   "counts_toward_capability_before_independent_verification": false,
-  "consumed": false,
-  "next_authorization": false
+  "consumed": true,
+  "next_authorization": false,
+  "consumed_by_episode": "m4_episode_20260727_111149_e1794e58",
+  "consumed_session_id": "d84b0331-47c",
+  "consumed_level_name": "m4_episode_20260727_111149_e1794e58_bm013",
+  "consumed_at": "autonomous_start",
+  "consumed_at_utc": "2026-07-27T03:13:00.537985Z",
+  "consumed_monotonic_s": 872164.515,
+  "consumed_event_line": 2,
+  "consumed_evidence_dir": "logs/benchmarks/m4/m4_episode_20260727_111149_e1794e58",
+  "consumed_report_path": "workspace/evals/m4_probe50_report.json"
 }

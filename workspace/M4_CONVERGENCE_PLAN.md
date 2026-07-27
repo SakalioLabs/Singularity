@@ -4,13 +4,13 @@
 
 - Protocol: `m4-fixed-v1`
 - Protocol SHA-256: `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`
-- Current target: BM-013 Smelt iron ingot
-- Current-target eligible successes: 2/3
-- Completed targets: BM-011 Survive the first night and BM-012 Get 8 iron resources, both `repeat_verified` at 3/3
+- Current target: BM-014 Craft iron pickaxe, sequentially locked pending Probe 50 evidence push and an offline verifier repair
+- Current-target eligible successes: 0/3
+- Completed targets: BM-011 Survive the first night, BM-012 Get 8 iron resources, and BM-013 Smelt iron ingot, all `repeat_verified` at 3/3
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 45 live-validated the candidate-bound crafting-table repair and completed BM-012 in 256.391 seconds. Probe 46 independently replicated the full chain in 353.687 seconds, mined eight distinct machine-proven iron-ore sources, preserved health and hunger at 20, and passed all 74 eligibility checks with 246.313 seconds remaining. BM-012 is therefore `repeat_verified` at 3/3. BM-013 is the current gate at 2/3. Probe 47 remains retained ineligible failure evidence; Probes 48 and 49 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031 and 238.140 seconds. Probe 49 evidence is pushed at `fd2a022c`; Probe 50 has one parent-bound, zero-retry authorization that may run only after its separate authorization commit is pushed. BM-014 remains sequentially locked until BM-013 reaches 3/3.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 47 remains retained ineligible BM-013 failure evidence. Probes 48, 49, and 50 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031, 238.140, and 271.922 seconds. BM-013 is therefore `repeat_verified` at 3/3 after Probe 50 evidence is committed and pushed. BM-014 is the only remaining M4 target and stays locked until that push and a bounded offline repair for its `Ensure 2 sticks for crafting the iron pickaxe` verifier gap.
 
 ## Probe 44 Machine-Step Place Candidate Drift Gap
 
@@ -82,13 +82,22 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - Evidence: `workspace/evals/m4_probe49_report.json`, SHA-256 `db9d4d9465e369b9d905f7edf383e63748a9f76db293f8a6130fbcb7df602eaf`
 - Decision: counts as BM-013 success 2/3; evidence is committed and pushed at `fd2a022c`, and BM-014 remains locked
 
-## Probe 50 BM-013 Third-Success Authorization
+## Probe 50 Third Eligible BM-013 Success
 
-- Authorization: `workspace/evals/m4_probe50_authorization.json`, parent-bound to Probe 49 evidence commit `fd2a022c` / tree `8990d35e`
-- Controls: exactly one fresh BM-013 episode, zero retries at every layer, fixed runtime limits, credential preflight before Minecraft, skills off
-- Evidence binding: Probe 49 report SHA-256 `db9d4d9465e369b9d905f7edf383e63748a9f76db293f8a6130fbcb7df602eaf` and repair source SHA-256 `fa45629b629da452cae0f46d29dfde364b42583e0a2af5201bef6cc8fdda2824`
-- Starting count: BM-013 2/3 with one additional independently eligible success required; Probe 51 remains unauthorized and BM-014 remains locked
-- Run boundary: Probe 50 may start only after this separate authorization commit is pushed
+- Episode/session: `m4_episode_20260727_111149_e1794e58` / `d84b0331-47c`
+- Authorization: parent-bound commit `260914a3` consumed exactly once at `autonomous_start` line 2 / monotonic `872164.515`; zero retries, skills off, and Probe 51 remains unauthorized
+- Result: eligible BM-013 success, `terminal_task_verified`, `271.922s`, 74/74 checks; evidence sealed at `272.000s` with `28.000s` remaining
+- Progression: all nine goals completed in 59 cycles; the purpose-clause repair remained live, natural iron ore and coal were mined with the stone pickaxe, and the furnace was physically observed after a recovered backend block-update timeout
+- Terminal proof: smelt action line 874 made one attempt with zero retries, consumed `raw_iron:1` and `coal:1`, produced `iron_ingot:1`, settled output, emptied and closed the furnace, and terminal verification passed at line 878
+- Actions/lifecycle: 42/60 actions succeeded; 18 failures were recovered noise. All 120 observations retained health/hunger `20/20`, with zero deaths or respawns
+- Evidence: `workspace/evals/m4_probe50_report.json`, SHA-256 `fb53537d6a6eced512479425ccdc9ee8d48d99c572b875bf8d6d8b3fd59657fd`
+- Decision: counts as BM-013 success 3/3 and closes BM-013 as `repeat_verified` after this evidence commit is pushed; BM-014 remains locked
+
+## BM-014 Pre-Authorization Verifier Blocker
+
+- GoalGenerator currently emits `Ensure 2 sticks for crafting the iron pickaxe` after three iron ingots are available
+- GoalVerifier has no deterministic inventory-intent match for `ensure`, so even `stick >= 2` returns `unknown`; this would prevent the intermediate goal from closing after a successful stick craft
+- No BM-014 live authorization exists. After the Probe 50 evidence push, the exact stick-goal verifier boundary must be repaired and covered by positive, negative, purpose-clause, and Agent progression tests before a separate one-use authorization is created
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
