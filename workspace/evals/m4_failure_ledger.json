@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-27T03:56:01Z",
+  "generated_at": "2026-07-27T04:06:25Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -33,8 +33,8 @@
   "current_gate": {
     "hypothesis": "bm014_ensure_sticks_inventory_goal_verifier",
     "policy_id": "m4-inventory-purpose-clause-grounding-v1",
-    "status": "bm014_stick_goal_verifier_repair_offline_passing_pending_push",
-    "earliest_blocker": "repair_commit_not_pushed",
+    "status": "bm014_probe51_authorization_pending_push",
+    "earliest_blocker": "probe51_authorization_commit_not_pushed",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
@@ -1925,8 +1925,23 @@
     "bm014_agent_test_sha256": "af62cb0911ae519edbb55802ecda357be376d1419f3b833776bb33a4dc7989ce",
     "bm014_selected_python_pass_count": 147,
     "bm014_selected_node_case_pass_count": 19,
-    "bm014_repair_pending_push": true,
-    "bm014_locked": true
+    "bm014_repair_commit": "ee6f972aedc79777a703fc0b37419a260f42398b",
+    "bm014_repair_tree": "39b4c7198a4f204525b461935cdad7e6984ef2bd",
+    "bm014_repair_pending_push": false,
+    "bm014_probe_51_authorization_path": "workspace/evals/m4_probe51_authorization.json",
+    "bm014_probe_51_authorization_parent_commit": "ee6f972aedc79777a703fc0b37419a260f42398b",
+    "bm014_probe_51_authorization_tree": "39b4c7198a4f204525b461935cdad7e6984ef2bd",
+    "bm014_probe_51_authorization_policy_id": "m4-inventory-purpose-clause-grounding-v1",
+    "bm014_probe_51_authorization_one_use": true,
+    "bm014_probe_51_authorization_maximum_episode_count": 1,
+    "bm014_probe_51_authorization_maximum_retry_count": 0,
+    "bm014_probe_51_authorization_sha256": "337e83a1d7d7c8efe22c92b5a81a9acc230ecc508bf3b5d886e94ef224e50367",
+    "bm014_probe_51_prior_eligible_success_count": 0,
+    "bm014_probe_51_remaining_eligible_success_count_before_probe": 3,
+    "bm014_probe_51_authorized": true,
+    "bm014_probe_51_consumed": false,
+    "bm014_probe_52_authorized": false,
+    "bm014_locked": false
   },
   "entries": [
     {

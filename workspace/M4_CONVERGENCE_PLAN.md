@@ -4,13 +4,13 @@
 
 - Protocol: `m4-fixed-v1`
 - Protocol SHA-256: `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`
-- Current target: BM-014 Craft iron pickaxe, live-locked pending the offline verifier repair commit/push and a later separate one-use authorization commit/push
+- Current target: BM-014 Craft iron pickaxe; Probe 51 has one parent-bound authorization that remains unusable until this separate authorization commit is pushed
 - Current-target eligible successes: 0/3
 - Completed targets: BM-011 Survive the first night, BM-012 Get 8 iron resources, and BM-013 Smelt iron ingot, all `repeat_verified` at 3/3
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 47 remains retained ineligible BM-013 failure evidence. Probes 48, 49, and 50 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031, 238.140, and 271.922 seconds. Probe 50 evidence is pushed at `84b9817d` / tree `adf8399f`, so BM-013 is `repeat_verified` at 3/3. BM-014 is the only remaining M4 target. Its exact `Ensure 2 sticks for crafting the iron pickaxe` verifier gap is repaired and passing offline, but live execution stays locked until this repair is committed/pushed and a separate parent-bound one-use authorization is later committed/pushed.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 47 remains retained ineligible BM-013 failure evidence. Probes 48, 49, and 50 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031, 238.140, and 271.922 seconds. Probe 50 evidence is pushed at `84b9817d` / tree `adf8399f`, so BM-013 is `repeat_verified` at 3/3. BM-014 is the only remaining M4 target. Its exact verifier repair is pushed at `ee6f972a` / tree `39b4c719`. Probe 51 now has one separate parent-bound authorization for one fresh, zero-retry, skills-off episode; no Probe 52 or automatic retry is authorized.
 
 ## Probe 44 Machine-Step Place Candidate Drift Gap
 
@@ -99,7 +99,7 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - The bounded repair adds `ensure` only to the inventory-goal gate and the manual stick anchor. It does not change default verbs, other anchors, the goal title, Agent dispatch, the machine-step policy, the LLM gate, the frozen task contract, or the 300-second deadline
 - The exact goal now binds only `stick:2`; the iron-pickaxe purpose suffix remains non-binding, while an explicit `then craft an iron pickaxe` followup still binds both targets
 - Offline validation passes 147 selected Python cases and 19 Node M4 protocol/smelt cases, including real `stick:+4` delta, log-to-plank-to-stick progression, and no machine step before a real schema-valid LLM call
-- Audit: `workspace/evals/m4_bm014_stick_goal_verifier_repair_audit.json`. It grants no BM-014 success or capability credit. Probe 51 remains unauthorized until this repair is committed/pushed and remote commit/tree identity is independently confirmed
+- Audit: `workspace/evals/m4_bm014_stick_goal_verifier_repair_audit.json`. It grants no BM-014 success or capability credit. The repair is pushed at `ee6f972a`, tree `39b4c719`; `workspace/evals/m4_probe51_authorization.json` authorizes exactly one fresh BM-014 episode after its own separate commit is pushed. Probe 52 remains unauthorized
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
