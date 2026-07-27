@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-27T01:23:57Z",
+  "generated_at": "2026-07-27T01:35:42Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -25,9 +25,9 @@
   ],
   "live_episode_count_under_current_protocol": 20,
   "current_gate": {
-    "hypothesis": "bm013_inventory_purpose_clause_grounding",
+    "hypothesis": "bm013_probe48_inventory_purpose_clause_live_validation",
     "policy_id": "m4-inventory-purpose-clause-grounding-v1",
-    "status": "bm013_probe47_ineligible_repair_validated_pending_push",
+    "status": "bm013_probe48_authorized_pending_run",
     "earliest_blocker": "m4_bm013_goal_verifier_purpose_clause_inventory_binding_gap",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -1705,7 +1705,18 @@
     "bm013_inventory_purpose_clause_repair_node_suite_count": 2,
     "bm013_inventory_purpose_clause_repair_offline_gate_passed": true,
     "bm013_capability_evidence_sha256_after_probe_47": "2730e347d1b66dce4b5f5d35be5127bb6e67de6a3af11245ef3b4e07c6377085",
-    "bm013_probe_48_authorized": false
+    "bm013_probe_47_evidence_repair_commit": "4998629492241710972061b5a58ac30bae4575a5",
+    "bm013_probe_47_evidence_repair_tree": "dfcf7103eb8c160f730075f07a939a727e11989e",
+    "bm013_probe_48_authorization_path": "workspace/evals/m4_probe48_authorization.json",
+    "bm013_probe_48_authorization_parent_commit": "4998629492241710972061b5a58ac30bae4575a5",
+    "bm013_probe_48_authorization_tree": "dfcf7103eb8c160f730075f07a939a727e11989e",
+    "bm013_probe_48_authorization_policy_id": "m4-inventory-purpose-clause-grounding-v1",
+    "bm013_probe_48_authorization_one_use": true,
+    "bm013_probe_48_authorization_maximum_episode_count": 1,
+    "bm013_probe_48_authorization_maximum_retry_count": 0,
+    "bm013_probe_48_authorization_sha256": "693db6b27ad98e47fad9144f0a982c4db576867698e2e2fa2baf799f0cc65dc5",
+    "bm013_probe_48_authorized": true,
+    "bm013_probe_48_consumed": false
   },
   "entries": [
     {
