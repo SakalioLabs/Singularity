@@ -10,7 +10,7 @@
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 45 live-validated the candidate-bound crafting-table repair and completed BM-012 in 256.391 seconds. Probe 46 independently replicated the full chain in 353.687 seconds, mined eight distinct machine-proven iron-ore sources, preserved health and hunger at 20, and passed all 74 eligibility checks with 246.313 seconds remaining. BM-012 is therefore `repeat_verified` at 3/3. BM-013 is the current gate at 1/3. Probe 47 remains retained ineligible failure evidence; Probe 48 live-validated `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031 seconds. Probe 49 is not authorized until Probe 48 evidence is committed and pushed. BM-014 remains sequentially locked until BM-013 reaches 3/3.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 45 live-validated the candidate-bound crafting-table repair and completed BM-012 in 256.391 seconds. Probe 46 independently replicated the full chain in 353.687 seconds, mined eight distinct machine-proven iron-ore sources, preserved health and hunger at 20, and passed all 74 eligibility checks with 246.313 seconds remaining. BM-012 is therefore `repeat_verified` at 3/3. BM-013 is the current gate at 1/3. Probe 47 remains retained ineligible failure evidence; Probe 48 live-validated `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031 seconds. Probe 48 evidence is pushed at `409c65da`, and Probe 49 has one parent-bound, zero-retry authorization that may run only after its separate authorization commit is pushed. BM-014 remains sequentially locked until BM-013 reaches 3/3.
 
 ## Probe 44 Machine-Step Place Candidate Drift Gap
 
@@ -68,7 +68,15 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - Live repair proof: the wooden-pickaxe verification at line 216 and the eleven-cobblestone verification at line 382 emitted `policy:m4-inventory-purpose-clause-grounding-v1`; the Probe 47 false binding did not recur
 - Terminal proof: successful `smelt` action line 1041 consumed `raw_iron:1` and `coal:1`, produced `iron_ingot:1`, and terminal verification passed
 - Lifecycle: health/hunger `20/20`, bot connected, zero deaths and respawns, uninterrupted survival
-- Decision: counts as BM-013 success 1/3; Probe 49 is not authorized before this evidence is committed and pushed, and BM-014 remains locked
+- Decision: counts as BM-013 success 1/3; evidence is committed and pushed at `409c65da`, and BM-014 remains locked
+
+## Probe 49 BM-013 Second-Success Authorization
+
+- Authorization: `workspace/evals/m4_probe49_authorization.json`, parent-bound to Probe 48 evidence commit `409c65da` / tree `bee1a4ef`
+- Controls: exactly one fresh BM-013 episode, zero retries at every layer, fixed runtime limits, credential preflight before Minecraft, skills off
+- Evidence binding: Probe 48 report SHA-256 `650a7709425dd448708fe406cb8a52de5b3518695cfca471a178d0d7b372d572` and repair source SHA-256 `fa45629b629da452cae0f46d29dfde364b42583e0a2af5201bef6cc8fdda2824`
+- Starting count: BM-013 1/3 with two additional independently eligible successes required; Probe 50 remains unauthorized and BM-014 remains locked
+- Run boundary: Probe 49 may start only after this separate authorization commit is pushed
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 

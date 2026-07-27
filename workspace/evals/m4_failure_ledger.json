@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-27T01:58:22Z",
+  "generated_at": "2026-07-27T02:19:01Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
   "superseded_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -25,9 +25,9 @@
   ],
   "live_episode_count_under_current_protocol": 21,
   "current_gate": {
-    "hypothesis": "bm013_probe48_eligible_success_retention",
+    "hypothesis": "bm013_probe49_repeat_success",
     "policy_id": "m4-inventory-purpose-clause-grounding-v1",
-    "status": "bm013_probe48_eligible_evidence_pending_push",
+    "status": "bm013_probe49_authorized_pending_run",
     "earliest_blocker": "",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
@@ -1755,7 +1755,22 @@
     "bm013_probe_48_death_count": 0,
     "bm013_probe_48_respawn_count": 0,
     "bm013_capability_evidence_sha256_after_probe_48": "40af0e020d4adca76dac3aa2588e5daee98b326790c1a71e7aaa4f383d2c636a",
-    "bm013_probe_49_authorized": false
+    "bm013_probe_48_evidence_commit": "409c65dac5fe4a6dbb5c7629edf310e850d552e2",
+    "bm013_probe_48_evidence_tree": "bee1a4ef1d78f8f81900da11c891d1ac5a09a062",
+    "bm013_probe_49_authorization_path": "workspace/evals/m4_probe49_authorization.json",
+    "bm013_probe_49_authorization_parent_commit": "409c65dac5fe4a6dbb5c7629edf310e850d552e2",
+    "bm013_probe_49_authorization_tree": "bee1a4ef1d78f8f81900da11c891d1ac5a09a062",
+    "bm013_probe_49_authorization_policy_id": "m4-inventory-purpose-clause-grounding-v1",
+    "bm013_probe_49_authorization_one_use": true,
+    "bm013_probe_49_authorization_maximum_episode_count": 1,
+    "bm013_probe_49_authorization_maximum_retry_count": 0,
+    "bm013_probe_49_authorization_sha256": "060b4caca62d7c4803511ae5ea9f029c016634a20d014bbbc6b5c9241c63b53d",
+    "bm013_probe_49_prior_eligible_success_count": 1,
+    "bm013_probe_49_remaining_eligible_success_count_before_probe": 2,
+    "bm013_probe_49_authorized": true,
+    "bm013_probe_49_consumed": false,
+    "bm013_probe_50_authorized": false,
+    "bm014_locked": true
   },
   "entries": [
     {
