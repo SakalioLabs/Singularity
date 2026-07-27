@@ -698,6 +698,25 @@ def test_repository_capability_documents_match_canonical_report():
     assert audit["consistent"], audit["errors"]
     assert audit["expected"]["M1"] == "repeat_verified"
     assert audit["expected"]["M3"] == "repeat_verified"
+    assert audit["expected"]["M4"] == "live_observed"
+    m4 = next(phase for phase in report["phases"] if phase["id"] == "M4")
+    bm014 = next(
+        benchmark
+        for benchmark in m4["benchmarks"]
+        if benchmark["task_id"] == "BM-014"
+    )
+    assert m4["status"] == "live_observed"
+    assert m4["completion_claim_allowed"] is False
+    assert m4["live_observed_benchmark_count"] == 4
+    assert m4["repeat_verified_benchmark_count"] == 3
+    assert m4["missing_evidence"] == ["BM-014:needs_2_more_successes"]
+    assert bm014["status"] == "live_observed"
+    assert bm014["attempts"] == 2
+    assert bm014["successes"] == 1
+    assert bm014["failures"] == 1
+    assert bm014["repeats_required"] == 3
+    assert report["summary"]["live_observed_phase_count"] == 1
+    assert report["summary"]["failing_phase_count"] == 2
     assert report["authority"] == {
         "canonical": True,
         "repo_relative_path": "workspace/evals/capability_evidence_current.json",

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,14 +15,33 @@ AUDIT_PATH = (
     / "evals"
     / "m4_bm014_furnace_place_local_snapshot_repair_audit.json"
 )
+REPAIR_COMMIT = "0d97e4314c454fa8408b6ad56d8aff263f07d28e"
 
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
 def _json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _git_blob(commit: str, path: str) -> bytes:
+    return subprocess.run(
+        ["git", "show", f"{commit}:{Path(path).as_posix()}"],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ).stdout
+
+
+def _git_json(commit: str, path: str) -> dict:
+    return json.loads(_git_blob(commit, path).decode("utf-8"))
 
 
 def _audit() -> dict:
@@ -113,12 +133,15 @@ def test_furnace_place_repair_audit_binds_probe51_consumed_auth_and_sources():
     bindings = audit["bindings"]
     report_path = ROOT / bindings["probe_51_report_path"]
     authorization_path = ROOT / bindings["probe_51_authorization_path"]
-    capability_path = ROOT / bindings["capability_evidence_path"]
     assert bindings["probe_51_report_sha256"] == _sha256(report_path)
     assert bindings["probe_51_consumed_authorization_sha256"] == _sha256(
         authorization_path
     )
-    assert bindings["capability_evidence_sha256"] == _sha256(capability_path)
+    capability_blob = _git_blob(
+        REPAIR_COMMIT,
+        bindings["capability_evidence_path"],
+    )
+    assert bindings["capability_evidence_sha256"] == _sha256_bytes(capability_blob)
     for key, relative_path in audit["source_paths"].items():
         assert audit["source_sha256"][key] == _sha256(ROOT / relative_path)
 
@@ -310,7 +333,10 @@ def test_furnace_place_repair_audit_is_offline_zero_of_three_and_probe52_locked(
     authorization = _json(
         ROOT / audit["bindings"]["probe_51_authorization_path"]
     )
-    capability = _json(ROOT / audit["bindings"]["capability_evidence_path"])
+    capability = _git_json(
+        REPAIR_COMMIT,
+        audit["bindings"]["capability_evidence_path"],
+    )
     bm014 = _bm014(capability)
     m4 = _m4_phase(capability)
     decision = audit["decision"]

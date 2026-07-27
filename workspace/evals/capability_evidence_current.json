@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-27T05:03:38.167381+00:00",
+  "generated_at": "2026-07-27T07:51:10.936211+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -92,6 +92,7 @@
       "logs/benchmarks/m4/m4_episode_20260727_102938_d9c5ed94/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260727_111149_e1794e58/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/eligibility.json",
       "logs/benchmarks/m1_benchmark_20260710_174239.json",
       "logs/benchmarks/m1_benchmark_20260710_174806.json",
       "logs/benchmarks/m1_benchmark_20260710_175231.json",
@@ -4773,6 +4774,48 @@
       ]
     },
     {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/eligibility.json",
+      "session_id": "08c52d82-068",
+      "session_ids": [
+        "08c52d82-068"
+      ],
+      "content_sha256": "828027ee2832de5d6d4b451958b00ff807edcab0f30c77c5186533dd08e95b19",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/session.json",
+      "session_id": "08c52d82-068",
+      "session_ids": [
+        "08c52d82-068"
+      ],
+      "content_sha256": "039a880177c414ecb8aa4a8d4ad40fb4f951ef474240d27fbcd93f019c5b7a51",
+      "protocol_hash": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+      "protocol_hashes": [
+        "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
       "repo_relative_path": "logs/benchmarks/visual_action_ablation_current.json",
       "session_id": "not_applicable",
       "session_ids": [],
@@ -6578,8 +6621,8 @@
     "contradicted_completion_count": 0,
     "unsupported_completion_count": 0,
     "repeat_verified_phase_count": 3,
-    "live_observed_phase_count": 0,
-    "failing_phase_count": 3,
+    "live_observed_phase_count": 1,
+    "failing_phase_count": 2,
     "system_complete": false
   },
   "contradicted_phases": [],
@@ -7770,12 +7813,12 @@
       "id": "M4",
       "name": "Autonomous Survival",
       "evidence_kind": "benchmark",
-      "status": "failing",
+      "status": "live_observed",
       "completion_claim_allowed": false,
       "declared": {
         "name": "Autonomous Survival",
-        "status": "Failing (failing)",
-        "progress": "BM-011, BM-012, and BM-013 repeatverified 3/3; BM-014 failing 0/3 after Probe 51, bounded placement repair passing offline, Probe 52 locked"
+        "status": "Live observed (liveobserved)",
+        "progress": "BM-011, BM-012, and BM-013 repeatverified 3/3; BM-014 liveobserved 1/3 after eligible Probe 52, Probe 53 locked pending evidence push/readback"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -7795,7 +7838,7 @@
         }
       ],
       "required_benchmark_count": 4,
-      "live_observed_benchmark_count": 3,
+      "live_observed_benchmark_count": 4,
       "repeat_verified_benchmark_count": 3,
       "benchmarks": [
         {
@@ -7899,15 +7942,16 @@
         },
         {
           "task_id": "BM-014",
-          "status": "failing",
-          "attempts": 1,
-          "successes": 0,
+          "status": "live_observed",
+          "attempts": 2,
+          "successes": 1,
           "failures": 1,
           "ineligible_successes": 0,
           "ineligibility_reasons": [],
           "repeats_required": 3,
           "evidence_refs": [
-            "270c762e-bb7:logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/session.json"
+            "270c762e-bb7:logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/session.json",
+            "08c52d82-068:logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/session.json"
           ]
         }
       ],
@@ -7916,7 +7960,7 @@
       "required_live_execution_count": 0,
       "live_observed_execution_count": 0,
       "missing_evidence": [
-        "BM-014:needs_3_more_successes"
+        "BM-014:needs_2_more_successes"
       ]
     },
     {
@@ -9466,7 +9510,7 @@
   ],
   "errors": [],
   "recommendations": [
-    "diagnose_and_rerun_m4_benchmarks",
+    "repeat_m4_benchmarks_to_policy_minimum",
     "diagnose_and_rerun_m5_live_evidence",
     "diagnose_and_rerun_m6_live_evidence",
     "run_m7_benchmarks"
@@ -9483,7 +9527,7 @@
       "M1": "repeat_verified",
       "M2": "repeat_verified",
       "M3": "repeat_verified",
-      "M4": "failing",
+      "M4": "live_observed",
       "M5": "failing",
       "M6": "failing",
       "M7": "not_run"
@@ -9494,7 +9538,7 @@
         "M1": "repeat_verified",
         "M2": "repeat_verified",
         "M3": "repeat_verified",
-        "M4": "failing",
+        "M4": "live_observed",
         "M5": "failing",
         "M6": "failing",
         "M7": "not_run"
@@ -9504,7 +9548,7 @@
         "M1": "repeat_verified",
         "M2": "repeat_verified",
         "M3": "repeat_verified",
-        "M4": "failing",
+        "M4": "live_observed",
         "M5": "failing",
         "M6": "failing",
         "M7": "not_run"
@@ -9514,7 +9558,7 @@
         "M1": "repeat_verified",
         "M2": "repeat_verified",
         "M3": "repeat_verified",
-        "M4": "failing",
+        "M4": "live_observed",
         "M5": "failing",
         "M6": "failing",
         "M7": "not_run"

@@ -1,0 +1,370 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-27T07:51:11Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-014",
+  "probe_number": 52,
+  "episode_id": "m4_episode_20260727_153112_f28d04d6",
+  "session_id": "08c52d82-068",
+  "level_name": "m4_episode_20260727_153112_f28d04d6_bm014",
+  "authorization": {
+    "path": "workspace/evals/m4_probe52_authorization.json",
+    "commit": "8e2c04a203e51b5152345be34d10b858ae7aa83f",
+    "tree": "63a6d0fb0600d6bb5ad1b9812134e65287265304",
+    "gate_parent_commit": "0d97e4314c454fa8408b6ad56d8aff263f07d28e",
+    "gate_tree": "cae2c41d7d1a9cd8e410f550715c9bb4efe39ed9",
+    "policy_id": "m4-bm013-bm014-furnace-place-local-snapshot-v1",
+    "prior_probe_report_path": "workspace/evals/m4_probe51_report.json",
+    "prior_probe_report_sha256": "591c894e7019cd55bbc829fb6adb5e0484d62f318da9ea848d4e86a160dde9ea",
+    "repair_audit_path": "workspace/evals/m4_bm014_furnace_place_local_snapshot_repair_audit.json",
+    "repair_audit_sha256": "aa3c6871ff79853051880fcdf89f608ad836142dc4f4f1783c19aa6d2a8a426a",
+    "issued_sha256": "07819c2758a5c78dd942f50bb8a9406241e4b36010338d4b27bceb9ff8d8046c",
+    "issued_artifact_consumed_field": false,
+    "consumed_sha256": "1631165ef68fd58915c0f05e56d62df8a8e0b5281006d1444d7c3d15ff9dee61",
+    "consumed_artifact_consumed_field": true,
+    "one_use": true,
+    "maximum_episode_count": 1,
+    "maximum_retry_count": 0,
+    "runtime_consumption": {
+      "consumed": true,
+      "consumed_at": "autonomous_start",
+      "consumed_at_utc": "2026-07-27T07:33:22.751455Z",
+      "consumed_monotonic_s": 887786.718,
+      "consumed_event_line": 2,
+      "consumed_episode_id": "m4_episode_20260727_153112_f28d04d6",
+      "consumed_session_id": "08c52d82-068",
+      "consumed_level_name": "m4_episode_20260727_153112_f28d04d6_bm014",
+      "evidence_path": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/session_08c52d82-068.jsonl"
+    },
+    "probe_53_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_id": "m4-bm014-iron-pickaxe-contract-v1",
+    "task_contract_sha256": "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f",
+    "model": "grok-4.5",
+    "max_duration_s": 300,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "max_total_cycles": 320,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_attempt_count": 1,
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/session_08c52d82-068.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/session_08c52d82-068_summary.json",
+    "session_json": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/session.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260727_153112_f28d04d6/reset.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "618ebd0d2d05db89ff125810cbd2eb26e48185bd919ec3832b26d918d0b074bb",
+    "preparation": "d5fc034edd12be12972727181d8298814d6fd5710f6cf28abdf98553e3b02f77",
+    "result": "17409caa5391274ac3f8bd852cb45e76246baf325e043707b32366e00bbd674a",
+    "eligibility": "828027ee2832de5d6d4b451958b00ff807edcab0f30c77c5186533dd08e95b19",
+    "manifest": "659b2b663d43e686769bfd86af8c315136e866d0b1e4984e07f1b00de5900401",
+    "preflight": "64d5de29caf0e81fb2e6d7b257995220f20076becbd0585f57da88e963af3f74",
+    "session_summary": "97e49b08a85a7a0bc2ddf9c4f442073c76d0f29554f716299de89b34a183921b",
+    "session_json": "039a880177c414ecb8aa4a8d4ad40fb4f951ef474240d27fbcd93f019c5b7a51",
+    "protocol_status": "763dcb4505e897da86367cd8e49291dbb6a073dfceae12d27ce7f060499ee883",
+    "reset": "8a24698c65e65e702480b2eae38a7e5ff0dc037fcb33ec61b737ea2b767b16d2"
+  },
+  "preparation": {
+    "readiness": "eligible",
+    "decision": "count_bm014_success",
+    "progress_gate_passed": true,
+    "counts_toward_task_success": true,
+    "evidence_eligible": true,
+    "eligibility_issues": [],
+    "autonomous_goal_count": 11,
+    "planner_provider_controls_passed": true,
+    "action_count": 67,
+    "successful_action_count": 46,
+    "successful_output_source_action_count": 1,
+    "output_source_action_event_index": 991,
+    "terminal_target_passed": true,
+    "positive_inventory_delta_passed": true,
+    "time_remaining_s": 13.75
+  },
+  "episode_result": {
+    "completed": true,
+    "termination_reason": "terminal_task_verified",
+    "elapsed_s": 286.188,
+    "evidence_seal_duration_s": 286.25,
+    "deadline_eligible": true,
+    "deadline_margin_s": 13.812,
+    "evidence_seal_deadline_margin_s": 13.75,
+    "no_post_deadline_execution": true,
+    "goals_completed": 11,
+    "goals_failed": 0,
+    "goals_interrupted": 0,
+    "total_cycles": 67,
+    "per_goal_cycles": [
+      7,
+      2,
+      5,
+      13,
+      14,
+      5,
+      2,
+      14,
+      3,
+      1,
+      1
+    ],
+    "maximum_goal_cycles": 14,
+    "planner_call_count": 1,
+    "real_planner_call_count": 1,
+    "schema_valid_real_planner_call_count": 1,
+    "planner_attempt_count": 1,
+    "planner_retry_count": 0,
+    "planner_call_id": "llm-7a06884c34b347de",
+    "planner_duration_ms": 19702,
+    "planner_total_token_usage": 4427,
+    "planner_prompt_token_usage": 3707,
+    "planner_completion_token_usage": 720,
+    "machine_step_plan_count": 66,
+    "action_count": 67,
+    "successful_action_count": 46,
+    "failed_action_count": 21,
+    "action_verifier_accept_count": 67,
+    "action_verifier_reject_count": 0,
+    "action_success_by_type": {
+      "move_to": {
+        "attempted": 3,
+        "successful": 3
+      },
+      "dig": {
+        "attempted": 21,
+        "successful": 21
+      },
+      "craft": {
+        "attempted": 14,
+        "successful": 14
+      },
+      "place": {
+        "attempted": 25,
+        "successful": 4
+      },
+      "equip": {
+        "attempted": 3,
+        "successful": 3
+      },
+      "smelt": {
+        "attempted": 1,
+        "successful": 1
+      }
+    },
+    "session_event_count": 1002,
+    "session_json_event_count": 1001,
+    "session_json_matches_jsonl_prefix": true,
+    "jsonl_tail_event_type": "memory_manage",
+    "terminal_inventory": {
+      "stick": 2,
+      "oak_log": 1,
+      "oak_planks": 1,
+      "raw_iron": 1,
+      "iron_pickaxe": 1,
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "dirt": 5,
+      "clay_ball": 16,
+      "cobblestone": 57
+    }
+  },
+  "survival_evidence": {
+    "observation_count": 135,
+    "minimum_health": 20,
+    "minimum_food": 20,
+    "maximum_death_count": 0,
+    "maximum_respawn_count": 0,
+    "uninterrupted_survival": true,
+    "terminal_bot_connected": true
+  },
+  "behavioral_progression": {
+    "all_eleven_goals_completed": true,
+    "goal_verification_lines": [
+      122,
+      154,
+      224,
+      390,
+      598,
+      668,
+      701,
+      908,
+      955,
+      975,
+      995
+    ],
+    "furnace_craft_action_line": 905,
+    "first_furnace_place_action_line": 925,
+    "successful_furnace_place_action_line": 940,
+    "smelt_action_line": 952,
+    "smelt_goal_verification_line": 955,
+    "stick_goal_line": 959,
+    "stick_craft_action_line": 972,
+    "stick_goal_verification_line": 975,
+    "iron_pickaxe_goal_line": 979,
+    "iron_pickaxe_craft_action_line": 992,
+    "iron_pickaxe_goal_verification_line": 995,
+    "terminal_task_verification_line": 996,
+    "autonomous_end_line": 1000,
+    "furnace_local_snapshot_policy_live_exercised": true,
+    "stick_goal_verifier_repair_live_exercised": true
+  },
+  "furnace_placement_provenance": {
+    "policy_id": "m4-bm013-bm014-furnace-place-local-snapshot-v1",
+    "place_attempt_count": 2,
+    "successful_place_count": 1,
+    "occupied_target_failure_count": 0,
+    "first_action_line": 925,
+    "first_reference_position": {
+      "x": 118,
+      "y": 122,
+      "z": -49
+    },
+    "first_target_position": {
+      "x": 118,
+      "y": 123,
+      "z": -49
+    },
+    "first_target_evidence": "target:air",
+    "first_result": "block_update_timeout",
+    "successful_action_line": 940,
+    "successful_reference_position": {
+      "x": 118,
+      "y": 122,
+      "z": -51
+    },
+    "successful_target_position": {
+      "x": 118,
+      "y": 123,
+      "z": -51
+    },
+    "successful_target_evidence": "target:air",
+    "selected_target_observed_as_furnace_after_action": true
+  },
+  "smelting_provenance": {
+    "machine_step_policy_id": "m4-bm013-bm014-toolchain-machine-step-plan-v1",
+    "llm_gate_policy_id": "m4-bm013-bm014-real-schema-valid-llm-gate-v1",
+    "qualifying_llm_call_id": "llm-7a06884c34b347de",
+    "action_line": 952,
+    "action_type": "smelt",
+    "backend": "mineflayer",
+    "backend_command": "smelt",
+    "success": true,
+    "smelt_attempts": 1,
+    "smelt_retry_count": 0,
+    "automatic_retry": false,
+    "furnace_position": {
+      "x": 118,
+      "y": 123,
+      "z": -51
+    },
+    "input_item": "raw_iron",
+    "input_consumed": 3,
+    "fuel_item": "coal",
+    "fuel_consumed": 1,
+    "output_item": "iron_ingot",
+    "output_delta": 3,
+    "inventory_signed_delta": {
+      "coal": -1,
+      "furnace": -1,
+      "raw_iron": -3,
+      "iron_ingot": 3
+    },
+    "output_collected_count": 3,
+    "output_inventory_increase": 3,
+    "furnace_slots_empty": true,
+    "output_settled": true,
+    "furnace_closed": true,
+    "duration_ms": 30297,
+    "action_started_monotonic": 888037.781,
+    "action_finished_monotonic": 888068.078,
+    "action_deadline_monotonic": 888086.718,
+    "accepted_within_action_deadline": true,
+    "accepted_within_episode_deadline": true
+  },
+  "iron_pickaxe_provenance": {
+    "action_line": 992,
+    "output_provenance_event_index": 991,
+    "action_type": "craft",
+    "backend": "mineflayer",
+    "success": true,
+    "required_ingredients": {
+      "iron_ingot": 3,
+      "stick": 2
+    },
+    "inventory_signed_delta": {
+      "iron_ingot": -3,
+      "stick": -2,
+      "iron_pickaxe": 1
+    },
+    "output_delta": 1,
+    "terminal_verifier_id": "m4-crafted-item-inventory-verifier-v1",
+    "terminal_observed_count": 1
+  },
+  "recovered_noise": {
+    "failed_action_count": 21,
+    "failed_action_types": {
+      "place": 21
+    },
+    "crafting_table_occupied_stone_place_failure_count": 20,
+    "furnace_block_update_timeout_count": 1,
+    "furnace_timeout_line": 925,
+    "terminal_success_despite_recovered_failures": true,
+    "eligibility_defect": false,
+    "session_error_count": 0
+  },
+  "skill_attribution": {
+    "skill_execution_mode": "off",
+    "selected_count": 0,
+    "executed_count": 0,
+    "successful_action_count": 0,
+    "failed_action_count": 0,
+    "completion_count": 0,
+    "fallback_count": 0,
+    "vision_intervention_count": 0,
+    "multi_agent_intervention_count": 0
+  },
+  "eligibility": {
+    "eligible": true,
+    "success": true,
+    "progress_gate_passed": true,
+    "counts_toward_bm014_success": true,
+    "counts_toward_capability": false,
+    "check_count": 74,
+    "pass_count": 74,
+    "issue_count": 0,
+    "issues": [],
+    "independent_recomputation_exact_match": true
+  },
+  "decision": {
+    "counts_toward_bm014_success": true,
+    "counts_toward_capability": false,
+    "bm014_attempt_count_before": 1,
+    "bm014_attempt_count_after": 2,
+    "bm014_failure_count_before": 1,
+    "bm014_failure_count_after": 1,
+    "bm014_success_count_before": 0,
+    "bm014_success_count_after": 1,
+    "required_success_count": 3,
+    "remaining_success_count": 2,
+    "bm014_repeat_verified_after_probe": false,
+    "bm014_status_after": "live_observed",
+    "m4_status_after": "live_observed",
+    "next_live_probe_locked_until_evidence_commit": true,
+    "probe_53_authorized": false
+  }
+}
