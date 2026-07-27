@@ -1,0 +1,121 @@
+{
+  "type": "m4_live_probe_authorization",
+  "schema_version": 1,
+  "generated_at": "2026-07-27T11:54:42Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_contract_id": "m4-bm014-iron-pickaxe-contract-v1",
+  "task_contract_sha256": "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f",
+  "task_id": "BM-014",
+  "probe_number": 54,
+  "gate_parent_commit": "cf888555f080bd82b6a893c50494ca05b38a1688",
+  "gate_tree": "a711e9962f0153208f565d95aaf473caf2ece22d",
+  "policy_id": "m4-bm013-bm014-crafting-table-place-local-snapshot-v1",
+  "prior_probe_report_path": "workspace/evals/m4_probe53_report.json",
+  "prior_probe_report_sha256": "3206e56ef7b6fd1eac839619dc30bdfacac09de34f5524cac9d76a0c94ceb918",
+  "prior_probe_report_test_path": "tests/test_m4_probe53_report.py",
+  "prior_probe_report_test_sha256": "ffac15566b2aec9d283c3b9ef4d486089c3d56c07ba39559a7a517c5ebb58114",
+  "prior_probe_episode_id": "m4_episode_20260727_165036_f689d87b",
+  "prior_probe_session_id": "c44dd8a6-38f",
+  "prior_probe_level_name": "m4_episode_20260727_165036_f689d87b_bm014",
+  "prior_probe_consumed_authorization_path": "workspace/evals/m4_probe53_authorization.json",
+  "prior_probe_consumed_authorization_sha256": "dcb89d1a31d359e9dad30247cbb3f082e717b0bd802e371d940c2c79f205ceae",
+  "prior_probe_consumed_authorization_test_path": "tests/test_m4_probe53_authorization.py",
+  "prior_probe_consumed_authorization_test_sha256": "e30814b0e1e67b8a82254cb7633f679f62ce58bed1a50fb560276b44b4680dcc",
+  "repair_audit_path": "workspace/evals/m4_probe53_crafting_table_place_local_snapshot_repair_audit.json",
+  "repair_audit_sha256": "a9bc0287b5ad24fa810c5f2c653d836c7baa3b7406718aa76d29b20f84416d96",
+  "repair_audit_test_path": "tests/test_m4_probe53_crafting_table_place_local_snapshot_repair_audit.py",
+  "repair_audit_test_sha256": "e9969d5b5252805e56ea27db70adb57801c23c26327a11121964f792961a4a92",
+  "repair_source_paths": {
+    "agent": "src/singularity/core/agent.py",
+    "action_verifier": "src/singularity/action/verifier.py",
+    "agent_tests": "tests/test_m4_bm013_bm014_agent.py"
+  },
+  "repair_source_sha256": {
+    "agent": "1d30d5375c3759e353b3e7ee612d6137a317c047318f674717e443cbe906e98a",
+    "action_verifier": "5be00a9ae6d550560bbdf9214ed38bdf28dc55aa5d556a9d522893cc3b05e9ea",
+    "agent_tests": "7b9204a4a04ca917c8b7de796a98cbedc2c97cc7ade3e85c0df5c30f204ba0d0"
+  },
+  "repair_validation": {
+    "focused_python_pass_count": 21,
+    "independent_review_pass_count": 55,
+    "full_m4_python_pass_count": 276,
+    "historical_binding_regression_pass_count": 46,
+    "complete_snapshot_required": true,
+    "exact_reference_target_pair_required": true,
+    "snapshot_and_current_player_collision_union_required": true,
+    "full_think_fallback_suppressed": true,
+    "bm012_control_unchanged": true,
+    "furnace_policy_unchanged": true
+  },
+  "capability_evidence_path": "workspace/evals/capability_evidence_current.json",
+  "capability_evidence_sha256": "f224aa7362d60360b757064b1a2c0779516a7b7fa6ad52ae93ca32ed4a97d1f7",
+  "failure_ledger_path": "workspace/evals/m4_failure_ledger.json",
+  "failure_ledger_sha256": "3955f173824e947db318531c814f091651e7c73a209e65a7febf475108ed7af9",
+  "portability_audit_path": "workspace/evals/m4_clean_checkout_evidence_portability_audit.json",
+  "portability_audit_sha256": "4c8a9af6d5beb6e2885deb032e6e891859466d1dfcde73acf23cd7bc7e9a417f",
+  "portability_audit_test_path": "tests/test_m4_clean_checkout_evidence_portability_audit.py",
+  "portability_audit_test_sha256": "3d8256f5de9e39674dce41284069d53c04b4284e0b58255be1ac365dad35a282",
+  "portability_archives": [
+    {
+      "probe_number": 25,
+      "episode_id": "m4_episode_20260726_115303_5694249f",
+      "path": "workspace/evals/m4_raw_archives/m4_episode_20260726_115303_5694249f.tar.gz",
+      "sha256": "f4a2550f10cc927c4e1fe7caf809a1b2a27d18240979ba0a8c6682c71f69f298"
+    },
+    {
+      "probe_number": 26,
+      "episode_id": "m4_episode_20260726_120631_3bec6052",
+      "path": "workspace/evals/m4_raw_archives/m4_episode_20260726_120631_3bec6052.tar.gz",
+      "sha256": "f6b60f2c6a7271aa83d8f375e387b856ab8f81349f2eabee071a3f8a534e3885"
+    },
+    {
+      "probe_number": 27,
+      "episode_id": "m4_episode_20260726_125337_3b868472",
+      "path": "workspace/evals/m4_raw_archives/m4_episode_20260726_125337_3b868472.tar.gz",
+      "sha256": "fb178529d492041c9c330e80e7044d2434141ffcc08338b6b559e73bfdd397ac"
+    },
+    {
+      "probe_number": 28,
+      "episode_id": "m4_episode_20260726_132127_03a86405",
+      "path": "workspace/evals/m4_raw_archives/m4_episode_20260726_132127_03a86405.tar.gz",
+      "sha256": "b37f2fc86138eafce94d392abdd9e5250e02ab25c1a32f7988d0eae8ab38ee45"
+    }
+  ],
+  "gate_remote_readback": {
+    "commit_parent_verified": true,
+    "tree_verified": true,
+    "expected_blob_count": 19,
+    "blob_mismatch_count": 0
+  },
+  "gate_clean_validation": {
+    "m4_python_pass_count": 279,
+    "m4_python_fail_count": 0,
+    "capability_action_python_pass_count": 38,
+    "capability_action_python_fail_count": 0
+  },
+  "authorization_basis": "explicit_user_goal_to_continue_m4_through_bm014_after_probe53_failure_evidence_crafting_table_repair_and_evidence_portability_remediation_were_committed_pushed_read_back_and_clean_checkout_validated",
+  "authorized": true,
+  "one_use": true,
+  "maximum_episode_count": 1,
+  "maximum_retry_count": 0,
+  "fresh_level_required": true,
+  "fixed_runtime_limits_required": true,
+  "credential_provider_preflight_required": true,
+  "credential_provider_preflight_before_minecraft": true,
+  "client_max_retries": 0,
+  "proxy_max_retries": 0,
+  "skill_execution_mode": "off",
+  "prior_bm014_attempt_count": 3,
+  "prior_bm014_failure_count": 2,
+  "prior_bm014_eligible_success_count": 1,
+  "required_bm014_eligible_success_count": 3,
+  "remaining_bm014_eligible_success_count_before_probe": 2,
+  "bm014_status_before_probe": "live_observed",
+  "m4_status_before_probe": "live_observed",
+  "counts_toward_capability_before_independent_verification": false,
+  "consumed": false,
+  "next_authorization": false,
+  "probe_55_authorized": false
+}
