@@ -55,11 +55,11 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing` and still incomplete after the retained Probe 47 BM-013 failure; BM-011 and BM-012 remain repeat-verified at 3/3 each. The phase is not complete until BM-013 and BM-014 also reach 3/3.
+- M4 is `partial` and still incomplete after eligible Probe 48 raised BM-013 to 1/3; BM-011 and BM-012 remain repeat-verified at 3/3 each. The phase is not complete until BM-013 and BM-014 also reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
 - BM-012 is `repeat_verified` at 3/3 after Probe 46. Probe 38 episode `m4_episode_20260726_202651_d80a4946` completed the full empty-hand-to-stone-pickaxe loop and mined eight machine-proven iron-ore sources into `raw_iron:8`. Probe 45 episode `m4_episode_20260727_010123_3a9ca67f` live-validated the candidate-bound table-placement repair and passed in 256.391 seconds. Probe 46 episode `m4_episode_20260727_012016_7ef19ad6` independently replicated the full chain, mined eight distinct verified iron-ore sources into `raw_iron:8`, preserved health/hunger at 20, passed all 74 eligibility checks, and finished in 353.687 seconds with 246.313 seconds remaining. The forty-three ineligible attempts remain retained failure evidence. BM-013 is now the active gate at 0/3; BM-014 remains locked until BM-013 reaches 3/3.
-- BM-013 remains 0/3 after Probe 47. Its one-use authorization was consumed by episode `m4_episode_20260727_084831_5ac6bdd9`; all 14 actions succeeded through `wooden_pickaxe:1`, but GoalVerifier treated `for cobblestone acquisition` as a binding `cobblestone:1` postcondition, rejected the completed goal 29 times, and reached the 300.015-second deadline. The run passed 66/74 checks with health/hunger 20, zero deaths, and no BM-013 credit. The bounded purpose-clause repair and retained evidence are pushed at `49986294`; Probe 48 now has one parent-bound, zero-retry authorization, and BM-014 remains locked.
+- BM-013 is 1/3 after eligible Probe 48 episode `m4_episode_20260727_094022_cddca052`. Its one-use authorization was consumed at `autonomous_start` line 2; the repaired verifier emitted `policy:m4-inventory-purpose-clause-grounding-v1` at the wooden-pickaxe and eleven-cobblestone boundaries, all nine goals completed, and smelt action line 1041 converted episode-acquired raw iron and coal into `iron_ingot:1`. The run passed 74/74 checks in 257.031 seconds with health/hunger 20 and zero deaths. Probe 49 is not authorized before the evidence push, and BM-014 remains locked.
 
 ## Evidence Policy
 
@@ -79,7 +79,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 and BM-012 repeat_verified 3/3; BM-013 Probe 47 ineligible (0/3); BM-014 locked |
+| M4 | Autonomous Survival | **Partial (`partial`)** | BM-011 and BM-012 repeat_verified 3/3; BM-013 Probe 48 eligible (1/3); BM-014 locked |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |
