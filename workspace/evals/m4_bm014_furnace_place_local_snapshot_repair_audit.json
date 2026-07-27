@@ -1,0 +1,199 @@
+{
+  "type": "m4_bm014_furnace_place_local_snapshot_repair_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-27T06:06:46Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_id": "BM-014",
+  "task_contract_id": "m4-bm014-iron-pickaxe-contract-v1",
+  "task_contract_sha256": "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f",
+  "classification": "offline_repair",
+  "counts_toward_bm014_success": false,
+  "counts_toward_capability": false,
+  "bindings": {
+    "probe_51_report_path": "workspace/evals/m4_probe51_report.json",
+    "probe_51_report_sha256": "591c894e7019cd55bbc829fb6adb5e0484d62f318da9ea848d4e86a160dde9ea",
+    "probe_51_authorization_path": "workspace/evals/m4_probe51_authorization.json",
+    "probe_51_consumed_authorization_sha256": "501c5421d5fa41458cc710aeb1e6a25b9bf2f945628eb1ac7190414db003524e",
+    "probe_51_authorization_consumed": true,
+    "probe_51_consumed_episode_id": "m4_episode_20260727_121623_ce060317",
+    "probe_51_consumed_session_id": "270c762e-bb7",
+    "probe_51_consumed_event_line": 2,
+    "capability_evidence_path": "workspace/evals/capability_evidence_current.json",
+    "capability_evidence_sha256": "08f2863117a939307fcd5b4e1fec4368eaeffd49c442e70d2adf46dd42ae3775"
+  },
+  "blocker_before_repair": {
+    "root_cause_classification": "m4_place_target_machine_observation_coverage_fail_open",
+    "failed_furnace_place_count": 40,
+    "occupied_stone_count": 36,
+    "occupied_clay_count": 4,
+    "action_verifier_evidence_before_repair": "target:not_observed_occupied",
+    "failure_mechanism": "the capped non-air nearby scan omitted occupied target cells, so the selector walked solid cave-shell references until the deadline while the Node mutation-time gate rejected each occupied target"
+  },
+  "offline_repair": {
+    "policy_id": "m4-bm013-bm014-furnace-place-local-snapshot-v1",
+    "scope": "BM-013/BM-014 furnace placement only",
+    "machine_state_source": "get_shelter_state.blocks",
+    "complete_snapshot": {
+      "required_machine_snapshot_check": "machine_snapshot",
+      "required_machine_snapshot_passed": true,
+      "required_machine_check_evidence": {
+        "expected_snapshot_position_count": 36,
+        "observed_snapshot_position_count": 36,
+        "duplicate_positions": []
+      },
+      "code_requires_exact_raw_block_count": true,
+      "x_cell_count": 3,
+      "y_cell_count": 4,
+      "z_cell_count": 3,
+      "required_cell_count": 36,
+      "duplicate_positions_allowed": false,
+      "single_snapshot_binding": true,
+      "player_position_and_cell_required": true,
+      "snapshot_and_current_player_same_cell_required": true,
+      "positive_observed_at_ms_required": true,
+      "maximum_snapshot_age_ms": 5000
+    },
+    "candidate_derivation": {
+      "maximum_candidate_count": 27,
+      "reference_and_target_from_same_snapshot": true,
+      "reference_required_solid": true,
+      "reference_required_collision": "block",
+      "target_offset": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "target_required_replaceable": true,
+      "target_required_solid": false,
+      "target_required_passable": true,
+      "target_required_collision": "empty",
+      "exact_integral_reference_target_pair_required": true,
+      "target_outside_snapshot_and_current_player_collision_union": true,
+      "failed_reference_and_target_feedback_honored": true,
+      "capped_nearby_blocks_fallback": false,
+      "missing_or_malformed_snapshot_behavior": "furnace_place_reference_missing"
+    },
+    "execution_path_gates": {
+      "action_verifier_exact_snapshot_pair_hard_required": true,
+      "action_verifier_task_scope": [
+        "BM-013",
+        "BM-014"
+      ],
+      "bm012_generic_furnace_place_behavior_unchanged": true,
+      "missing_forged_stale_or_unbound_snapshot_rejected": true,
+      "target_not_observed_occupied_acceptance_possible": false,
+      "missing_candidate_returns_bounded_block": true,
+      "bounded_block_action_count": 0,
+      "full_think_fallback_suppressed": true,
+      "suppressed_execution_paths": [
+        "learned_skill",
+        "bm012_machine_step",
+        "llm_plan",
+        "rule_plan",
+        "visual_action_grounding"
+      ]
+    },
+    "exact_probe_51_replay": {
+      "player_position": {
+        "x": 118.5,
+        "y": 123,
+        "z": -49.5
+      },
+      "reference_block": {
+        "name": "crafting_table",
+        "position": {
+          "x": 118,
+          "y": 122,
+          "z": -49
+        },
+        "solid": true,
+        "collision": "block"
+      },
+      "target_block": {
+        "name": "air",
+        "position": {
+          "x": 118,
+          "y": 123,
+          "z": -49
+        },
+        "solid": false,
+        "passable": true,
+        "collision": "empty"
+      },
+      "selected_reference_position": {
+        "x": 118,
+        "y": 122,
+        "z": -49
+      },
+      "selected_target_position": {
+        "x": 118,
+        "y": 123,
+        "z": -49
+      },
+      "action_verifier_target_evidence": "target:air"
+    },
+    "node_mutation_time_gates": {
+      "changed_by_repair": false,
+      "server_path": "src/bot/bot_server.js",
+      "server_sha256": "c407bf7a25c567a4cbe6308f05a91e4f98fb02bc8daf955578cd0a6f24a3d9de",
+      "target_occupancy_policy_id": "m4-place-target-occupancy-v1",
+      "target_player_occupancy_policy_id": "m4-place-target-player-occupancy-v1",
+      "authoritative_target_block_at_before_mutation": true,
+      "occupied_target_rejected_before_equip_or_mutation": true,
+      "player_collision_rejected_before_mutation": true,
+      "post_place_target_block_observation_required": true
+    },
+    "frozen_controls": {
+      "protocol_changed": false,
+      "task_contract_changed": false,
+      "deadline_changed": false,
+      "max_duration_s": 300,
+      "retry_policy_changed": false,
+      "success_threshold_changed": false,
+      "required_eligible_success_count": 3
+    }
+  },
+  "source_paths": {
+    "agent": "src/singularity/core/agent.py",
+    "action_verifier": "src/singularity/action/verifier.py",
+    "agent_tests": "tests/test_m4_bm013_bm014_agent.py"
+  },
+  "source_sha256": {
+    "agent": "579359c7ebb34557eb09e36e030afab9148285e48a0302d62ed9745c5706360c",
+    "action_verifier": "155bb8c0fbab7a685fb4338c23e7f458c211f343dc7d3f70e27b1a5ce803aaa6",
+    "agent_tests": "96a3f8656c886f367be3bf8808f41dc628e60d324d34cc4c85d4d13b5ecb25be"
+  },
+  "offline_validation": {
+    "focused_python_pass_count": 130,
+    "selected_python_pass_count": 214,
+    "selected_python_suite_file_count": 14,
+    "selected_node_internal_case_pass_count": 19,
+    "covered_boundaries": [
+      "complete 36-cell machine snapshot is required",
+      "at most 27 same-snapshot solid-reference plus replaceable-target candidates are emitted",
+      "the exact Probe 51 table-top replay selects reference 118,122,-49 and target 118,123,-49",
+      "the ActionVerifier hard-requires the exact same-snapshot pair and records target:air",
+      "missing, forged, stale, unbound, incomplete, duplicate, malformed, occupied, player-colliding, or failed candidates fail closed",
+      "snapshot-time and current player collision cells are unioned before selection and verification",
+      "no capped nearby-block fallback is available for furnace placement",
+      "no valid candidate returns a zero-action bounded block before learned, BM-012, LLM, rule, or visual fallback execution",
+      "Node mutation-time occupancy, collision, and post-place observation gates remain unchanged"
+    ]
+  },
+  "decision": {
+    "repair_offline_gate_passed": true,
+    "offline_only": true,
+    "bm014_eligible_success_count": 0,
+    "required_bm014_eligible_success_count": 3,
+    "bm014_repeat_verified": false,
+    "bm014_status": "failing",
+    "m4_status": "failing",
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false,
+    "probe_52_authorized": false,
+    "probe_52_locked": true,
+    "next_required_transaction": "commit and push the Probe 51 evidence plus bounded repair, verify the remote commit and tree, then create and push a separate parent-bound one-use Probe 52 authorization"
+  }
+}

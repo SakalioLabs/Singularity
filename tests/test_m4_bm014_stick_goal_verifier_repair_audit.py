@@ -1,9 +1,12 @@
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REPAIR_COMMIT = "ee6f972aedc79777a703fc0b37419a260f42398b"
+REPAIR_TREE = "39b4c7198a4f204525b461935cdad7e6984ef2bd"
 AUDIT_PATH = (
     ROOT / "workspace" / "evals"
     / "m4_bm014_stick_goal_verifier_repair_audit.json"
@@ -12,6 +15,33 @@ AUDIT_PATH = (
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _sha256_bytes(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def _git_blob(commit: str, path: str) -> bytes:
+    result = subprocess.run(
+        ["git", "show", f"{commit}:{Path(path).as_posix()}"],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    return result.stdout
+
+
+def _git_revision(revision: str) -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", revision],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return result.stdout.strip()
 
 
 def _audit() -> dict:
@@ -32,17 +62,30 @@ def test_bm014_stick_goal_repair_audit_binds_frozen_contract_and_parent():
     assert audit["repair_parent"]["tree"] == (
         "adf8399f0857c41095e80e9e57ed43842e3e238e"
     )
+    assert _git_revision(f"{REPAIR_COMMIT}^") == audit["repair_parent"]["commit"]
+    assert _git_revision(f"{REPAIR_COMMIT}^{{tree}}") == REPAIR_TREE
 
 
 def test_bm014_stick_goal_repair_audit_hashes_exact_sources():
     audit = _audit()
     for key, relative_path in audit["source_paths"].items():
-        assert audit["source_sha256"][key] == _sha256(ROOT / relative_path)
-    assert audit["repair_parent"]["probe_50_report_sha256"] == _sha256(
-        ROOT / audit["repair_parent"]["probe_50_report_path"]
+        assert audit["source_sha256"][key] == _sha256_bytes(
+            _git_blob(REPAIR_COMMIT, relative_path)
+        )
+    assert audit["repair_parent"]["probe_50_report_sha256"] == _sha256_bytes(
+        _git_blob(
+            audit["repair_parent"]["commit"],
+            audit["repair_parent"]["probe_50_report_path"],
+        )
     )
-    assert audit["repair_parent"]["capability_evidence_sha256"] == _sha256(
-        ROOT / audit["repair_parent"]["capability_evidence_path"]
+    capability_blob = _git_blob(
+        audit["repair_parent"]["commit"],
+        audit["repair_parent"]["capability_evidence_path"],
+    )
+    # The frozen audit recorded the Windows CRLF checkout hash; reproduce those
+    # gate-time bytes from the immutable LF-normalized Git blob.
+    assert audit["repair_parent"]["capability_evidence_sha256"] == _sha256_bytes(
+        capability_blob.replace(b"\n", b"\r\n")
     )
 
 

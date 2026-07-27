@@ -1,0 +1,381 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-27T06:06:46Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-014",
+  "probe_number": 51,
+  "episode_id": "m4_episode_20260727_121623_ce060317",
+  "session_id": "270c762e-bb7",
+  "level_name": "m4_episode_20260727_121623_ce060317_bm014",
+  "pre_episode_infrastructure_blocker": {
+    "episode_id": "m4_episode_20260727_121320_9044ba18",
+    "level_name": "m4_episode_20260727_121320_9044ba18_bm014",
+    "evidence_dir": "logs/benchmarks/m4/m4_episode_20260727_121320_9044ba18",
+    "blocker_path": "logs/benchmarks/m4/m4_runtime_blocker_20260727_121320.json",
+    "preflight_path": "logs/benchmarks/m4/m4_episode_20260727_121320_9044ba18/preflight.json",
+    "protocol_status_path": "logs/benchmarks/m4/m4_episode_20260727_121320_9044ba18/protocol_status.json",
+    "reset_path": "logs/benchmarks/m4/m4_episode_20260727_121320_9044ba18/reset.json",
+    "blocker_sha256": "27e791f149bbcfecc86d06624bd6190bf2c8c06dc260fcef0f436f5113292ba1",
+    "preflight_sha256": "5f8388de7819171d28c2fd5560d85ef0708a20bf14fee8fddab7d6c37488e99d",
+    "protocol_status_sha256": "2c633fde7ff8692445258d36781197932a09a0fcab12d7b13551cbc646f9bab1",
+    "reset_sha256": "68d634362c2a41919b92e3d0d276a029e3a5e0f95e6b8b68edc5f6634476cb55",
+    "observed_python_version": "3.13.5",
+    "required_python_version": "3.12.8",
+    "validation_issue": "runtime_versions",
+    "preflight_passed": false,
+    "autonomous_start_observed": false,
+    "session_jsonl_created": false,
+    "authorization_consumed": false,
+    "counts_as_probe_attempt": false,
+    "counts_as_retry": false,
+    "classification": "pre_autonomous_startup_correction"
+  },
+  "authorization": {
+    "path": "workspace/evals/m4_probe51_authorization.json",
+    "commit": "38d37263f7e4171698de182f8ad6b8ecfaf4db81",
+    "tree": "035077b8a8a04d33e89ba5503778972ed697f0a4",
+    "gate_parent_commit": "ee6f972aedc79777a703fc0b37419a260f42398b",
+    "gate_tree": "39b4c7198a4f204525b461935cdad7e6984ef2bd",
+    "policy_id": "m4-inventory-purpose-clause-grounding-v1",
+    "repair_audit_path": "workspace/evals/m4_bm014_stick_goal_verifier_repair_audit.json",
+    "repair_audit_sha256": "c237bfef4840a9cc89203cae428f968db382b1f8cd8b3b01e350a0d1caaa6775",
+    "issued_sha256": "337e83a1d7d7c8efe22c92b5a81a9acc230ecc508bf3b5d886e94ef224e50367",
+    "issued_artifact_consumed_field": false,
+    "consumed_sha256": "501c5421d5fa41458cc710aeb1e6a25b9bf2f945628eb1ac7190414db003524e",
+    "consumed_artifact_consumed_field": true,
+    "one_use": true,
+    "maximum_episode_count": 1,
+    "maximum_retry_count": 0,
+    "runtime_consumption": {
+      "consumed": true,
+      "consumed_at": "autonomous_start",
+      "consumed_at_utc": "2026-07-27T04:17:29.665526Z",
+      "consumed_monotonic_s": 876033.64,
+      "consumed_event_line": 2,
+      "consumed_episode_id": "m4_episode_20260727_121623_ce060317",
+      "consumed_session_id": "270c762e-bb7",
+      "consumed_level_name": "m4_episode_20260727_121623_ce060317_bm014",
+      "evidence_path": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/session_270c762e-bb7.jsonl"
+    },
+    "probe_52_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_id": "m4-bm014-iron-pickaxe-contract-v1",
+    "task_contract_sha256": "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f",
+    "model": "grok-4.5",
+    "python_version": "3.12.8",
+    "max_duration_s": 300,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "max_total_cycles": 320,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_attempt_count": 1,
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/session_270c762e-bb7.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/session_270c762e-bb7_summary.json",
+    "session_json": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/session.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260727_121623_ce060317/reset.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "2a93d01237d73c394e7f7a7a8eb19d9e9cc36f74e167d958ce4e811aacf7becb",
+    "preparation": "3b3f8ddb3eaa0c4b610f42439cb2dca69734a8df6094afdadeab86ad10cca07d",
+    "result": "41d8cf525b7ccb3335ff64fb60c073bd4b84a2b3cb6e6a2f85bd83b21b8ea8a0",
+    "eligibility": "437d1683b79cdb94d287062b8133c4fbb8e619f895c863748dcc523f95e5445d",
+    "manifest": "d243f45b3d353e6a8b872c812d3d380bcec6f9ed7ef8c3300af0e296fce58005",
+    "preflight": "3a57219f4db78820b7d7b9e58e3b6bd781c1557d94cf4e4777ee53ece8bf0238",
+    "session_summary": "8f219e8ad91f76e33630011ccc2f7ebc8a30d90dd45ff232b79a8b27627b299b",
+    "session_json": "0fe8b65ae3d91aff4285deef3e217bd98bde8b00f9d4a84f95748dbe458c668a",
+    "protocol_status": "f658e2f25baa213e27d4bd9c82e733cdfbf653507b0fddf71cc824f77602915f",
+    "reset": "8ef7a815ffb5d154af82c0474e8031589a7f1b2af94e569d2a02fac2210b68ab"
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 300.172,
+    "evidence_seal_duration_s": 300.25,
+    "deadline_eligible": false,
+    "deadline_margin_s": -0.172,
+    "evidence_seal_deadline_margin_s": -0.25,
+    "no_post_deadline_execution": true,
+    "goals_completed": 8,
+    "goals_failed": 2,
+    "goals_interrupted": 0,
+    "total_cycles": 98,
+    "per_goal_cycles": [
+      7,
+      2,
+      5,
+      13,
+      9,
+      5,
+      2,
+      14,
+      40,
+      1
+    ],
+    "maximum_goal_cycles": 40,
+    "planner_call_count": 1,
+    "real_planner_call_count": 1,
+    "schema_valid_real_planner_call_count": 1,
+    "planner_attempt_count": 1,
+    "planner_retry_count": 0,
+    "planner_call_id": "llm-101bee0f0ec2477e",
+    "planner_duration_ms": 21625,
+    "planner_total_token_usage": 4232,
+    "planner_prompt_token_usage": 3718,
+    "planner_completion_token_usage": 514,
+    "machine_step_plan_count": 97,
+    "action_count": 97,
+    "successful_action_count": 42,
+    "failed_action_count": 55,
+    "action_verifier_accept_count": 97,
+    "action_verifier_reject_count": 0,
+    "action_success_by_type": {
+      "move_to": {
+        "attempted": 3,
+        "successful": 3
+      },
+      "dig": {
+        "attempted": 21,
+        "successful": 21
+      },
+      "craft": {
+        "attempted": 12,
+        "successful": 12
+      },
+      "place": {
+        "attempted": 58,
+        "successful": 3
+      },
+      "equip": {
+        "attempted": 3,
+        "successful": 3
+      },
+      "smelt": {
+        "attempted": 0,
+        "successful": 0
+      }
+    },
+    "session_event_count": 1419,
+    "session_json_event_count": 1418,
+    "session_json_matches_jsonl_prefix": true,
+    "jsonl_tail_event_type": "memory_manage",
+    "terminal_inventory": {
+      "oak_log": 1,
+      "oak_planks": 3,
+      "cobblestone": 56,
+      "furnace": 1,
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "dirt": 5,
+      "raw_iron": 3,
+      "clay_ball": 16,
+      "coal": 1
+    }
+  },
+  "survival_evidence": {
+    "observation_count": 196,
+    "minimum_health": 20,
+    "minimum_food": 20,
+    "maximum_death_count": 0,
+    "maximum_respawn_count": 0,
+    "uninterrupted_survival": true,
+    "terminal_bot_connected": true
+  },
+  "behavioral_progression": {
+    "completed_goal_count": 8,
+    "completed_goal_cycles": [
+      7,
+      2,
+      5,
+      13,
+      9,
+      5,
+      2,
+      14
+    ],
+    "furnace_goal_start_line": 629,
+    "furnace_goal_verification_line": 832,
+    "smelt_goal_start_line": 836,
+    "first_furnace_place_failure_line": 849,
+    "last_furnace_place_failure_line": 1395,
+    "first_smelt_goal_failed_line": 1399,
+    "second_smelt_goal_start_line": 1402,
+    "second_smelt_goal_verification_line": 1412,
+    "second_smelt_goal_failed_line": 1414,
+    "autonomous_end_line": 1417,
+    "smelt_backend_action_exercised": false,
+    "iron_pickaxe_stick_goal_exercised": false,
+    "stick_goal_verifier_repair_live_exercised": false,
+    "iron_pickaxe_craft_exercised": false
+  },
+  "furnace_placement_failure": {
+    "failed_furnace_place_count": 40,
+    "occupied_stone_count": 36,
+    "occupied_clay_count": 4,
+    "first_failure": {
+      "line": 849,
+      "reference_position": {
+        "x": 119,
+        "y": 124,
+        "z": -49
+      },
+      "placed_position": {
+        "x": 119,
+        "y": 125,
+        "z": -49
+      },
+      "observed_error": "placement target is occupied by stone"
+    },
+    "last_failure": {
+      "line": 1395,
+      "reference_position": {
+        "x": 121,
+        "y": 124,
+        "z": -50
+      },
+      "placed_position": {
+        "x": 121,
+        "y": 125,
+        "z": -50
+      },
+      "observed_error": "placement target is occupied by stone"
+    },
+    "nearby_crafting_table_observed_at_smelt_start": {
+      "x": 118,
+      "y": 122,
+      "z": -49
+    },
+    "crafting_table_used_as_furnace_reference": false,
+    "root_cause_classification": "m4_place_target_machine_observation_coverage_fail_open",
+    "root_cause_evidence": [
+      "nearby_blocks contained at most 50 non-air cells and therefore did not prove absent target cells were air",
+      "all 40 furnace place verifications accepted target:not_observed_occupied before the backend proved stone or clay",
+      "all 40 furnace place actions selected other solid references instead of the observed crafting table at 118,122,-49",
+      "historical adjacent-reference feedback expanded the search through the occupied cave shell"
+    ],
+    "offline_repair_status": "completed",
+    "repair_claimed_complete": true,
+    "repair_policy_id": "m4-bm013-bm014-furnace-place-local-snapshot-v1",
+    "repair_audit_path": "workspace/evals/m4_bm014_furnace_place_local_snapshot_repair_audit.json"
+  },
+  "offline_repair": {
+    "status": "completed",
+    "policy_id": "m4-bm013-bm014-furnace-place-local-snapshot-v1",
+    "scope": "BM-013/BM-014 furnace placement only",
+    "source_machine_state": "the existing complete 36-cell get_shelter_state snapshot",
+    "candidate_limit": 27,
+    "requires_complete_valid_snapshot_envelope": true,
+    "requires_snapshot_player_position_and_cell_binding": true,
+    "requires_snapshot_and_current_player_same_cell": true,
+    "maximum_snapshot_age_ms": 5000,
+    "requires_same_snapshot_solid_reference": true,
+    "requires_same_snapshot_replaceable_target_above": true,
+    "requires_exact_integral_reference_target_pair": true,
+    "requires_target_outside_snapshot_and_current_player_collision_union": true,
+    "requires_target_not_in_current_occupied_or_failed_sets": true,
+    "speculative_nearby_blocks_fallback": false,
+    "action_verifier_exact_pair_hard_required": true,
+    "action_verifier_task_scope": [
+      "BM-013",
+      "BM-014"
+    ],
+    "bm012_generic_furnace_place_behavior_unchanged": true,
+    "missing_forged_stale_or_unbound_snapshot_rejected": true,
+    "target_not_observed_occupied_acceptance_possible": false,
+    "missing_candidate_returns_bounded_block": true,
+    "full_think_fallback_suppressed": true,
+    "suppressed_execution_paths": [
+      "learned_skill",
+      "bm012_machine_step",
+      "llm_plan",
+      "rule_plan",
+      "visual_action_grounding"
+    ],
+    "action_verifier_target_evidence_after_repair": "target:air",
+    "node_mutation_time_occupancy_gate_unchanged": true,
+    "node_player_collision_gate_unchanged": true,
+    "probe51_reduced_replay_reference": {
+      "x": 118,
+      "y": 122,
+      "z": -49
+    },
+    "probe51_reduced_replay_target": {
+      "x": 118,
+      "y": 123,
+      "z": -49
+    },
+    "probe51_reduced_replay_target_state": "air",
+    "focused_python_pass_count": 130,
+    "selected_node_internal_case_pass_count": 19,
+    "source_paths": {
+      "agent": "src/singularity/core/agent.py",
+      "action_verifier": "src/singularity/action/verifier.py",
+      "agent_tests": "tests/test_m4_bm013_bm014_agent.py"
+    },
+    "source_sha256": {
+      "agent": "579359c7ebb34557eb09e36e030afab9148285e48a0302d62ed9745c5706360c",
+      "action_verifier": "155bb8c0fbab7a685fb4338c23e7f458c211f343dc7d3f70e27b1a5ce803aaa6",
+      "agent_tests": "96a3f8656c886f367be3bf8808f41dc628e60d324d34cc4c85d4d13b5ecb25be"
+    },
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "deadline_changed": false,
+    "retry_policy_changed": false,
+    "success_threshold_changed": false,
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false,
+    "probe_52_authorized": false
+  },
+  "eligibility": {
+    "eligible": false,
+    "success": false,
+    "progress_gate_passed": false,
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false,
+    "check_count": 74,
+    "pass_count": 67,
+    "issue_count": 7,
+    "issues": [
+      "event:terminal_task_verification",
+      "output_terminal_inventory_target",
+      "output_successful_source_actions",
+      "output_positive_inventory_delta",
+      "terminal_machine_verification",
+      "episode_within_deadline",
+      "result_duration_eligible"
+    ],
+    "independent_recomputation_exact_match": true
+  },
+  "decision": {
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false,
+    "bm014_attempt_count_before": 0,
+    "bm014_attempt_count_after": 1,
+    "bm014_failure_count_before": 0,
+    "bm014_failure_count_after": 1,
+    "bm014_success_count_before": 0,
+    "bm014_success_count_after": 0,
+    "required_success_count": 3,
+    "remaining_success_count": 3,
+    "bm014_repeat_verified_after_probe": false,
+    "bm014_status_after": "failing",
+    "m4_status_after": "failing",
+    "next_live_probe_locked_until_failure_evidence_and_offline_repair_are_committed_and_pushed": true,
+    "probe_52_authorized": false
+  }
+}

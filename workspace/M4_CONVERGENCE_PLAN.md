@@ -4,13 +4,16 @@
 
 - Protocol: `m4-fixed-v1`
 - Protocol SHA-256: `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`
-- Current target: BM-014 Craft iron pickaxe; Probe 51 has one parent-bound authorization that remains unusable until this separate authorization commit is pushed
+- Current target: BM-014 Craft iron pickaxe; Probe 51 is retained as the first ineligible attempt and Probe 52 is locked until its evidence plus bounded placement repair are pushed and read back
 - Current-target eligible successes: 0/3
 - Completed targets: BM-011 Survive the first night, BM-012 Get 8 iron resources, and BM-013 Smelt iron ingot, all `repeat_verified` at 3/3
-- M4 canonical status: `partial`
+- Current-protocol live episodes: 27 (Probes 25–51); the Python 3.13.5 pre-autonomous startup correction had no `autonomous_start` and counts as neither an episode, attempt, nor retry
+- M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 47 remains retained ineligible BM-013 failure evidence. Probes 48, 49, and 50 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031, 238.140, and 271.922 seconds. Probe 50 evidence is pushed at `84b9817d` / tree `adf8399f`, so BM-013 is `repeat_verified` at 3/3. BM-014 is the only remaining M4 target. Its exact verifier repair is pushed at `ee6f972a` / tree `39b4c719`. Probe 51 now has one separate parent-bound authorization for one fresh, zero-retry, skills-off episode; no Probe 52 or automatic retry is authorized.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 47 remains retained ineligible BM-013 failure evidence. Probes 48, 49, and 50 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031, 238.140, and 271.922 seconds. Probe 50 evidence is pushed at `84b9817d` / tree `adf8399f`, so BM-013 is `repeat_verified` at 3/3. BM-014 is the only remaining M4 target. Its exact stick verifier repair is pushed at `ee6f972a` / tree `39b4c719`. Probe 51 is a retained 67/74 failure at the furnace-placement frontier; no Probe 52 or automatic retry is authorized.
+
+The Probe 51 offline repair accepts furnace placement only from a complete 36-cell `get_shelter_state.blocks` envelope no more than five seconds old, with bound snapshot/current player cells and an exact integral same-snapshot solid-reference/replaceable-target pair. Selection and ActionVerifier union snapshot-time and current player collision cells. Missing, forged, stale, player-drifted, malformed, or non-matching evidence fails closed; the old `target:not_observed_occupied` furnace acceptance is unavailable. If no valid candidate remains, `_think` returns `furnace_place_local_snapshot_unavailable` with zero actions before learned-skill, BM-012, LLM/rule, or visual-grounding fallback. BM-012 generic placement and the Node mutation-time gates remain unchanged.
 
 ## Probe 44 Machine-Step Place Candidate Drift Gap
 
@@ -100,6 +103,28 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 - The exact goal now binds only `stick:2`; the iron-pickaxe purpose suffix remains non-binding, while an explicit `then craft an iron pickaxe` followup still binds both targets
 - Offline validation passes 147 selected Python cases and 19 Node M4 protocol/smelt cases, including real `stick:+4` delta, log-to-plank-to-stick progression, and no machine step before a real schema-valid LLM call
 - Audit: `workspace/evals/m4_bm014_stick_goal_verifier_repair_audit.json`. It grants no BM-014 success or capability credit. The repair is pushed at `ee6f972a`, tree `39b4c719`; `workspace/evals/m4_probe51_authorization.json` authorizes exactly one fresh BM-014 episode after its own separate commit is pushed. Probe 52 remains unauthorized
+
+## Probe 51 BM-014 Furnace Placement Failure
+
+- Episode/session: `m4_episode_20260727_121623_ce060317` / `270c762e-bb7`
+- Authorization: parent-bound commit `38d37263` consumed exactly once at `autonomous_start` line 2 / monotonic `876033.640`; one episode, zero retries, skills off, Probe 52 false
+- Pre-episode correction: an initial launcher selected Python 3.13.5 and failed `runtime_versions` before any `autonomous_start`; authorization remained unconsumed and the process-local PATH was corrected to the existing pinned Python 3.12.8. This is not an episode, attempt, or retry
+- Result: ineligible BM-014 failure, `episode_deadline`, Agent elapsed `300.172s`, evidence seal `300.250s`, 67/74 independent checks; BM-014 remains 0/3
+- Progression: eight goals completed in 57 cycles through six logs, table, wooden pickaxe, eleven cobblestone, stone pickaxe, three raw iron, one coal, and furnace craft. The two smelt roots consumed 41 more cycles and failed
+- Earliest blocker: machine step line 841 selected furnace reference `(119,124,-49)`; ActionVerifier line 845 accepted target `(119,125,-49)` as `target:not_observed_occupied`, but the backend's authoritative query at line 849 proved stone. The same gap produced 40 failed furnace placements: 36 stone, four clay
+- Root cause: `nearby_blocks` is a capped list of non-air blocks, so absence is incomplete coverage rather than proof of air. Historical adjacent-reference feedback amplified the search across new unobserved cells, but the Node backend correctly prevented every mutation
+- Terminal state: health/food `20/20`, connected, zero deaths/respawns, `raw_iron:3`, `coal:1`, `furnace:1`, and no ingot or iron pickaxe. No smelt action ran, and the stick-goal verifier repair was not live-exercised
+- Decision: counts as BM-014 attempt/failure 1, success remains 0/3, M4 is `failing`, and Probe 52 stays locked
+
+## Probe 51 Bounded Furnace-Placement Repair
+
+- Policy: `m4-bm013-bm014-furnace-place-local-snapshot-v1`
+- The existing per-observation `get_shelter_state` call already returns a complete 36-cell Mineflayer block snapshot around the player. The repair derives at most 27 vertical reference/target pairs only after that snapshot's completeness check passes
+- A furnace candidate requires an allowed machine-observed solid reference and an exact `y+1` target in the same snapshot whose state is replaceable, non-solid, passable, and collision-empty. Failed references/targets, current occupied cells, player collision cells, non-finite or distant coordinates, malformed/duplicate snapshots, and missing target cells fail closed
+- Furnace placement has no speculative fallback to capped `nearby_blocks`. ActionVerifier consumes the same target proof and records `target:air`; its generic BM-012 unobserved-target behavior is unchanged
+- Exact Probe 51 replay chooses crafting table `(118,122,-49)` and its machine-proven air top `(118,123,-49)` instead of the occupied cave shell. Node mutation-time occupancy and player-collision verification remain the final authority
+- Scope is limited to BM-013/BM-014 furnace placement. The protocol hash, BM-014 task contract, model/provider, 300-second deadline, goal/cycle caps, retry count, skills-off state, and success threshold are unchanged
+- This is offline repair evidence only. It grants no BM-014 success or M4 capability credit and does not authorize Probe 52
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 

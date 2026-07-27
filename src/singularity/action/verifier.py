@@ -47,6 +47,29 @@ class ActionVerifier:
     SAFE_LOW_INFORMATION_ACTIONS = {"move_to", "walk_to", "look_at", "wait", "chat"}
     M4_PLACE_TARGET_OCCUPANCY_POLICY_ID = "m4-place-target-occupancy-v1"
     M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID = "m4-place-target-player-occupancy-v1"
+    M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID = (
+        "m4-bm013-bm014-furnace-place-local-snapshot-v1"
+    )
+    M4_FURNACE_PLACE_SNAPSHOT_POSITION_COUNT = 36
+    M4_FURNACE_PLACE_CANDIDATE_LIMIT = 27
+    M4_FURNACE_PLACE_MAX_SNAPSHOT_AGE_MS = 5000.0
+    M4_FURNACE_REFERENCE_BLOCKS = {
+        "grass_block",
+        "dirt",
+        "stone",
+        "cobblestone",
+        "gravel",
+        "andesite",
+        "granite",
+        "diorite",
+        "deepslate",
+        "tuff",
+        "crafting_table",
+        "coal_ore",
+        "deepslate_coal_ore",
+        "iron_ore",
+        "deepslate_iron_ore",
+    }
     M4_PLAYER_WIDTH = 0.6
     M4_PLAYER_HEIGHT = 1.8
     M4_COLLISION_EPSILON = 1e-9
@@ -74,6 +97,7 @@ class ActionVerifier:
         world_state: dict = None,
         goal: str = "",
         protocol: str = "",
+        task_id: str = "",
     ) -> ActionVerificationDecision:
         if not isinstance(action, dict):
             return self._decision("unknown", "reject", 0.0, "action is not a structured object")
@@ -95,7 +119,13 @@ class ActionVerifier:
         if action_type == "build_shelter_cell":
             return self._verify_m4_shelter_cell(params, state, inventory)
         if action_type == "place":
-            return self._verify_place(params, state, inventory, protocol=protocol)
+            return self._verify_place(
+                params,
+                state,
+                inventory,
+                protocol=protocol,
+                task_id=task_id,
+            )
         if action_type in {"equip", "use_item"}:
             return self._verify_inventory_item_action(action_type, params, inventory)
         if action_type == "attack":
@@ -252,12 +282,18 @@ class ActionVerifier:
         inventory: dict,
         *,
         protocol: str,
+        task_id: str,
     ) -> ActionVerificationDecision:
         inventory_decision = self._verify_inventory_item_action("place", params, inventory)
         if inventory_decision.rejected or str(protocol or "") != "m4-fixed-v1":
             return inventory_decision
 
         policy_id = self.M4_PLACE_TARGET_OCCUPANCY_POLICY_ID
+        item = str(params.get("item") or "").strip()
+        strict_furnace_snapshot = (
+            item == "furnace"
+            and str(task_id or "").upper().strip() in {"BM-013", "BM-014"}
+        )
         reference = self._finite_block_position(params)
         if reference is None:
             return self._decision(
@@ -269,13 +305,70 @@ class ActionVerifier:
                 evidence=[f"policy:{policy_id}"],
                 policy_id=policy_id,
             )
+        if (
+            strict_furnace_snapshot
+            and self._integral_block_position(params) != reference
+        ):
+            return self._decision(
+                "place",
+                "reject",
+                0.0,
+                "M4 furnace place requires exact integral reference coordinates",
+                missing=["integral x", "integral y", "integral z"],
+                evidence=[
+                    f"policy:{self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID}",
+                ],
+                policy_id=self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID,
+            )
 
         target = {
             "x": reference["x"],
             "y": reference["y"] + 1,
             "z": reference["z"],
         }
+        furnace_snapshot = None
+        if strict_furnace_snapshot:
+            furnace_snapshot = self._m4_valid_furnace_local_snapshot(state)
+            matching_pair = (
+                next(
+                    (
+                        candidate
+                        for candidate in furnace_snapshot["candidates"]
+                        if candidate["reference_position"] == reference
+                        and candidate["target_position"] == target
+                    ),
+                    None,
+                )
+                if furnace_snapshot is not None
+                else None
+            )
+            if matching_pair is None:
+                return self._decision(
+                    "place",
+                    "reject",
+                    0.0,
+                    (
+                        "M4 furnace place requires a complete fresh local snapshot "
+                        "with the exact reference/target pair"
+                    ),
+                    missing=["m4_local_place_candidates.exact_pair"],
+                    evidence=[
+                        f"policy:{self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID}",
+                    ],
+                    required={
+                        "reference_position": reference,
+                        "target_position": target,
+                        "snapshot_position_count": (
+                            self.M4_FURNACE_PLACE_SNAPSHOT_POSITION_COUNT
+                        ),
+                        "candidate_limit": self.M4_FURNACE_PLACE_CANDIDATE_LIMIT,
+                    },
+                    policy_id=self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID,
+                )
+
         observed = self._observed_blocks_at(state, target)
+        if furnace_snapshot is not None:
+            observed.append(dict(matching_pair["target_block"]))
         occupied = [
             block for block in observed
             if not self._m4_block_is_replaceable(block)
@@ -285,14 +378,39 @@ class ActionVerifier:
             "target_state": "air_or_replaceable",
         }
         player_policy_id = self.M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID
-        raw_player_position = state.get("position")
-        if not isinstance(raw_player_position, dict):
+        raw_player_position = (
+            furnace_snapshot["player_position"]
+            if furnace_snapshot is not None
+            else state.get("position")
+        )
+        if (
+            furnace_snapshot is None
+            and not isinstance(raw_player_position, dict)
+        ):
             raw_player_position = state.get("player_position")
         player_collision = self._m4_player_collision_evidence(raw_player_position)
+        current_player_collision = (
+            self._m4_player_collision_evidence(
+                furnace_snapshot["current_player_position"],
+            )
+            if furnace_snapshot is not None
+            else None
+        )
         collision_cells = []
         adjacent_references = []
         if player_collision is not None:
             collision_cells = player_collision["cells"]
+            if current_player_collision is not None:
+                seen_collision_cells = {
+                    (cell["x"], cell["y"], cell["z"])
+                    for cell in collision_cells
+                }
+                collision_cells = list(collision_cells)
+                for cell in current_player_collision["cells"]:
+                    key = (cell["x"], cell["y"], cell["z"])
+                    if key not in seen_collision_cells:
+                        collision_cells.append(cell)
+                        seen_collision_cells.add(key)
             adjacent_references = self._m4_adjacent_place_references(
                 reference,
                 collision_cells,
@@ -306,6 +424,15 @@ class ActionVerifier:
                 "replan_mode": "next_cycle",
                 "replan_candidate_limit": 4,
             })
+            if current_player_collision is not None:
+                required.update({
+                    "current_player_position": (
+                        current_player_collision["position"]
+                    ),
+                    "current_player_collision_box": (
+                        current_player_collision["box"]
+                    ),
+                })
         if occupied:
             names = sorted({str(block.get("name") or "unknown") for block in occupied})
             return self._decision(
@@ -361,12 +488,19 @@ class ActionVerifier:
                 policy_id=player_policy_id,
             )
 
-        item = str(params.get("item") or "").strip()
         target_evidence = (
             ",".join(sorted({str(block.get("name") or "air") for block in observed}))
             if observed
             else "not_observed_occupied"
         )
+        policy_evidence = [
+            f"policy:{policy_id}",
+            f"policy:{player_policy_id}",
+        ]
+        if furnace_snapshot is not None:
+            policy_evidence.append(
+                f"policy:{self.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID}",
+            )
         return self._decision(
             "place",
             "accept",
@@ -374,8 +508,7 @@ class ActionVerifier:
             "requested item is available and the M4 target clears block and player occupancy",
             evidence=[
                 item,
-                f"policy:{policy_id}",
-                f"policy:{player_policy_id}",
+                *policy_evidence,
                 f"target:{target_evidence}",
                 "target_intersects_player:false",
             ],
@@ -641,6 +774,168 @@ class ActionVerifier:
             if candidate_target not in occupied:
                 candidates.append(candidate)
         return candidates
+
+    @staticmethod
+    def _integral_block_position(values: dict) -> Optional[dict]:
+        if not isinstance(values, dict):
+            return None
+        position = {}
+        for axis in ("x", "y", "z"):
+            value = values.get(axis)
+            if isinstance(value, bool):
+                return None
+            try:
+                coordinate = float(value)
+            except (TypeError, ValueError):
+                return None
+            if not math.isfinite(coordinate) or not coordinate.is_integer():
+                return None
+            position[axis] = int(coordinate)
+        return position
+
+    @staticmethod
+    def _finite_milliseconds(value) -> Optional[float]:
+        if isinstance(value, bool):
+            return None
+        try:
+            milliseconds = float(value)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(milliseconds) or milliseconds <= 0:
+            return None
+        return milliseconds
+
+    @classmethod
+    def _m4_valid_furnace_local_snapshot(cls, state: dict) -> Optional[dict]:
+        """Validate and normalize one furnace placement snapshot envelope."""
+        if not isinstance(state, dict):
+            return None
+        snapshot = state.get("m4_local_place_candidates")
+        if (
+            not isinstance(snapshot, dict)
+            or snapshot.get("schema_version") != 1
+            or snapshot.get("policy_id")
+            != cls.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+            or snapshot.get("machine_snapshot_passed") is not True
+            or snapshot.get("source") != "get_shelter_state.blocks"
+            or snapshot.get("snapshot_position_count")
+            != cls.M4_FURNACE_PLACE_SNAPSHOT_POSITION_COUNT
+            or snapshot.get("candidate_limit")
+            != cls.M4_FURNACE_PLACE_CANDIDATE_LIMIT
+        ):
+            return None
+
+        candidates = snapshot.get("candidates")
+        candidate_count = snapshot.get("candidate_count")
+        if (
+            not isinstance(candidates, list)
+            or isinstance(candidate_count, bool)
+            or not isinstance(candidate_count, int)
+            or candidate_count != len(candidates)
+            or candidate_count > cls.M4_FURNACE_PLACE_CANDIDATE_LIMIT
+        ):
+            return None
+
+        observed_at_ms = cls._finite_milliseconds(snapshot.get("observed_at_ms"))
+        if observed_at_ms is None:
+            return None
+        state_observed_at_ms = cls._finite_milliseconds(state.get("observed_at_ms"))
+        if (
+            state_observed_at_ms is not None
+            and (
+                observed_at_ms > state_observed_at_ms
+                or state_observed_at_ms - observed_at_ms
+                > cls.M4_FURNACE_PLACE_MAX_SNAPSHOT_AGE_MS
+            )
+        ):
+            return None
+
+        player_position = cls._finite_position(snapshot.get("player_position"))
+        player_cell = cls._integral_block_position(snapshot.get("player_cell"))
+        current_player_position = state.get("position")
+        if not isinstance(current_player_position, dict):
+            current_player_position = state.get("player_position")
+        current_player_position = cls._finite_position(current_player_position)
+        if (
+            player_position is None
+            or player_cell is None
+            or current_player_position is None
+            or cls._finite_block_position(player_position) != player_cell
+            or cls._finite_block_position(current_player_position) != player_cell
+        ):
+            return None
+
+        normalized_candidates = []
+        seen_references = set()
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                return None
+            reference_block = candidate.get("reference_block")
+            target_block = candidate.get("target_block")
+            if (
+                not isinstance(reference_block, dict)
+                or not isinstance(target_block, dict)
+            ):
+                return None
+            reference = cls._integral_block_position(
+                reference_block.get("position"),
+            )
+            target = cls._integral_block_position(target_block.get("position"))
+            if (
+                reference is None
+                or target is None
+                or target != {
+                    "x": reference["x"],
+                    "y": reference["y"] + 1,
+                    "z": reference["z"],
+                }
+            ):
+                return None
+            reference_key = (
+                reference["x"],
+                reference["y"],
+                reference["z"],
+            )
+            if reference_key in seen_references:
+                return None
+            seen_references.add(reference_key)
+
+            reference_name = str(reference_block.get("name") or "").strip()
+            target_name = str(target_block.get("name") or "").strip()
+            for block in (reference_block, target_block):
+                if (
+                    block.get("machine_observed") is not True
+                    or block.get("machine_state_source")
+                    != "get_shelter_state.blocks"
+                    or block.get("grounding_policy_id")
+                    != cls.M4_FURNACE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+                ):
+                    return None
+            if (
+                reference_name not in cls.M4_FURNACE_REFERENCE_BLOCKS
+                or reference_block.get("solid") is not True
+                or str(reference_block.get("collision") or "") != "block"
+                or target_name not in cls.M4_REPLACEABLE_BLOCKS
+                or target_block.get("solid") is not False
+                or target_block.get("passable") is not True
+                or str(target_block.get("collision") or "") != "empty"
+            ):
+                return None
+            normalized_candidates.append({
+                "reference_position": reference,
+                "target_position": target,
+                "reference_block": dict(reference_block),
+                "target_block": dict(target_block),
+            })
+
+        return {
+            "snapshot": snapshot,
+            "observed_at_ms": observed_at_ms,
+            "player_cell": player_cell,
+            "player_position": player_position,
+            "current_player_position": current_player_position,
+            "candidates": normalized_candidates,
+        }
 
     @classmethod
     def _observed_blocks_at(cls, state: dict, target: dict) -> list[dict]:
