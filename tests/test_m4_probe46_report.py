@@ -12,6 +12,15 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _sealed_evidence_sha256(path: Path, expected: str) -> str:
+    payload = path.read_bytes()
+    direct = hashlib.sha256(payload).hexdigest()
+    if direct == expected:
+        return direct
+    assert b"\r" not in payload
+    return hashlib.sha256(payload.replace(b"\n", b"\r\n")).hexdigest()
+
+
 def _events(report: dict) -> list[dict]:
     events = []
     for line_number, line in enumerate(
@@ -41,7 +50,8 @@ def test_m4_probe46_report_binds_third_bm012_success():
     assert authorization["next_authorization"] is False
 
     for name, path in report["evidence_paths"].items():
-        assert _sha256(ROOT / path) == report["evidence_sha256"][name]
+        expected = report["evidence_sha256"][name]
+        assert _sealed_evidence_sha256(ROOT / path, expected) == expected
 
     assert report["frozen_controls"]["model"] == "grok-4.5"
     assert report["episode_result"]["completed"] is True

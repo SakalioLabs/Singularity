@@ -12,6 +12,15 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _sealed_evidence_sha256(path: Path, expected: str) -> str:
+    payload = path.read_bytes()
+    direct = hashlib.sha256(payload).hexdigest()
+    if direct == expected:
+        return direct
+    assert b"\r" not in payload
+    return hashlib.sha256(payload.replace(b"\n", b"\r\n")).hexdigest()
+
+
 def test_m4_probe31_report_binds_stone_pickaxe_switch_gap():
     report = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
     authorization = json.loads(AUTHORIZATION_PATH.read_text(encoding="utf-8"))
@@ -25,7 +34,8 @@ def test_m4_probe31_report_binds_stone_pickaxe_switch_gap():
     assert authorization["next_authorization"] is False
 
     for name, path in report["evidence_paths"].items():
-        assert _sha256(ROOT / path) == report["evidence_sha256"][name]
+        expected = report["evidence_sha256"][name]
+        assert _sealed_evidence_sha256(ROOT / path, expected) == expected
 
     events = [
         json.loads(line)

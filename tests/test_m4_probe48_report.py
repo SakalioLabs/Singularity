@@ -12,6 +12,15 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _sealed_evidence_sha256(path: Path, expected: str) -> str:
+    payload = path.read_bytes()
+    direct = hashlib.sha256(payload).hexdigest()
+    if direct == expected:
+        return direct
+    assert b"\r" not in payload
+    return hashlib.sha256(payload.replace(b"\n", b"\r\n")).hexdigest()
+
+
 def _events(report: dict) -> list[dict]:
     events = []
     raw_path = ROOT / report["evidence_paths"]["raw_session_jsonl"]
@@ -72,7 +81,8 @@ def test_m4_probe48_report_binds_first_eligible_bm013_success():
     assert report["authorization"]["consumed_level_name"] == report["level_name"]
 
     for name, path in report["evidence_paths"].items():
-        assert _sha256(ROOT / path) == report["evidence_sha256"][name]
+        expected = report["evidence_sha256"][name]
+        assert _sealed_evidence_sha256(ROOT / path, expected) == expected
 
     controls = report["frozen_controls"]
     assert controls["protocol_sha256"] == authorization["protocol_sha256"]

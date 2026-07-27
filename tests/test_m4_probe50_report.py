@@ -23,6 +23,15 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _sealed_evidence_sha256(path: Path, expected: str) -> str:
+    payload = path.read_bytes()
+    direct = hashlib.sha256(payload).hexdigest()
+    if direct == expected:
+        return direct
+    assert b"\r" not in payload
+    return hashlib.sha256(payload.replace(b"\n", b"\r\n")).hexdigest()
+
+
 def _events(report: dict) -> list[dict]:
     path = ROOT / report["evidence_paths"]["raw_session_jsonl"]
     return [
@@ -89,7 +98,7 @@ def test_probe50_hashes_and_eligibility_recompute_exactly():
     report = _json(REPORT_PATH)
     paths = report["evidence_paths"]
     for name, expected in report["evidence_sha256"].items():
-        assert _sha256(ROOT / paths[name]) == expected
+        assert _sealed_evidence_sha256(ROOT / paths[name], expected) == expected
 
     events = _json(ROOT / paths["session_json"])
     result = _json(ROOT / paths["result"])

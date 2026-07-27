@@ -711,9 +711,9 @@ def test_repository_capability_documents_match_canonical_report():
     assert m4["repeat_verified_benchmark_count"] == 3
     assert m4["missing_evidence"] == ["BM-014:needs_2_more_successes"]
     assert bm014["status"] == "live_observed"
-    assert bm014["attempts"] == 2
+    assert bm014["attempts"] == 3
     assert bm014["successes"] == 1
-    assert bm014["failures"] == 1
+    assert bm014["failures"] == 2
     assert bm014["repeats_required"] == 3
     assert report["summary"]["live_observed_phase_count"] == 1
     assert report["summary"]["failing_phase_count"] == 2

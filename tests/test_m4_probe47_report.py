@@ -14,6 +14,15 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _sealed_evidence_sha256(path: Path, expected: str) -> str:
+    payload = path.read_bytes()
+    direct = hashlib.sha256(payload).hexdigest()
+    if direct == expected:
+        return direct
+    assert b"\r" not in payload
+    return hashlib.sha256(payload.replace(b"\n", b"\r\n")).hexdigest()
+
+
 def _report_origin_commit() -> str:
     return subprocess.check_output(
         [
@@ -67,11 +76,13 @@ def test_m4_probe47_report_binds_first_bm013_failure():
     assert report["authorization"]["maximum_retry_count"] == 0
 
     for name, path in report["evidence_paths"].items():
-        assert _sha256(ROOT / path) == report["evidence_sha256"][name]
+        expected = report["evidence_sha256"][name]
+        assert _sealed_evidence_sha256(ROOT / path, expected) == expected
 
     blocker = report["pre_episode_infrastructure_blocker"]
     for name, path in blocker["evidence_paths"].items():
-        assert _sha256(ROOT / path) == blocker["evidence_sha256"][name]
+        expected = blocker["evidence_sha256"][name]
+        assert _sealed_evidence_sha256(ROOT / path, expected) == expected
 
     controls = report["frozen_controls"]
     assert controls["task_contract_id"] == "m4-bm013-smelting-contract-v1"

@@ -1,0 +1,88 @@
+{
+  "type": "m4_clean_checkout_evidence_portability_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-27T11:34:53Z",
+  "profile": "m4-fixed-v1",
+  "classification": "offline_evidence_portability_remediation",
+  "counts_toward_bm014_success": false,
+  "counts_toward_capability": false,
+  "parent_binding": {
+    "commit": "8e0c90e2c66dff991995d51026c546fda4c4f888",
+    "tree": "8377e7fb851420488e52deaf64f31591d0b0af26"
+  },
+  "parent_clean_checkout_survey": {
+    "report_bound_raw_file_count": 240,
+    "missing_file_count": 40,
+    "line_ending_only_mismatch_count": 64,
+    "exact_byte_match_count": 136,
+    "partition_complete": true,
+    "line_ending_only_definition": "raw bytes differ but CRLF/LF-normalized bytes match",
+    "missing_probe_numbers": [
+      25,
+      26,
+      27,
+      28
+    ],
+    "missing_episode_count": 4,
+    "missing_episode_file_count": 40
+  },
+  "remediation": {
+    "archive_format": "tar.gz",
+    "archive_count": 4,
+    "archived_regular_file_count": 40,
+    "files_per_archive": 10,
+    "archive_member_path_rule": "report evidence path with the logs/benchmarks/m4/ prefix removed",
+    "git_attributes_path": ".gitattributes",
+    "git_attributes_rule": "logs/benchmarks/m4/** binary",
+    "expected_portable_report_binding_count": 240,
+    "archives": [
+      {
+        "probe_number": 25,
+        "episode_id": "m4_episode_20260726_115303_5694249f",
+        "report_path": "workspace/evals/m4_probe25_report.json",
+        "archive_path": "workspace/evals/m4_raw_archives/m4_episode_20260726_115303_5694249f.tar.gz",
+        "archive_sha256": "f4a2550f10cc927c4e1fe7caf809a1b2a27d18240979ba0a8c6682c71f69f298",
+        "regular_file_member_count": 10
+      },
+      {
+        "probe_number": 26,
+        "episode_id": "m4_episode_20260726_120631_3bec6052",
+        "report_path": "workspace/evals/m4_probe26_report.json",
+        "archive_path": "workspace/evals/m4_raw_archives/m4_episode_20260726_120631_3bec6052.tar.gz",
+        "archive_sha256": "f6b60f2c6a7271aa83d8f375e387b856ab8f81349f2eabee071a3f8a534e3885",
+        "regular_file_member_count": 10
+      },
+      {
+        "probe_number": 27,
+        "episode_id": "m4_episode_20260726_125337_3b868472",
+        "report_path": "workspace/evals/m4_probe27_report.json",
+        "archive_path": "workspace/evals/m4_raw_archives/m4_episode_20260726_125337_3b868472.tar.gz",
+        "archive_sha256": "fb178529d492041c9c330e80e7044d2434141ffcc08338b6b559e73bfdd397ac",
+        "regular_file_member_count": 10
+      },
+      {
+        "probe_number": 28,
+        "episode_id": "m4_episode_20260726_132127_03a86405",
+        "report_path": "workspace/evals/m4_probe28_report.json",
+        "archive_path": "workspace/evals/m4_raw_archives/m4_episode_20260726_132127_03a86405.tar.gz",
+        "archive_sha256": "b37f2fc86138eafce94d392abdd9e5250e02ab25c1a32f7988d0eae8ab38ee45",
+        "regular_file_member_count": 10
+      }
+    ]
+  },
+  "unchanged_controls": {
+    "behavior_source_changed": false,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "retry_policy_changed": false,
+    "live_episode_executed": false
+  },
+  "decision": {
+    "portability_repair_complete_offline": true,
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false,
+    "bm014_status": "live_observed",
+    "m4_status": "live_observed",
+    "probe_54_authorized": false
+  }
+}

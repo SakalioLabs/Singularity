@@ -16,6 +16,15 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _sealed_evidence_sha256(path: Path, expected: str) -> str:
+    payload = path.read_bytes()
+    direct = hashlib.sha256(payload).hexdigest()
+    if direct == expected:
+        return direct
+    assert b"\r" not in payload
+    return hashlib.sha256(payload.replace(b"\n", b"\r\n")).hexdigest()
+
+
 def _git_sha256(commit: str, path: str) -> str:
     payload = subprocess.check_output(
         ["git", "show", f"{commit}:{Path(path).as_posix()}"],
@@ -31,7 +40,8 @@ def test_probe31_stone_pickaxe_audit_binds_immutable_evidence():
     report = json.loads(report_path.read_text(encoding="utf-8"))
 
     assert _sha256(report_path) == audit["evidence_sha256"]["probe_report"]
-    assert _sha256(raw_path) == audit["evidence_sha256"]["raw_session_jsonl"]
+    expected = audit["evidence_sha256"]["raw_session_jsonl"]
+    assert _sealed_evidence_sha256(raw_path, expected) == expected
     assert audit["probe_number"] == report["probe_number"] == 31
     assert audit["episode_id"] == report["episode_id"]
     assert audit["first_unrecovered_transition"] == report["principal_blocker"]
