@@ -4,14 +4,14 @@
 
 - Protocol: `m4-fixed-v1`
 - Protocol SHA-256: `d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6`
-- Current target: BM-014 Craft iron pickaxe; Probe 51 is retained as the first ineligible attempt, while Probe 52 is the first independently eligible success after consuming its separately pushed authorization
+- Current target: BM-014 Craft iron pickaxe; Probe 51 is retained as the first ineligible attempt, Probe 52 is the first independently eligible success, and one parent-bound Probe 53 authorization is issued pending its own commit/push/readback
 - Current-target eligible successes: 1/3
 - Completed targets: BM-011 Survive the first night, BM-012 Get 8 iron resources, and BM-013 Smelt iron ingot, all `repeat_verified` at 3/3
 - Current-protocol live episodes: 28 (Probes 25–52); the Python 3.13.5 pre-autonomous startup correction had no `autonomous_start` and counts as neither an episode, attempt, nor retry
 - M4 canonical status: `live_observed` but incomplete
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 47 remains retained ineligible BM-013 failure evidence. Probes 48, 49, and 50 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031, 238.140, and 271.922 seconds. Probe 50 evidence is pushed at `84b9817d` / tree `adf8399f`, so BM-013 is `repeat_verified` at 3/3. BM-014 is the only remaining M4 target. Its exact stick verifier repair is pushed at `ee6f972a` / tree `39b4c719`. Probe 51 is a retained 67/74 failure at the furnace-placement frontier, and its bounded follow-up is pushed at `0d97e431` / tree `cae2c41d` with 30/30 exact blob readback. Probe 52's separate authorization is pushed/read back at `8e2c04a2` / `63a6d0fb`; the resulting episode passed 74/74 checks in 286.188 seconds and advances BM-014 to 1/3. Probe 53 remains unauthorized pending Probe 52 evidence push/readback.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 47 remains retained ineligible BM-013 failure evidence. Probes 48, 49, and 50 independently passed `m4-inventory-purpose-clause-grounding-v1`, produced `iron_ingot:1`, and passed all 74 eligibility checks in 257.031, 238.140, and 271.922 seconds. Probe 50 evidence is pushed at `84b9817d` / tree `adf8399f`, so BM-013 is `repeat_verified` at 3/3. BM-014 is the only remaining M4 target. Its exact stick verifier repair is pushed at `ee6f972a` / tree `39b4c719`. Probe 51 is a retained 67/74 failure at the furnace-placement frontier, and its bounded follow-up is pushed at `0d97e431` / tree `cae2c41d` with 30/30 exact blob readback. Probe 52's separate authorization is pushed/read back at `8e2c04a2` / `63a6d0fb`; the resulting episode passed 74/74 checks in 286.188 seconds and advances BM-014 to 1/3. Its 22-blob evidence transaction is pushed/read back at `0563d3f6` / `e95669ee`; a separate Probe 53 authorization is now issued pending its own commit/push/readback, while Probe 54 remains unauthorized.
 
 The Probe 51 offline repair accepts furnace placement only from a complete 36-cell `get_shelter_state.blocks` envelope no more than five seconds old, with bound snapshot/current player cells and an exact integral same-snapshot solid-reference/replaceable-target pair. Selection and ActionVerifier union snapshot-time and current player collision cells. Missing, forged, stale, player-drifted, malformed, or non-matching evidence fails closed; the old `target:not_observed_occupied` furnace acceptance is unavailable. If no valid candidate remains, `_think` returns `furnace_place_local_snapshot_unavailable` with zero actions before learned-skill, BM-012, LLM/rule, or visual-grounding fallback. BM-012 generic placement and the Node mutation-time gates remain unchanged.
 
@@ -133,7 +133,7 @@ The Probe 51 offline repair accepts furnace placement only from a complete 36-ce
 - Scope: exactly one fresh BM-014 episode, fixed 300-second task limit, skills off, one Planner transport attempt, zero client/proxy retries, and credential/provider preflight before Minecraft
 - Prior state: one BM-014 attempt, one failure, zero eligible successes, and three eligible successes still required; authorization issuance adds no episode, attempt, success, or capability credit
 - Authorization transaction: pushed and independently read back at commit `8e2c04a203e51b5152345be34d10b858ae7aa83f`, tree `63a6d0fb0600d6bb5ad1b9812134e65287265304`, with all six intended blobs matching
-- Consumption state: the issued artifact was `consumed=false`; the retained artifact is now `consumed=true` after exact consumption by episode `m4_episode_20260727_153112_f28d04d6`, session `08c52d82-068`, at `autonomous_start` line 2 / monotonic `887786.718`. No automatic retry occurred, and Probe 53 remains unauthorized
+- Consumption state: the issued artifact was `consumed=false`; the retained artifact is now `consumed=true` after exact consumption by episode `m4_episode_20260727_153112_f28d04d6`, session `08c52d82-068`, at `autonomous_start` line 2 / monotonic `887786.718`. No automatic retry occurred, and Probe 53 was unauthorized when the retained Probe 52 artifact was frozen
 
 ## Probe 52 Eligible BM-014 Success
 
@@ -143,7 +143,16 @@ The Probe 51 offline repair accepts furnace placement only from a complete 36-ce
 - Furnace repair live exercise: the first same-snapshot air target at `(118,123,-49)` reached a recoverable five-second backend block-update timeout; next-cycle selection used another exact machine-proven air target at `(118,123,-51)`, and line 940 placement succeeded before line 952 smelted three ingots
 - Survival and controls: health/food `20/20`, connected, zero deaths/respawns, skills off, one real schema-valid Planner call, zero client/proxy retries, no post-deadline execution
 - Decision: counts as BM-014 attempt 2 and eligible success 1; retained totals are one failure and one success, BM-014/M4 become `live_observed` but are not repeat-verified, and two more independently eligible successes remain required
-- Transaction gate: Probe 52 evidence/report must be committed, pushed, and independently read back before any separately parent-bound Probe 53 authorization can be issued
+- Evidence transaction: the 22 intended blobs are committed, pushed, and independently read back at `0563d3f68571c71fab240b1c3d59efe19a98a02a`, tree `e95669ee9f5b74dc15da0bcbf5183fc7cc63b148`; a clean detached checkout passes all 20 Probe 52 authorization/report/repair/capability tests and all ten raw evidence hashes
+
+## Probe 53 One-Use Authorization
+
+- Parent gate: Probe 52 evidence commit `0563d3f68571c71fab240b1c3d59efe19a98a02a`, tree `e95669ee9f5b74dc15da0bcbf5183fc7cc63b148`, with 22/22 exact remote blob readback and a clean-checkout test pass
+- Authorization: `workspace/evals/m4_probe53_authorization.json`, SHA-256 `5ceee6d5d9e0868bf5397693a27a0dec263f590b658661e4a1bd9e06df21b6f6`; its four fail-closed tests pass from `tests/test_m4_probe53_authorization.py`, SHA-256 `5f85759375a6d7bb2b8a00d668755edbb3699eabc0aa8a478fb5c44035e741e1`
+- Scope: exactly one fresh BM-014 episode, fixed 300-second task limit, skills off, one Planner transport attempt, zero client/proxy retries, and credential/provider preflight before Minecraft
+- Prior state: two BM-014 attempts, one retained failure, one independently eligible success, and two eligible successes still required; authorization issuance adds no episode, attempt, success, or capability credit
+- Consumption state: `consumed=false`; no consumption fields exist, no automatic retry is permitted, and Probe 54 remains unauthorized
+- Transaction gate: Probe 53 remains unusable until this authorization and its test/docs/ledger are committed separately, pushed, and independently read back
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 
