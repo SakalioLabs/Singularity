@@ -193,6 +193,7 @@ class GoalVerifier:
     """Verify common Minecraft goals from observation and action evidence."""
 
     EQUIPMENT_POLICY_ID = "m4-machine-equipment-goal-verifier-v1"
+    INVENTORY_PURPOSE_POLICY_ID = "m4-inventory-purpose-clause-grounding-v1"
 
     LOG_ITEMS = [
         "oak_log", "birch_log", "spruce_log", "jungle_log", "acacia_log",
@@ -396,25 +397,52 @@ class GoalVerifier:
         goal_lower = goal.lower()
         if not any(token in goal_lower for token in self.INVENTORY_GOAL_VERBS):
             return []
+        binding_goal_lower, purpose_scoped = self._inventory_binding_clause(goal_lower)
 
         checks = []
         seen = set()
         for anchor in self._ranked_anchors():
             if anchor.canonical in seen:
                 continue
-            if anchor.canonical == "crafting_table" and self._phrase_in_goal("place", goal_lower):
+            if anchor.canonical == "crafting_table" and self._phrase_in_goal("place", binding_goal_lower):
                 continue
-            if not self._anchor_verb_matches(anchor, goal_lower):
+            if not self._anchor_verb_matches(anchor, binding_goal_lower):
                 continue
-            if not any(self._phrase_in_goal(alias, goal_lower) for alias in anchor.phrases):
+            if not any(self._phrase_in_goal(alias, binding_goal_lower) for alias in anchor.phrases):
                 continue
             if anchor.canonical == "oak_log" and any(item in seen for item in ("wooden_pickaxe", "planks")):
                 continue
-            required = self._required_count(goal_lower, anchor.canonical)
+            required = self._required_count(binding_goal_lower, anchor.canonical)
             have = self._inventory_count(observation.get("inventory", {}), anchor.inventory_items)
             checks.append(self._inventory_check(goal, anchor, have, required, recent_actions=recent_actions))
             seen.add(anchor.canonical)
+        if purpose_scoped and checks:
+            checks[0].evidence.append(
+                "inventory criteria bind only to the primary objective before a non-action purpose phrase"
+            )
+            checks[0].matched_rules.extend([
+                "intent:inventory_purpose_phrase",
+                f"policy:{self.INVENTORY_PURPOSE_POLICY_ID}",
+            ])
         return checks
+
+    def _inventory_binding_clause(self, goal_lower: str) -> tuple[str, bool]:
+        """Exclude non-binding purpose phrases from inventory criteria."""
+        for marker in self.PURPOSE_MARKER_PATTERN.finditer(goal_lower):
+            primary_clause = goal_lower[:marker.start()].strip(" ,;:")
+            purpose_clause = goal_lower[marker.end():].strip()
+            if not primary_clause or not purpose_clause:
+                continue
+            if any(token in purpose_clause for token in ("shelter", "nightfall")):
+                continue
+            if any(
+                self._phrase_in_goal(verb, purpose_clause)
+                for verb in self.INVENTORY_GOAL_VERBS
+            ):
+                continue
+            if self._has_grounded_inventory_intent(primary_clause):
+                return primary_clause, True
+        return goal_lower, False
 
     def _equipment_check(
         self,

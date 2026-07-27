@@ -7,10 +7,10 @@
 - Current target: BM-013 Smelt iron ingot
 - Current-target eligible successes: 0/3
 - Completed targets: BM-011 Survive the first night and BM-012 Get 8 iron resources, both `repeat_verified` at 3/3
-- M4 canonical status: `partial`
+- M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 45 live-validated the candidate-bound crafting-table repair and completed BM-012 in 256.391 seconds. Probe 46 independently replicated the full chain in 353.687 seconds, mined eight distinct machine-proven iron-ore sources, preserved health and hunger at 20, and passed all 74 eligibility checks with 246.313 seconds remaining. BM-012 is therefore `repeat_verified` at 3/3. BM-013 is the current gate at 0/3, and Probe 47 has one parent-bound, zero-retry authorization in `workspace/evals/m4_probe47_authorization.json`; BM-014 remains sequentially locked until BM-013 reaches 3/3.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 37 and Probes 39 through 44 remain retained ineligible history, while Probes 38, 45, and 46 are three independently eligible BM-012 successes. The active provider is `grok-4.5` through the OpenAI-compatible endpoint under revision `m4-grok-4.5-openai-compatible-v2`; old OpenCode references are retained historical evidence and are not used by new M4 probes. Probe 38 completed the full empty-hand-to-wooden-pickaxe-to-stone-pickaxe loop and mined eight machine-proven iron-ore source blocks into `raw_iron:8`. Probe 45 live-validated the candidate-bound crafting-table repair and completed BM-012 in 256.391 seconds. Probe 46 independently replicated the full chain in 353.687 seconds, mined eight distinct machine-proven iron-ore sources, preserved health and hunger at 20, and passed all 74 eligibility checks with 246.313 seconds remaining. BM-012 is therefore `repeat_verified` at 3/3. BM-013 is the current gate at 0/3. Probe 47 consumed its one-use authorization and remained ineligible after a successful wooden-pickaxe action because GoalVerifier bound the non-binding purpose phrase `for cobblestone acquisition` as an additional inventory target. The bounded inventory-purpose-clause repair is now the offline gate; Probe 48 is not authorized until the failure evidence and repair are committed and pushed. BM-014 remains sequentially locked until BM-013 reaches 3/3.
 
 ## Probe 44 Machine-Step Place Candidate Drift Gap
 
@@ -49,11 +49,16 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 
 ## Probe 47 BM-013 Smelting Gate
 
-- Target: fresh empty-inventory BM-013 episode, `Smelt an iron ingot`, fixed 300-second deadline
-- Authorization: `workspace/evals/m4_probe47_authorization.json`, bound to pushed implementation commit `abb0c8fa` and tree `6a098daf`; exactly one episode, zero retries, skills off
-- Offline gate: production bridge smelting, BM-013 task provenance, machine-step toolchain, terminal source-action verification, and fail-closed controls pass focused Python and Node regressions
-- Required live proof: at least one successful `smelt` source action consumes episode-acquired `raw_iron` with allowed coal/charcoal fuel, produces a positive `iron_ingot` inventory delta, preserves uninterrupted survival, and terminates as `terminal_task_verified`
-- Capability decision before run: BM-013 remains 0/3 and M4 remains `partial`
+- Episode: `m4_episode_20260727_084831_5ac6bdd9`
+- Session: `93f55c2d-94a`
+- Authorization: `workspace/evals/m4_probe47_authorization.json` consumed exactly once at `autonomous_start` line 2 / monotonic `863540.828`; zero retries, skills off, no Probe 48 authorization
+- Result: ineligible BM-013 failure, `episode_deadline`, `300.015s`, 66/74 independent checks; BM-013 remains 0/3
+- Progression: all 14 actions succeeded; the episode acquired six logs, crafted and placed a crafting table, and crafted a wooden pickaxe at JSONL line 212 / autonomous-episode elapsed `68.812s`
+- Earliest blocker: the real schema-valid Planner returned `complete` at lines 217-218, but GoalVerifier line 221 added `cobblestone:1` from the purpose phrase and rejected the machine-confirmed wooden pickaxe with `need 1 cobblestone, have 0`
+- Downstream: the same false verification occurred 29 times, 31 later Planner calls produced no action, and the post-Planner deadline gate suppressed new goals/actions at line 459
+- Lifecycle: terminal health/hunger `20/20`, bot connected, zero deaths and respawns, uninterrupted survival
+- Offline repair: `m4-inventory-purpose-clause-grounding-v1` limits inventory anchors and quantity binding to a grounded primary clause when a `for/to/so that` purpose clause has no explicit inventory action, while preserving explicit multi-action goals
+- Evidence: `workspace/evals/m4_probe47_report.json`; Probe 48 stays locked until this retained failure and its bounded repair are committed and pushed
 
 ## Probe 29 Failed Bound Nearby-Block Repair
 

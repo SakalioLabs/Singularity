@@ -314,6 +314,133 @@ def test_skill_description_cannot_add_unrelated_inventory_targets():
     print("PASS: skill descriptions cannot contaminate unrelated inventory verification targets")
 
 
+def _purpose_clause_contaminated_verifier():
+    skills = SkillLibrary(persist=False)
+    for item in ("cobblestone", "stone_pickaxe", "furnace"):
+        skills.create_skill(
+            f"learned_acquire_{item}",
+            f"Fixed-protocol candidate for Acquire {item}",
+            "{}",
+            postconditions={"inventory": {item: 1}},
+        )
+    return GoalVerifier(skill_library=skills, use_knowledge_base=False)
+
+
+def test_probe47_wooden_pickaxe_purpose_clause_replay():
+    verifier = _purpose_clause_contaminated_verifier()
+    post_inventory = {
+        "oak_log": 3,
+        "stick": 2,
+        "oak_planks": 3,
+        "wooden_pickaxe": 1,
+    }
+
+    result = verifier.verify(
+        "Craft a wooden pickaxe for cobblestone acquisition",
+        {"inventory": post_inventory},
+        recent_actions=[{
+            "action": {
+                "type": "craft",
+                "parameters": {"item": "wooden_pickaxe", "count": 1},
+            },
+            "result": {"success": True},
+            "before_observation": {
+                "inventory": {
+                    "oak_log": 3,
+                    "stick": 4,
+                    "oak_planks": 6,
+                },
+            },
+            "after_observation": {"inventory": post_inventory},
+        }],
+    )
+
+    assert result.achieved
+    assert result.target_inventory == {"wooden_pickaxe": 1}
+    assert "inventory:wooden_pickaxe" in result.matched_rules
+    assert "inventory:cobblestone" not in result.matched_rules
+    assert "intent:inventory_purpose_phrase" in result.matched_rules
+    assert (
+        f"policy:{GoalVerifier.INVENTORY_PURPOSE_POLICY_ID}"
+        in result.matched_rules
+    )
+    assert result.inventory_delta == {"wooden_pickaxe": 1}
+    print("PASS: Probe 47 wooden-pickaxe replay ignores the non-binding cobblestone purpose")
+
+
+def test_probe47_wooden_pickaxe_purpose_clause_still_requires_pickaxe():
+    verifier = _purpose_clause_contaminated_verifier()
+
+    result = verifier.verify(
+        "Craft a wooden pickaxe for cobblestone acquisition",
+        {"inventory": {"cobblestone": 1}},
+    )
+
+    assert not result.achieved
+    assert result.target_inventory == {"wooden_pickaxe": 1}
+    assert result.missing == ["need 1 wooden_pickaxe, have 0"]
+    assert "inventory:cobblestone" not in result.matched_rules
+    assert "intent:inventory_purpose_phrase" in result.matched_rules
+    print("PASS: purpose scoping does not relax the wooden-pickaxe postcondition")
+
+
+def test_bm013_cobblestone_goal_ignores_tool_and_furnace_purpose_nouns():
+    verifier = _purpose_clause_contaminated_verifier()
+
+    result = verifier.verify(
+        "Gather 11 cobblestone for stone pickaxe and furnace",
+        {"inventory": {"cobblestone": 11}},
+    )
+
+    assert result.achieved
+    assert result.target_inventory == {"cobblestone": 11}
+    assert result.matched_rules == [
+        "inventory:cobblestone",
+        "anchor:manual",
+        "intent:inventory_purpose_phrase",
+        f"policy:{GoalVerifier.INVENTORY_PURPOSE_POLICY_ID}",
+    ]
+    print("PASS: BM-013 cobblestone title binds only its primary inventory target")
+
+
+def test_inventory_purpose_scoping_preserves_explicit_followup_actions():
+    verifier = _purpose_clause_contaminated_verifier()
+    to_goal = "Gather coal to craft a wooden pickaxe"
+    for inventory, missing_item in (
+        ({"coal": 1}, "wooden_pickaxe"),
+        ({"wooden_pickaxe": 1}, "coal"),
+    ):
+        result = verifier.verify(to_goal, {"inventory": inventory})
+        assert not result.achieved
+        assert set(result.target_inventory) == {"coal", "wooden_pickaxe"}
+        assert any(missing_item in missing for missing in result.missing)
+        assert "intent:inventory_purpose_phrase" not in result.matched_rules
+
+    cases = [
+        (
+            "Gather coal for tool progression, then craft a wooden pickaxe",
+            {"coal": 1},
+            "wooden_pickaxe",
+        ),
+        (
+            "Craft a wooden pickaxe, then gather cobblestone",
+            {"wooden_pickaxe": 1},
+            "cobblestone",
+        ),
+    ]
+
+    for goal, inventory, missing_item in cases:
+        result = verifier.verify(goal, {"inventory": inventory})
+        assert not result.achieved
+        assert set(result.target_inventory) == {
+            "coal" if "coal" in goal else "cobblestone",
+            "wooden_pickaxe",
+        }
+        assert any(missing_item in missing for missing in result.missing)
+        assert "intent:inventory_purpose_phrase" not in result.matched_rules
+    print("PASS: explicit to/then inventory actions remain binding multi-target goals")
+
+
 def test_goal_verifier_records_inventory_delta_evidence():
     verifier = GoalVerifier()
 

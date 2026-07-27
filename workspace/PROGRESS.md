@@ -2,7 +2,7 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `partial` and incomplete: BM-011 and BM-012 are both repeat_verified at 3/3, with BM-012 closed by eligible Probes 38, 45, and 46 after forty-three retained failed attempts; BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing` and incomplete: BM-011 and BM-012 are both repeat_verified at 3/3, with BM-012 closed by eligible Probes 38, 45, and 46 after forty-three retained failed attempts; BM-013 is 0/3 after retained ineligible Probe 47, and BM-014 remains locked. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-The active provider is `grok-4.5` through the pinned OpenAI-compatible endpoint and revision `m4-grok-4.5-openai-compatible-v2`; its multimodal capability is available at the provider boundary, while the frozen M4 Planner continues to consume structured text observations. Probes 38, 45, and 46 are independently eligible BM-012 successes. Probe 46 repeated the full empty-hand-to-stone-pickaxe chain, mined eight distinct machine-proven `iron_ore` sources into terminal `raw_iron:8`, preserved health/hunger at 20, passed all 74 eligibility checks, and finished in 353.687 seconds with 246.313 seconds remaining. BM-012 is now `repeat_verified` at 3/3 after forty-three retained ineligible attempts. BM-013 is the active 0/3 gate, and Probe 47 has one parent-bound, zero-retry authorization for the pushed smelting/toolchain implementation; BM-014 remains locked and M4 remains incomplete.
+The active provider is `grok-4.5` through the pinned OpenAI-compatible endpoint and revision `m4-grok-4.5-openai-compatible-v2`; its multimodal capability is available at the provider boundary, while the frozen M4 Planner continues to consume structured text observations. Probes 38, 45, and 46 are independently eligible BM-012 successes, closing BM-012 as `repeat_verified` at 3/3 after forty-three retained ineligible attempts. Probe 47 was the first BM-013 live episode: all 14 actions succeeded through `wooden_pickaxe:1`, but GoalVerifier misbound `for cobblestone acquisition` as an additional inventory requirement and rejected the completed wooden-pickaxe goal 29 times until the 300.015-second deadline. It passed 66/74 checks, preserved health/hunger at 20 with zero deaths, and grants no BM-013 credit. The bounded inventory-purpose-clause repair is offline-only pending evidence/repair push; Probe 48 is not authorized, BM-014 remains locked, and M4 remains incomplete.
 
 ## Stone Pickaxe Skill Convergence
 
@@ -95,7 +95,7 @@ Current report outcome:
 | M1 | `repeat_verified` |
 | M2 | `repeat_verified` |
 | M3 | `repeat_verified` |
-| M4 | `partial` |
+| M4 | `failing` |
 | M5 | `failing` |
 | M6 | `failing` |
 | M7 | `not_run` |

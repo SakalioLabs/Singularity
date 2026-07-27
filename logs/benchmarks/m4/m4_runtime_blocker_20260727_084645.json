@@ -1,0 +1,11 @@
+{
+    "type":  "m4_runtime_blocker",
+    "schema_version":  1,
+    "generated_at_utc":  "2026-07-27T00:47:16.5071222Z",
+    "task_id":  "BM-013",
+    "episode_id":  "m4_episode_20260727_084645_025cea58",
+    "level_name":  "m4_episode_20260727_084645_025cea58_bm013",
+    "blocker":  "M4 episode runner failed with exit code 1.",
+    "evidence_dir":  "logs\\benchmarks\\m4\\m4_episode_20260727_084645_025cea58",
+    "counts_toward_task_success":  false
+}
