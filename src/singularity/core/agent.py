@@ -129,6 +129,12 @@ M4_BM012_MACHINE_STEP_PLACE_CANDIDATE_BOUND_POLICY_ID = (
 )
 M4_BM012_RESOURCE_SCAN_POLICY_ID = "m4-bm012-resource-scan-v1"
 M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID = "m4-bm012-raw-iron-dig-stone-pickaxe-v1"
+M4_BM013_BM014_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID = (
+    "m4-bm013-bm014-toolchain-machine-step-plan-v1"
+)
+M4_BM013_BM014_LLM_GATE_POLICY_ID = (
+    "m4-bm013-bm014-real-schema-valid-llm-gate-v1"
+)
 M4_BM012_RESOURCE_SCAN_RADIUS = 16
 M4_BM012_RESOURCE_SCAN_NAMES = frozenset({
     "iron_ore",
@@ -160,6 +166,18 @@ M4_BM012_RAW_IRON_STONE_PICKAXE_DIG_BLOCKS = frozenset({
 M4_BM012_PLANK_ITEMS = tuple(GoalVerifier.PLANK_ITEMS)
 M4_BM012_COBBLESTONE_SOURCE_BLOCKS = frozenset({
     "stone",
+})
+M4_BM013_BM014_COAL_SOURCE_BLOCKS = frozenset({
+    "coal_ore",
+    "deepslate_coal_ore",
+})
+M4_BM013_BM014_COAL_SEARCH_BLOCKS = frozenset({
+    "stone",
+    "deepslate",
+    "andesite",
+    "granite",
+    "diorite",
+    "tuff",
 })
 M4_BM012_PLACE_REFERENCE_BLOCKS = frozenset({
     "grass_block",
@@ -370,6 +388,8 @@ class Agent:
         self._m4_hostile_safe_state_fingerprint = ""
         self._m4_player_lifecycle_fingerprint = ""
         self._m4_player_lifecycle_identity = ()
+        self._m4_real_schema_valid_llm_call_observed = False
+        self._m4_real_schema_valid_llm_call_evidence = {}
         self._m4_shelter_relocation = {}
         self._active_runtime_interrupt: dict = {}
         self._runtime_interrupt_sequence = 0
@@ -2159,7 +2179,7 @@ class Agent:
             from singularity.evaluation.m4_protocol import PROTOCOL as M4_PROTOCOL
 
             m4_task_id = str(task_id or "BM-011").upper().strip()
-            if m4_task_id not in {"BM-011", "BM-012"} or not task_spec(m4_task_id):
+            if m4_task_id not in {"BM-011", "BM-012", "BM-013", "BM-014"} or not task_spec(m4_task_id):
                 raise ValueError(f"unsupported strict-M4 task: {m4_task_id or '<missing>'}")
             m4_task_contract = task_contract(m4_task_id)
             deadline_policy = dict(M4_PROTOCOL["deadline_policy"])
@@ -2188,6 +2208,8 @@ class Agent:
             self._m4_hostile_safe_state_fingerprint = ""
             self._m4_player_lifecycle_fingerprint = ""
             self._m4_player_lifecycle_identity = ()
+            self._m4_real_schema_valid_llm_call_observed = False
+            self._m4_real_schema_valid_llm_call_evidence = {}
             self._m4_shelter_relocation = {}
             self._active_runtime_interrupt = {}
             self._runtime_interrupt_sequence = 0
@@ -2279,8 +2301,19 @@ class Agent:
                 episode_termination_reason = "max_total_cycles"
                 break
             # Generate next goal from world state
-            if strict_m4 and m4_task_id == "BM-012":
-                generated_goal = self.goal_generator.next_goal(observation, task_id=m4_task_id)
+            if strict_m4:
+                try:
+                    generated_goal = self.goal_generator.next_goal(
+                        observation,
+                        task_id=m4_task_id,
+                    )
+                except TypeError as exc:
+                    # Keep narrow compatibility with injected legacy test/custom
+                    # generators while every production GoalGenerator call is
+                    # task-bound.
+                    if "task_id" not in str(exc):
+                        raise
+                    generated_goal = self.goal_generator.next_goal(observation)
             else:
                 generated_goal = self.goal_generator.next_goal(observation)
             self._set_autonomous_goal_decision(
@@ -2805,17 +2838,33 @@ class Agent:
                     observation,
                 )
                 if terminal_verification:
-                    terminal_event = (
-                        "terminal_resource_verification"
-                        if m4_task_id == "BM-012"
-                        else "terminal_survival_verification"
-                    )
+                    terminal_event = "terminal_survival_verification"
+                    terminal_reason = "terminal_survival_verified"
+                    if m4_task_id != "BM-011":
+                        contract = (
+                            task_contract(m4_task_id)
+                            if m4_task_id in {"BM-012", "BM-013", "BM-014"}
+                            else {}
+                        )
+                        verifier = (
+                            contract.get("terminal_verifier", {})
+                            if isinstance(contract, dict)
+                            else {}
+                        )
+                        terminal_event = str(
+                            verifier.get("event_type")
+                            or (
+                                "terminal_resource_verification"
+                                if m4_task_id == "BM-012"
+                                else "terminal_task_verification"
+                            )
+                        )
+                        terminal_reason = str(
+                            verifier.get("termination_reason")
+                            or "terminal_task_verified"
+                        )
                     self.session_logger.log(terminal_event, terminal_verification)
-                    episode_termination_reason = (
-                        "terminal_task_verified"
-                        if m4_task_id == "BM-012"
-                        else "terminal_survival_verified"
-                    )
+                    episode_termination_reason = terminal_reason
                 outcome = {
                     "goal": goal,
                     "cycles": cycle,
@@ -2981,6 +3030,8 @@ class Agent:
             return self._m4_terminal_survival_verification(goal, observation)
         if task_id == "BM-012":
             return self._m4_terminal_resource_verification(goal, observation)
+        if task_id in {"BM-013", "BM-014"}:
+            return self._m4_terminal_crafting_verification(task_id, goal, observation)
         return {}
 
     def _m4_terminal_resource_verification(self, goal: str, observation: dict) -> dict:
@@ -3066,6 +3117,118 @@ class Agent:
             "player_lifecycle_verifier_id": lifecycle.get("verifier_id", ""),
             "player_lifecycle": dict(lifecycle),
         }
+
+    def _m4_terminal_crafting_verification(
+        self,
+        task_id: str,
+        goal: str,
+        observation: dict,
+    ) -> dict:
+        """Bind BM-013/014 completion to live inventory, connection and lifecycle."""
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return {}
+        normalized_task_id = str(task_id or "").upper().strip()
+        if normalized_task_id not in {"BM-013", "BM-014"}:
+            return {}
+        if str(getattr(self, "_m4_task_id", "") or "") != normalized_task_id:
+            return {}
+        contract = task_contract(normalized_task_id)
+        if not isinstance(contract, dict) or not contract:
+            return {}
+        terminal_goal = " ".join(str(contract.get("terminal_goal") or "").split()).casefold()
+        observed_goal = " ".join(str(goal or "").split()).casefold()
+        if not terminal_goal or observed_goal != terminal_goal:
+            return {}
+
+        verifier = (
+            contract.get("terminal_verifier", {})
+            if isinstance(contract.get("terminal_verifier"), dict)
+            else {}
+        )
+        criteria = (
+            contract.get("success_criteria", {}).get("inventory", {})
+            if isinstance(contract.get("success_criteria"), dict)
+            else {}
+        )
+        if not isinstance(criteria, dict) or not criteria:
+            return {}
+        output_item = str(verifier.get("output_item") or next(iter(criteria), "")).strip()
+        if not output_item or output_item not in criteria:
+            return {}
+        required_count = self._m4_inventory_count(criteria.get(output_item))
+        state = observation if isinstance(observation, dict) else {}
+        inventory = state.get("inventory", {}) if isinstance(state.get("inventory"), dict) else {}
+        observed_count = self._m4_inventory_count(inventory.get(output_item))
+        if required_count < 1 or observed_count < required_count:
+            return {}
+
+        health = state.get("health", 0)
+        health_valid = bool(
+            isinstance(health, (int, float))
+            and not isinstance(health, bool)
+            and math.isfinite(float(health))
+            and float(health) > float(verifier.get("terminal_health_min_exclusive", 0))
+        )
+        bot = getattr(self, "bot", None)
+        bot_connected = bool(getattr(bot, "_connected", False))
+        lifecycle = state.get("player_lifecycle", {})
+        get_lifecycle = getattr(bot, "get_player_lifecycle", None)
+        if callable(get_lifecycle):
+            try:
+                current_lifecycle = get_lifecycle()
+                lifecycle = current_lifecycle if isinstance(current_lifecycle, dict) else {}
+            except Exception:
+                lifecycle = {}
+        lifecycle = lifecycle if isinstance(lifecycle, dict) else {}
+        lifecycle_report = validate_m4_player_lifecycle(
+            lifecycle,
+            episode_id=str(lifecycle.get("episode_id") or ""),
+            require_uninterrupted=True,
+        )
+        expected_lifecycle_identity = tuple(
+            getattr(self, "_m4_player_lifecycle_identity", ()) or ()
+        )
+        lifecycle_identity = self._m4_lifecycle_identity(lifecycle)
+        if not (
+            health_valid
+            and bot_connected
+            and lifecycle_report["passed"]
+            and expected_lifecycle_identity
+            and lifecycle_identity == expected_lifecycle_identity
+        ):
+            return {}
+
+        furnace = self._m4_bm012_nearest_block(state, {"furnace"})
+        payload = {
+            "type": str(verifier.get("payload_type") or "m4_terminal_task_verification"),
+            "schema_version": 1,
+            "passed": True,
+            "source": str(verifier.get("source") or "machine_state"),
+            "task_id": normalized_task_id,
+            "goal": str(goal),
+            "verifier_id": str(verifier.get("id") or ""),
+            "task_contract_id": str(contract.get("id") or ""),
+            "task_contract_sha256": task_contract_sha256(normalized_task_id),
+            "output_item": output_item,
+            "qualifying_item": output_item,
+            "required_count": required_count,
+            "observed_count": observed_count,
+            "required_action_type": str(verifier.get("required_action_type") or ""),
+            "inventory": dict(inventory),
+            "health": health,
+            "food": state.get("hunger"),
+            "bot_connected": True,
+            "uninterrupted_survival": True,
+            "player_lifecycle_verifier_id": lifecycle.get("verifier_id", ""),
+            "player_lifecycle": dict(lifecycle),
+        }
+        if furnace:
+            payload["observed_furnace"] = {
+                "name": "furnace",
+                "position": dict(furnace.get("position", {})),
+                "source": str(furnace.get("source") or ""),
+            }
+        return payload
 
     def _m4_terminal_survival_verification(self, goal: str, observation: dict) -> dict:
         if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
@@ -3157,6 +3320,12 @@ class Agent:
                 "actions": [],
                 "deadline_suppressed": True,
             }
+        machine_step_plan = self._m4_bm013_bm014_toolchain_machine_step_plan(
+            observation,
+            goal,
+        )
+        if machine_step_plan is not None:
+            return self._apply_visual_action_grounding(machine_step_plan, observation, goal)
         self._active_skill_advisory_hint = ""
         root_required = bool(getattr(self.config, "require_llm_root_plan", False))
         learned_plan = None
@@ -3309,10 +3478,21 @@ class Agent:
             knowledge_correction_context = self._knowledge_correction_context(goal, observation)
             task_precondition_context = self._task_precondition_context(goal, observation)
             skill_memory_context = self._skill_memory_context(goal, observation)
+            m4_llm_gate_pending = bool(
+                str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1"
+                and str(getattr(self, "_m4_task_id", "") or "") in {"BM-013", "BM-014"}
+                and not bool(
+                    getattr(self, "_m4_real_schema_valid_llm_call_observed", False)
+                )
+            )
             previous_defer = getattr(self, "_defer_plan_cache_miss", False)
             self._defer_plan_cache_miss = True
             try:
-                cached_plan = self._plan_cache_lookup(goal, observation)
+                cached_plan = (
+                    None
+                    if m4_llm_gate_pending
+                    else self._plan_cache_lookup(goal, observation)
+                )
             finally:
                 self._defer_plan_cache_miss = previous_defer
             if cached_plan:
@@ -3344,6 +3524,28 @@ class Agent:
             planner_evidence = dict(getattr(self.planner, "last_call_evidence", {}) or {})
             if planner_evidence:
                 self.session_logger.log("llm_planner_call", planner_evidence)
+                if (
+                    str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1"
+                    and str(getattr(self, "_m4_task_id", "") or "") in {"BM-013", "BM-014"}
+                    and planner_evidence.get("real_llm_call") is True
+                    and planner_evidence.get("schema_valid") is True
+                ):
+                    self._m4_real_schema_valid_llm_call_observed = True
+                    self._m4_real_schema_valid_llm_call_evidence = {
+                        "policy_id": M4_BM013_BM014_LLM_GATE_POLICY_ID,
+                        "call_id": str(planner_evidence.get("call_id") or ""),
+                        "plan_kind": str(planner_evidence.get("plan_kind") or ""),
+                        "provider": str(
+                            (planner_evidence.get("provider_metadata") or {}).get("provider")
+                            or ""
+                        ),
+                        "model": str(
+                            (planner_evidence.get("provider_metadata") or {}).get("model")
+                            or ""
+                        ),
+                        "real_llm_call": True,
+                        "schema_valid": True,
+                    }
                 if (
                     planner_evidence.get("plan_kind") == "root"
                     and planner_evidence.get("real_llm_call") is True
@@ -8540,6 +8742,8 @@ class Agent:
                 continue
 
         text = str(fallback_goal or "").lower()
+        if self._m4_bm013_bm014_exact_progression_goal(text):
+            return True
         if self._m4_bm012_exact_progression_goal(text):
             return True
         if self._m4_bm012_stone_pickaxe_station_access_goal(observation, text):
@@ -8552,6 +8756,30 @@ class Agent:
             time_of_day = 0
         night_goal = any(token in text for token in ("shelter", "nightfall", "wait for dawn"))
         return night_goal and (time_of_day >= 10000 or time_of_day < 1000)
+
+    def _m4_bm013_bm014_exact_progression_goal(self, goal_lower: str) -> bool:
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+            or str(getattr(self, "_m4_task_id", "") or "")
+            not in {"BM-013", "BM-014"}
+        ):
+            return False
+        return str(goal_lower or "").startswith((
+            "gather 6 oak logs for iron-tool progression",
+            "craft a crafting table for iron-tool progression",
+            "craft a wooden pickaxe for cobblestone acquisition",
+            "gather 11 cobblestone for stone pickaxe and furnace",
+            "craft a stone pickaxe for ore acquisition",
+            "collect 1 raw iron from iron ore with the stone pickaxe",
+            "collect 3 raw iron from iron ore with the stone pickaxe",
+            "collect 1 coal for furnace fuel with the stone pickaxe",
+            "craft a furnace for iron smelting",
+            "smelt an iron ingot",
+            "smelt 3 iron ingots from 3 raw iron using coal",
+            "ensure 2 sticks for crafting the iron pickaxe",
+            "craft an iron pickaxe",
+        ))
 
     def _m4_bm012_exact_progression_goal(self, goal_lower: str) -> bool:
         if (
@@ -8595,6 +8823,206 @@ class Agent:
             "place the crafting table nearby for stone-pickaxe crafting",
             "gather 1 log for stone-pickaxe crafting table access",
         ))
+
+    def _m4_bm013_bm014_toolchain_machine_step_plan(
+        self,
+        observation: dict,
+        goal: str,
+    ) -> dict | None:
+        """Select one exact BM-013/014 step after a real schema-valid LLM call."""
+        task_id = str(getattr(self, "_m4_task_id", "") or "")
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+            or task_id not in {"BM-013", "BM-014"}
+            or not bool(
+                getattr(self, "_m4_real_schema_valid_llm_call_observed", False)
+            )
+        ):
+            return None
+        observation = observation if isinstance(observation, dict) else {}
+        goal_text = str(goal or "").strip()
+        goal_lower = goal_text.lower()
+        if not goal_text or not self._m4_bm013_bm014_exact_progression_goal(goal_lower):
+            return None
+        inventory = (
+            observation.get("inventory", {})
+            if isinstance(observation.get("inventory"), dict)
+            else {}
+        )
+
+        action = None
+        reason = ""
+        target = {}
+        if goal_lower.startswith("gather 6 oak logs"):
+            action, reason, target = self._m4_bm012_oak_log_action(observation)
+        elif goal_lower.startswith("craft a crafting table"):
+            action, reason, target = self._m4_bm012_crafting_table_access_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith("craft a wooden pickaxe"):
+            action, reason, target = self._m4_bm012_wooden_pickaxe_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith("gather 11 cobblestone"):
+            action, reason, target = self._m4_bm012_cobblestone_action(
+                observation,
+                inventory,
+                required_count=11,
+            )
+        elif goal_lower.startswith("craft a stone pickaxe"):
+            action, reason, target = self._m4_bm012_stone_pickaxe_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith(("collect 1 raw iron", "collect 3 raw iron")):
+            action, reason, target = self._m4_bm012_raw_iron_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith("collect 1 coal"):
+            action, reason, target = self._m4_bm013_bm014_coal_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith("craft a furnace"):
+            action, reason, target = self._m4_bm013_bm014_furnace_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith(("smelt an iron ingot", "smelt 3 iron ingots")):
+            action, reason, target = self._m4_bm013_bm014_smelt_action(
+                observation,
+                inventory,
+                count=1 if task_id == "BM-013" else 3,
+            )
+        elif goal_lower.startswith("ensure 2 sticks"):
+            action, reason, target = self._m4_bm013_bm014_stick_action(
+                observation,
+                inventory,
+            )
+        elif goal_lower.startswith("craft an iron pickaxe"):
+            action, reason, target = self._m4_bm013_bm014_iron_pickaxe_action(
+                observation,
+                inventory,
+            )
+        if not isinstance(action, dict) or not isinstance(action.get("parameters"), dict):
+            return None
+
+        gate_evidence = dict(
+            getattr(self, "_m4_real_schema_valid_llm_call_evidence", {}) or {}
+        )
+        evidence = {
+            "schema_version": 1,
+            "policy_id": M4_BM013_BM014_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID,
+            "goal": goal_text,
+            "reason": reason,
+            "action": copy.deepcopy(action),
+            "target": copy.deepcopy(target),
+            "inventory": self._m4_bm012_toolchain_inventory_snapshot(observation),
+            "held_item": self._m4_bm012_held_item(observation),
+            "table_nearby": self._m4_bm012_nearby_block_present(
+                observation,
+                "crafting_table",
+            ),
+            "furnace_nearby": self._m4_bm012_nearby_block_present(
+                observation,
+                "furnace",
+            ),
+            "place_feedback_policy_id": (
+                M4_BM012_MACHINE_STEP_PLACE_FEEDBACK_POLICY_ID
+                if action.get("type") == "place"
+                else None
+            ),
+            "place_candidate_bound_policy_id": (
+                M4_BM012_MACHINE_STEP_PLACE_CANDIDATE_BOUND_POLICY_ID
+                if action.get("type") == "place"
+                else None
+            ),
+            "llm_gate_policy_id": M4_BM013_BM014_LLM_GATE_POLICY_ID,
+            "qualifying_llm_call_id": str(gate_evidence.get("call_id") or ""),
+            "real_llm_call_observed": gate_evidence.get("real_llm_call") is True,
+            "schema_valid_llm_call_observed": gate_evidence.get("schema_valid") is True,
+            "task_id": task_id,
+            "source": "machine_state_post_llm_gate",
+        }
+        fingerprint_payload = {
+            "policy_id": evidence["policy_id"],
+            "task_id": task_id,
+            "goal": goal_text,
+            "reason": reason,
+            "action": action,
+            "target": target,
+            "inventory": evidence["inventory"],
+            "qualifying_llm_call_id": evidence["qualifying_llm_call_id"],
+        }
+        evidence["machine_step_fingerprint"] = hashlib.sha256(
+            json.dumps(
+                fingerprint_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+                default=str,
+            ).encode("utf-8")
+        ).hexdigest()
+        self._record_m4_bm013_bm014_toolchain_machine_step_plan(evidence)
+
+        call_id = f"machine-step-{uuid.uuid4().hex[:16]}"
+        planner = getattr(self, "planner", None)
+        root_plan_id = str(getattr(planner, "_active_root_plan_id", "") or "")
+        if not root_plan_id:
+            root_plan_id = f"root-{uuid.uuid4().hex[:16]}"
+        parent_call_id = str(getattr(planner, "_last_call_id", "") or "")
+        if not parent_call_id:
+            parent_call_id = evidence["qualifying_llm_call_id"]
+        return {
+            "schema_version": "m4-machine-step-plan-v1",
+            "plan_kind": "machine_step",
+            "goal": goal_text,
+            "status": "planning",
+            "reasoning": (
+                f"{task_id} machine-state step selected after the required "
+                f"schema-valid LLM call: {reason}"
+            ),
+            "subtasks": [],
+            "actions": [action],
+            "root_plan_id": root_plan_id,
+            "planner_call_id": call_id,
+            "parent_planner_call_id": parent_call_id,
+            "schema_validation": {
+                "type": "m4_machine_step_plan_validation",
+                "schema_version": 1,
+                "policy_id": M4_BM013_BM014_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID,
+                "passed": True,
+                "expected_goal": goal_text,
+                "expected_kind": "machine_step",
+                "status": "planning",
+                "action_count": 1,
+                "completion_requires_machine_verifier": True,
+                "issues": [],
+            },
+            "planner_evidence": {
+                "type": "m4_machine_step_planner_call",
+                "schema_version": 1,
+                "planner_id": (
+                    f"m4-{task_id.lower()}-toolchain-machine-step-planner-v1"
+                ),
+                "protocol": "m4-fixed-v1",
+                "policy_id": M4_BM013_BM014_TOOLCHAIN_MACHINE_STEP_PLAN_POLICY_ID,
+                "call_id": call_id,
+                "plan_kind": "machine_step",
+                "root_plan_id": root_plan_id,
+                "parent_call_id": parent_call_id,
+                "goal": goal_text,
+                "real_llm_call": False,
+                "schema_valid": True,
+                "llm_gate_policy_id": M4_BM013_BM014_LLM_GATE_POLICY_ID,
+                "qualifying_llm_call_id": evidence["qualifying_llm_call_id"],
+                "machine_step_fingerprint": evidence["machine_step_fingerprint"],
+            },
+            "machine_step_plan": evidence,
+        }
 
     def _m4_bm012_toolchain_machine_step_plan(
         self,
@@ -8837,8 +9265,10 @@ class Agent:
         self,
         observation: dict,
         inventory: dict,
+        required_count: int = 3,
     ) -> tuple[dict | None, str, dict]:
-        if self._m4_inventory_count(inventory.get("cobblestone")) >= 3:
+        required_count = max(1, int(required_count))
+        if self._m4_inventory_count(inventory.get("cobblestone")) >= required_count:
             return None, "cobblestone_requirement_already_satisfied", {}
         if self._m4_inventory_count(inventory.get("wooden_pickaxe")) < 1:
             return None, "wooden_pickaxe_missing_for_cobblestone", {}
@@ -8986,6 +9416,210 @@ class Agent:
             target,
         )
 
+    def _m4_bm013_bm014_coal_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        if (
+            self._m4_inventory_count(inventory.get("coal"))
+            + self._m4_inventory_count(inventory.get("charcoal"))
+            >= 1
+        ):
+            return None, "furnace_fuel_already_present", {}
+        if self._m4_inventory_count(inventory.get("stone_pickaxe")) < 1:
+            return None, "stone_pickaxe_missing_for_coal", {}
+        if self._m4_bm012_held_item(observation) != "stone_pickaxe":
+            return (
+                {"type": "equip", "parameters": {"item": "stone_pickaxe"}},
+                "equip_stone_pickaxe_for_coal",
+                {},
+            )
+        target = self._m4_bm012_nearest_block(
+            observation,
+            M4_BM013_BM014_COAL_SOURCE_BLOCKS,
+        )
+        if not target:
+            target = self._m4_bm012_nearest_block(
+                observation,
+                M4_BM013_BM014_COAL_SEARCH_BLOCKS,
+            )
+            if not target:
+                return None, "coal_search_block_missing", {}
+            position = dict(target["position"])
+            if self._m4_bm012_block_distance(target) > 4.5:
+                return (
+                    {"type": "move_to", "parameters": position},
+                    "move_to_coal_search_block",
+                    target,
+                )
+            return (
+                {
+                    "type": "dig",
+                    "parameters": {
+                        **position,
+                        "block": str(target.get("name") or "stone"),
+                        "preferred_tool": "stone_pickaxe",
+                        "preferred_tool_policy_id": M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID,
+                    },
+                },
+                "dig_search_block_for_coal_with_stone_pickaxe",
+                target,
+            )
+        position = dict(target["position"])
+        if self._m4_bm012_block_distance(target) > 4.5:
+            return (
+                {"type": "move_to", "parameters": position},
+                "move_to_verified_coal_ore",
+                target,
+            )
+        return (
+            {
+                "type": "dig",
+                "parameters": {
+                    **position,
+                    "block": str(target.get("name") or "coal_ore"),
+                    "preferred_tool": "stone_pickaxe",
+                    "preferred_tool_policy_id": M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID,
+                },
+            },
+            "dig_verified_coal_ore_with_stone_pickaxe",
+            target,
+        )
+
+    def _m4_bm013_bm014_furnace_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        if self._m4_inventory_count(inventory.get("furnace")) >= 1:
+            return None, "furnace_already_owned", {}
+        if not self._m4_bm012_nearby_block_present(observation, "crafting_table"):
+            return self._m4_bm012_crafting_table_access_action(
+                observation,
+                inventory,
+            )
+        if self._m4_inventory_count(inventory.get("cobblestone")) < 8:
+            action, reason, target = self._m4_bm012_cobblestone_action(
+                observation,
+                inventory,
+                required_count=8,
+            )
+            if action is not None:
+                return action, f"{reason}_for_furnace", target
+            return None, "furnace_cobblestone_missing", {}
+        return (
+            {"type": "craft", "parameters": {"item": "furnace", "count": 1}},
+            "craft_furnace_from_verified_cobblestone",
+            {},
+        )
+
+    def _m4_bm013_bm014_smelt_action(
+        self,
+        observation: dict,
+        inventory: dict,
+        *,
+        count: int,
+    ) -> tuple[dict | None, str, dict]:
+        count = 1 if int(count) <= 1 else 3
+        if self._m4_inventory_count(inventory.get("iron_ingot")) >= count:
+            return None, "iron_ingot_target_already_satisfied", {}
+        if self._m4_inventory_count(inventory.get("raw_iron")) < count:
+            return None, "raw_iron_missing_for_exact_smelt_batch", {}
+        fuel = ""
+        if self._m4_inventory_count(inventory.get("coal")) >= 1:
+            fuel = "coal"
+        elif self._m4_inventory_count(inventory.get("charcoal")) >= 1:
+            fuel = "charcoal"
+        if not fuel:
+            return None, "furnace_fuel_missing_for_exact_smelt_batch", {}
+
+        furnace = self._m4_bm012_nearest_block(observation, {"furnace"})
+        if not furnace:
+            if self._m4_inventory_count(inventory.get("furnace")) >= 1:
+                reference = self._m4_bm012_place_reference(
+                    observation,
+                    item="furnace",
+                )
+                if not reference:
+                    return None, "furnace_place_reference_missing", {}
+                return (
+                    {
+                        "type": "place",
+                        "parameters": {"item": "furnace", **reference},
+                    },
+                    "place_owned_furnace_at_verified_reference",
+                    {"reference_position": reference, "item": "furnace"},
+                )
+            return self._m4_bm013_bm014_furnace_action(observation, inventory)
+
+        position = dict(furnace["position"])
+        if self._m4_bm012_block_distance(furnace) > 4.5:
+            return (
+                {"type": "move_to", "parameters": position},
+                "move_to_observed_furnace",
+                furnace,
+            )
+        return (
+            {
+                "type": "smelt",
+                "parameters": {
+                    "item": "iron_ingot",
+                    "input": "raw_iron",
+                    "fuel": fuel,
+                    "count": count,
+                    **position,
+                    "timeout_ms": 35000,
+                },
+            },
+            f"smelt_exact_{count}_iron_ingot_batch_at_observed_furnace",
+            furnace,
+        )
+
+    def _m4_bm013_bm014_stick_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        if self._m4_inventory_count(inventory.get("stick")) >= 2:
+            return None, "iron_pickaxe_sticks_already_present", {}
+        planks = self._m4_bm012_count_any(inventory, M4_BM012_PLANK_ITEMS)
+        if planks >= 2:
+            return (
+                {"type": "craft", "parameters": {"item": "stick", "count": 4}},
+                "craft_sticks_for_iron_pickaxe",
+                {},
+            )
+        if self._m4_inventory_count(inventory.get("oak_log")) >= 1:
+            return (
+                {"type": "craft", "parameters": {"item": "oak_planks", "count": 4}},
+                "craft_oak_planks_for_iron_pickaxe_sticks",
+                {},
+            )
+        return None, "iron_pickaxe_stick_materials_missing", {}
+
+    def _m4_bm013_bm014_iron_pickaxe_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        if self._m4_inventory_count(inventory.get("iron_pickaxe")) >= 1:
+            return None, "iron_pickaxe_already_present", {}
+        if not self._m4_bm012_nearby_block_present(observation, "crafting_table"):
+            return self._m4_bm012_crafting_table_access_action(
+                observation,
+                inventory,
+            )
+        if self._m4_inventory_count(inventory.get("iron_ingot")) < 3:
+            return None, "iron_pickaxe_ingots_missing", {}
+        if self._m4_inventory_count(inventory.get("stick")) < 2:
+            return self._m4_bm013_bm014_stick_action(observation, inventory)
+        return (
+            {"type": "craft", "parameters": {"item": "iron_pickaxe", "count": 1}},
+            "craft_iron_pickaxe_from_verified_materials",
+            {},
+        )
+
     def _m4_bm012_oak_log_action(self, observation: dict) -> tuple[dict | None, str, dict]:
         target = self._m4_bm012_nearest_block(observation, {"oak_log"})
         if not target:
@@ -9014,6 +9648,18 @@ class Agent:
                     dict(evidence),
                     source="machine_step_planner",
                 )
+            except Exception:
+                pass
+
+    def _record_m4_bm013_bm014_toolchain_machine_step_plan(self, evidence: dict):
+        event_type = "m4_bm013_bm014_toolchain_machine_step_plan"
+        log = getattr(getattr(self, "session_logger", None), "log", None)
+        if callable(log):
+            log(event_type, dict(evidence))
+        writer = getattr(self, "_write_memory_episode", None)
+        if callable(writer):
+            try:
+                writer(event_type, dict(evidence), source="machine_step_planner")
             except Exception:
                 pass
 
@@ -9173,9 +9819,13 @@ class Agent:
             values.append(block_value - player_value)
         return math.sqrt(sum(value * value for value in values))
 
-    def _m4_bm012_place_reference(self, observation: dict) -> dict:
+    def _m4_bm012_place_reference(
+        self,
+        observation: dict,
+        item: str = "crafting_table",
+    ) -> dict:
         feedback_candidates, failed_references, failed_targets = self._m4_bm012_recent_place_feedback(
-            "crafting_table",
+            str(item or "crafting_table"),
         )
         candidates = feedback_candidates + self._m4_bm012_place_reference_candidates(
             observation,
@@ -9555,6 +10205,12 @@ class Agent:
             "wooden_pickaxe",
             "cobblestone",
             "stone_pickaxe",
+            "raw_iron",
+            "coal",
+            "charcoal",
+            "furnace",
+            "iron_ingot",
+            "iron_pickaxe",
         )
         return {
             key: self._m4_inventory_count(inventory.get(key))
@@ -9611,11 +10267,12 @@ class Agent:
         return hinted
 
     def _attach_m4_bm012_resource_scan(self, observation: dict) -> dict:
-        """Attach a bounded machine resource scan for the BM-012 iron frontier."""
+        """Attach the shared bounded M4 ore/log resource scan."""
         if (
             str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
             != "m4-fixed-v1"
-            or str(getattr(self, "_m4_task_id", "") or "") != "BM-012"
+            or str(getattr(self, "_m4_task_id", "") or "")
+            not in {"BM-012", "BM-013", "BM-014"}
             or not isinstance(observation, dict)
         ):
             return observation
@@ -9625,7 +10282,7 @@ class Agent:
         try:
             raw_blocks = reader(radius=M4_BM012_RESOURCE_SCAN_RADIUS)
         except Exception as exc:
-            logger.warning(f"M4 BM-012 resource scan failed: {type(exc).__name__}: {exc}")
+            logger.warning(f"M4 resource scan failed: {type(exc).__name__}: {exc}")
             return observation
         if not isinstance(raw_blocks, list):
             return observation

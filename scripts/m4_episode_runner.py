@@ -15,7 +15,12 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from singularity.bot.bridge import BotBridge
 from singularity.core.agent import Agent
 from singularity.core.config import BotConfig, Config, LLMConfig
-from singularity.evaluation.m4_protocol import PROTOCOL, evaluate_m4_episode
+from singularity.evaluation.m4_protocol import (
+    M4_TASK_IDS,
+    PROTOCOL,
+    evaluate_m4_episode,
+    task_contract,
+)
 from singularity.evaluation.m4_runtime import (
     attach_m4_evidence_hashes,
     build_m4_episode_progress_report,
@@ -27,7 +32,7 @@ from singularity.evaluation.m4_runtime import (
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run exactly one m4-fixed-v1 episode")
-    parser.add_argument("--task-id", default="BM-011", choices=["BM-011", "BM-012"])
+    parser.add_argument("--task-id", default="BM-011", choices=sorted(M4_TASK_IDS))
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=25565)
     parser.add_argument("--username", default="Singularity")
@@ -211,8 +216,11 @@ def run_episode(args, output_dir: Path, preflight: dict):
         "player_lifecycle": terminal_observation.get("player_lifecycle", {}),
         "bot_connected": bot_connected,
     }
+    contract = task_contract(args.task_id)
     expected_termination = (
-        "terminal_survival_verified" if args.task_id == "BM-011" else "terminal_task_verified"
+        str(contract.get("terminal_verifier", {}).get("termination_reason") or "")
+        if contract
+        else "terminal_survival_verified"
     )
     result = {
         "type": "m4_episode_result",

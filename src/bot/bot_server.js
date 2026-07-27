@@ -61,8 +61,48 @@ const M4_BM012_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'dat
 const M4_BM012_PROTOCOL_BYTES = fs.readFileSync(M4_BM012_PROTOCOL_PATH);
 const M4_BM012_PROTOCOL = JSON.parse(M4_BM012_PROTOCOL_BYTES.toString('utf8'));
 const M4_BM012_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M4_BM012_PROTOCOL_BYTES).digest('hex');
+const M4_BM013_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm4_bm013_protocol.json');
+const M4_BM013_PROTOCOL_BYTES = fs.readFileSync(M4_BM013_PROTOCOL_PATH);
+const M4_BM013_PROTOCOL = JSON.parse(M4_BM013_PROTOCOL_BYTES.toString('utf8'));
+const M4_BM013_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M4_BM013_PROTOCOL_BYTES).digest('hex');
+const M4_BM014_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm4_bm014_protocol.json');
+const M4_BM014_PROTOCOL_BYTES = fs.readFileSync(M4_BM014_PROTOCOL_PATH);
+const M4_BM014_PROTOCOL = JSON.parse(M4_BM014_PROTOCOL_BYTES.toString('utf8'));
+const M4_BM014_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M4_BM014_PROTOCOL_BYTES).digest('hex');
+const M4_TASK_CONTRACTS = new Map([
+    [
+        M4_BM012_PROTOCOL.task_id,
+        { contract: M4_BM012_PROTOCOL, contractSha256: M4_BM012_PROTOCOL_SHA256 },
+    ],
+    [
+        M4_BM013_PROTOCOL.task_id,
+        { contract: M4_BM013_PROTOCOL, contractSha256: M4_BM013_PROTOCOL_SHA256 },
+    ],
+    [
+        M4_BM014_PROTOCOL.task_id,
+        { contract: M4_BM014_PROTOCOL, contractSha256: M4_BM014_PROTOCOL_SHA256 },
+    ],
+]);
 const M4_PATHFINDER_RECOVERY_POLICY_ID = 'm4-deadline-bound-pathfinder-readiness-v1';
 const CRAFT_INVENTORY_REFRESH_POLICY_ID = 'crafting-table-window-items-inventory-refresh-v1';
+const SMELT_OUTPUT_SETTLEMENT_POLICY_ID = 'furnace-output-inventory-settlement-v1';
+const SMELT_INPUT_BY_OUTPUT = new Map([
+    ['iron_ingot', 'raw_iron'],
+]);
+const SMELT_FUEL_CAPACITY = new Map([
+    ['coal', 8],
+    ['charcoal', 8],
+]);
+
+function smeltPolicyStatus() {
+    return {
+        policy_id: SMELT_OUTPUT_SETTLEMENT_POLICY_ID,
+        max_attempts: 1,
+        automatic_retry: false,
+        supported_outputs: Array.from(SMELT_INPUT_BY_OUTPUT.keys()).sort(),
+        supported_fuels: Array.from(SMELT_FUEL_CAPACITY.keys()).sort(),
+    };
+}
 const HOSTILE_ENTITY_NAMES = new Set([
     'blaze', 'bogged', 'breeze', 'cave_spider', 'creeper', 'drowned', 'elder_guardian',
     'endermite', 'evoker', 'ghast', 'guardian', 'hoglin', 'husk', 'magma_cube',
@@ -784,10 +824,7 @@ function benchmarkTaskBundle(taskId = '') {
 
 function m4TaskContract(taskId = '') {
     const normalized = String(taskId || '').trim().toUpperCase();
-    if (normalized === M4_BM012_PROTOCOL.task_id) {
-        return { contract: M4_BM012_PROTOCOL, contractSha256: M4_BM012_PROTOCOL_SHA256 };
-    }
-    return { contract: null, contractSha256: '' };
+    return M4_TASK_CONTRACTS.get(normalized) || { contract: null, contractSha256: '' };
 }
 
 function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '') {
@@ -797,11 +834,12 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '')
     const serverBrand = String(activeBot?.game?.serverBrand || '');
     const observedMinecraftVersion = String(activeBot?.version || '');
     const errors = [];
-    if (
-        protocol.profile === M4_PROTOCOL.profile
-        && M4_BM012_PROTOCOL.base_protocol_sha256 !== M4_PROTOCOL_SHA256
-    ) {
-        errors.push('BM-012 task contract is not bound to the active M4 base protocol');
+    if (protocol.profile === M4_PROTOCOL.profile) {
+        for (const [taskId, { contract }] of M4_TASK_CONTRACTS) {
+            if (contract.base_protocol_sha256 !== M4_PROTOCOL_SHA256) {
+                errors.push(`${taskId} task contract is not bound to the active M4 base protocol`);
+            }
+        }
     }
     if (runtime.seed !== protocol.world_seed) {
         errors.push(`benchmark seed ${runtime.seed || '<missing>'} does not match ${protocol.world_seed}`);
@@ -880,12 +918,17 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '')
             python: protocol.runtime_versions?.python || '',
         },
         tasks: protocol.tasks,
-        task_contracts: protocol.profile === M4_PROTOCOL.profile ? {
-            [M4_BM012_PROTOCOL.task_id]: {
-                id: M4_BM012_PROTOCOL.id,
-                sha256: M4_BM012_PROTOCOL_SHA256,
-            },
-        } : {},
+        task_contracts: protocol.profile === M4_PROTOCOL.profile
+            ? Object.fromEntries(
+                Array.from(
+                    M4_TASK_CONTRACTS,
+                    ([taskId, { contract, contractSha256 }]) => [
+                        taskId,
+                        { id: contract.id, sha256: contractSha256 },
+                    ],
+                ),
+            )
+            : {},
         reset_supported: true,
         validation_supported: protocol.profile !== M1_PROTOCOL.profile,
         errors,
@@ -3026,6 +3069,285 @@ function createCraftHandler(
     };
 }
 
+function createSmeltHandler(
+    getState = () => ({ bot, botReady }),
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+) {
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        const base = {
+            success: false,
+            policy_id: SMELT_OUTPUT_SETTLEMENT_POLICY_ID,
+            smelt_attempts: 1,
+            smelt_retry_count: 0,
+            automatic_retry: false,
+        };
+        if (!state.botReady || !activeBot?.entity?.position) {
+            return {
+                ...base,
+                error: 'bot is not ready to smelt',
+                fail_closed_before_furnace_open: true,
+            };
+        }
+
+        const outputName = String(params.item || '').trim();
+        const expectedInput = SMELT_INPUT_BY_OUTPUT.get(outputName) || '';
+        const inputName = String(params.input || expectedInput).trim();
+        const fuelName = String(params.fuel || 'coal').trim();
+        const count = Number(params.count ?? 1);
+        if (!outputName || !expectedInput) {
+            return {
+                ...base,
+                error: `Unsupported smelting output ${outputName || '<missing>'}`,
+                fail_closed_before_furnace_open: true,
+            };
+        }
+        if (inputName !== expectedInput) {
+            return {
+                ...base,
+                error: `${outputName} requires input ${expectedInput}`,
+                fail_closed_before_furnace_open: true,
+            };
+        }
+        if (!Number.isInteger(count) || count < 1 || count > 64) {
+            return {
+                ...base,
+                error: 'smelt count must be an integer from 1 to 64',
+                fail_closed_before_furnace_open: true,
+            };
+        }
+        const fuelCapacity = SMELT_FUEL_CAPACITY.get(fuelName);
+        if (!fuelCapacity) {
+            return {
+                ...base,
+                error: `Unsupported smelting fuel ${fuelName || '<missing>'}`,
+                fail_closed_before_furnace_open: true,
+            };
+        }
+        const fuelCount = Math.ceil(count / fuelCapacity);
+        const inventoryBefore = inventoryCounts(activeBot);
+        if (Number(inventoryBefore[inputName] || 0) < count) {
+            return {
+                ...base,
+                error: `Insufficient ${inputName}: need ${count}`,
+                inventory_before: inventoryBefore,
+                required_input_count: count,
+                fail_closed_before_furnace_open: true,
+            };
+        }
+        if (Number(inventoryBefore[fuelName] || 0) < fuelCount) {
+            return {
+                ...base,
+                error: `Insufficient ${fuelName}: need ${fuelCount}`,
+                inventory_before: inventoryBefore,
+                required_fuel_count: fuelCount,
+                fail_closed_before_furnace_open: true,
+            };
+        }
+
+        const mcData = require('minecraft-data')(activeBot.version);
+        const outputItem = mcData.itemsByName[outputName];
+        const inputItem = mcData.itemsByName[inputName];
+        const fuelItem = mcData.itemsByName[fuelName];
+        const furnaceType = mcData.blocksByName.furnace?.id;
+        if (!outputItem || !inputItem || !fuelItem || furnaceType == null) {
+            return {
+                ...base,
+                error: 'smelting item or furnace metadata unavailable',
+                fail_closed_before_furnace_open: true,
+            };
+        }
+
+        const coordinateKeys = ['x', 'y', 'z'];
+        const hasAnyCoordinate = coordinateKeys.some((key) => params[key] != null);
+        const hasExactCoordinates = coordinateKeys.every(
+            (key) => Number.isInteger(Number(params[key])),
+        );
+        if (hasAnyCoordinate && !hasExactCoordinates) {
+            return {
+                ...base,
+                error: 'smelt furnace coordinates must include integer x, y, and z',
+                fail_closed_before_furnace_open: true,
+            };
+        }
+        const furnaceBlock = hasExactCoordinates
+            ? activeBot.blockAt(new Vec3(Number(params.x), Number(params.y), Number(params.z)))
+            : activeBot.findBlock({ matching: furnaceType, maxDistance: 5 });
+        if (!furnaceBlock || furnaceBlock.name !== 'furnace') {
+            return {
+                ...base,
+                error: 'No observed furnace within interaction range',
+                inventory_before: inventoryBefore,
+                fail_closed_before_furnace_open: true,
+            };
+        }
+        if (typeof activeBot.openFurnace !== 'function') {
+            return {
+                ...base,
+                error: 'furnace API unavailable',
+                furnace_position: compactPosition(furnaceBlock.position),
+                fail_closed_before_furnace_open: true,
+            };
+        }
+
+        let furnace = null;
+        let result = null;
+        try {
+            furnace = await activeBot.openFurnace(furnaceBlock);
+            const occupied = {
+                input: furnace.inputItem?.() || null,
+                fuel: furnace.fuelItem?.() || null,
+                output: furnace.outputItem?.() || null,
+            };
+            if (occupied.input || occupied.fuel || occupied.output) {
+                result = {
+                    ...base,
+                    error: 'furnace slots must be empty before an audited smelt',
+                    furnace_position: compactPosition(furnaceBlock.position),
+                    furnace_slots_empty: false,
+                    fail_closed_before_furnace_mutation: true,
+                };
+                return result;
+            }
+
+            await furnace.putInput(inputItem.id, null, count);
+            await furnace.putFuel(fuelItem.id, null, fuelCount);
+            const requestedTimeout = Number(params.timeout_ms);
+            const timeoutMs = Number.isFinite(requestedTimeout) && requestedTimeout > 0
+                ? Math.max(1, Math.floor(requestedTimeout))
+                : Math.min(120000, count * 11000 + 5000);
+            const pollMs = 250;
+            let observedOutput = null;
+            let waitedMs = 0;
+            for (let elapsed = 0; elapsed <= timeoutMs; elapsed += pollMs) {
+                const current = furnace.outputItem?.() || null;
+                if (current && current.name === outputName && Number(current.count || 0) >= count) {
+                    observedOutput = current;
+                    waitedMs = elapsed;
+                    break;
+                }
+                if (elapsed < timeoutMs) await wait(Math.min(pollMs, timeoutMs - elapsed));
+                waitedMs = Math.min(timeoutMs, elapsed + pollMs);
+            }
+            if (!observedOutput) {
+                result = {
+                    ...base,
+                    error: `Timed out waiting for ${count} ${outputName}`,
+                    item: outputName,
+                    input: inputName,
+                    fuel: fuelName,
+                    count,
+                    fuel_count: fuelCount,
+                    timeout_ms: timeoutMs,
+                    waited_ms: waitedMs,
+                    furnace_position: compactPosition(furnaceBlock.position),
+                    furnace_mutated: true,
+                };
+                return result;
+            }
+
+            const taken = await furnace.takeOutput();
+            let furnaceClosed = false;
+            let furnaceCloseError = '';
+            try {
+                furnace.close();
+                furnaceClosed = true;
+                furnace = null;
+            } catch (error) {
+                furnaceCloseError = String(error?.message || error);
+            }
+
+            const settlementTimeoutMs = 5000;
+            const settlementPollMs = 100;
+            let settlementWaitedMs = 0;
+            let inventoryAfter = inventoryCounts(activeBot);
+            let signedDelta = signedInventoryDelta(inventoryBefore, inventoryAfter);
+            let outputIncrease = 0;
+            let inputDecrease = 0;
+            let fuelDecrease = 0;
+            let settled = false;
+            for (
+                let elapsed = 0;
+                elapsed <= settlementTimeoutMs;
+                elapsed += settlementPollMs
+            ) {
+                inventoryAfter = inventoryCounts(activeBot);
+                signedDelta = signedInventoryDelta(inventoryBefore, inventoryAfter);
+                outputIncrease = Number(signedDelta[outputName] || 0);
+                inputDecrease = Math.max(0, -Number(signedDelta[inputName] || 0));
+                fuelDecrease = Math.max(0, -Number(signedDelta[fuelName] || 0));
+                settled = (
+                    outputIncrease >= count
+                    && inputDecrease === count
+                    && fuelDecrease === fuelCount
+                );
+                settlementWaitedMs = elapsed;
+                if (settled) break;
+                if (elapsed < settlementTimeoutMs) {
+                    await wait(Math.min(
+                        settlementPollMs,
+                        settlementTimeoutMs - elapsed,
+                    ));
+                }
+            }
+            result = {
+                ...base,
+                success: settled,
+                error: settled ? '' : 'smelt inventory postcondition failed',
+                item: outputName,
+                input: inputName,
+                fuel: fuelName,
+                count,
+                fuel_count: fuelCount,
+                timeout_ms: timeoutMs,
+                waited_ms: waitedMs,
+                furnace_position: compactPosition(furnaceBlock.position),
+                furnace_slots_empty: true,
+                inventory_before: inventoryBefore,
+                inventory_after: inventoryAfter,
+                inventory_signed_delta: signedDelta,
+                output_collected_count: Number(taken?.count || 0),
+                output_inventory_increase: outputIncrease,
+                input_inventory_decrease: inputDecrease,
+                fuel_inventory_decrease: fuelDecrease,
+                inventory_settlement_timeout_ms: settlementTimeoutMs,
+                inventory_settlement_waited_ms: settlementWaitedMs,
+                output_settled: settled,
+                furnace_closed: furnaceClosed,
+                ...(furnaceCloseError
+                    ? { furnace_close_error: furnaceCloseError }
+                    : {}),
+            };
+            return result;
+        } catch (error) {
+            result = {
+                ...base,
+                error: String(error?.message || error || 'smelt failed'),
+                item: outputName,
+                input: inputName,
+                fuel: fuelName,
+                count,
+                fuel_count: fuelCount,
+                furnace_position: compactPosition(furnaceBlock.position),
+            };
+            return result;
+        } finally {
+            if (furnace) {
+                try {
+                    furnace.close();
+                    if (result) result.furnace_closed = true;
+                } catch (error) {
+                    if (result) {
+                        result.furnace_closed = false;
+                        result.furnace_close_error = String(error?.message || error);
+                    }
+                }
+            }
+        }
+    };
+}
+
 function createDigHandler(
     getState = () => ({ bot, botReady }),
     wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -3317,6 +3639,7 @@ const handlers = {
             max_attempts: CRAFT_MAX_ATTEMPTS,
             automatic_retry: CRAFT_MAX_ATTEMPTS > 1,
         },
+        smelt_policy: smeltPolicyStatus(),
         screenshot_capture_supported: Boolean(findScreenshotCapture(bot)),
         screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
     }),
@@ -3474,6 +3797,7 @@ const handlers = {
         (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
         { maxAttempts: CRAFT_MAX_ATTEMPTS },
     ),
+    smelt: createSmeltHandler(),
 
     attack: (params) => {
         try {
@@ -3560,6 +3884,7 @@ if (require.main === module) {
 
 module.exports = {
     CRAFT_INVENTORY_REFRESH_POLICY_ID,
+    SMELT_OUTPUT_SETTLEMENT_POLICY_ID,
     M1_PROTOCOL,
     M1_PROTOCOL_SHA256,
     M2_PROTOCOL,
@@ -3568,6 +3893,11 @@ module.exports = {
     M4_PROTOCOL_SHA256,
     M4_BM012_PROTOCOL,
     M4_BM012_PROTOCOL_SHA256,
+    M4_BM013_PROTOCOL,
+    M4_BM013_PROTOCOL_SHA256,
+    M4_BM014_PROTOCOL,
+    M4_BM014_PROTOCOL_SHA256,
+    M4_TASK_CONTRACTS,
     attachScreenshotPlugin,
     benchmarkBotState,
     benchmarkProtocolBundle,
@@ -3584,6 +3914,7 @@ module.exports = {
     createBuildShelterHandler,
     createBuildShelterCellHandler,
     createCraftHandler,
+    createSmeltHandler,
     createDigHandler,
     createPlaceHandler,
     createShelterStateHandler,
@@ -3602,6 +3933,7 @@ module.exports = {
     publicScreenshotPluginStatus,
     resolveScreenshotPluginSpec,
     screenshotPathFromCaptureResult,
+    smeltPolicyStatus,
     shelterBlockState,
     sealedCellTemplatePositions,
     shelterTemplatePositions,

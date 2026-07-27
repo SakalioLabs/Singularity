@@ -6,7 +6,7 @@ const {
     SMELT_OUTPUT_SETTLEMENT_POLICY_ID,
     createSmeltHandler,
     smeltPolicyStatus,
-} = require('../src/bot/sp004_bot_server');
+} = require('../src/bot/bot_server');
 
 function removeInventory(items, name, count) {
     const stack = items.find((item) => item.name === name);

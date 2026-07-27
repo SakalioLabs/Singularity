@@ -8,7 +8,7 @@ param(
     [int]$BridgePort = 30000,
     [int]$ServerWaitSeconds = 180,
     [int]$BridgeWaitSeconds = 45,
-    [ValidateSet("BM-011", "BM-012")]
+    [ValidateSet("BM-011", "BM-012", "BM-013", "BM-014")]
     [string]$TaskId = "BM-011",
     [double]$MaxDurationSeconds = 0,
     [int]$MaxGoals = 24,

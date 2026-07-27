@@ -1567,7 +1567,7 @@ def _normalize_m4_episode_bundle(
     source_root: Path,
 ) -> dict:
     task_id = str(eligibility.get("task_id") or "").upper().strip()
-    if task_id not in {"BM-011", "BM-012"}:
+    if task_id not in M4_TASK_IDS:
         return {}
     episode_dir = eligibility_path.parent
     payloads = {}

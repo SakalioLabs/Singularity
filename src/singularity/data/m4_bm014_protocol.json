@@ -1,0 +1,55 @@
+{
+  "type": "m4_task_contract",
+  "schema_version": 1,
+  "id": "m4-bm014-iron-pickaxe-contract-v1",
+  "profile": "m4-fixed-v1",
+  "base_protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_id": "BM-014",
+  "name": "Craft iron pickaxe",
+  "terminal_goal": "Craft an iron pickaxe",
+  "initial_time_of_day": 0,
+  "max_duration_s": 300,
+  "max_autonomous_goals": 24,
+  "max_cycles_per_goal": 40,
+  "max_total_cycles": 320,
+  "success_criteria": {
+    "inventory": {
+      "iron_pickaxe": 1
+    }
+  },
+  "terminal_verifier": {
+    "id": "m4-crafted-item-inventory-verifier-v1",
+    "event_type": "terminal_task_verification",
+    "payload_type": "m4_terminal_task_verification",
+    "source": "machine_state",
+    "termination_reason": "terminal_task_verified",
+    "required_action_type": "craft",
+    "output_item": "iron_pickaxe",
+    "output_count": 1,
+    "required_ingredients": {
+      "iron_ingot": 3,
+      "stick": 2
+    },
+    "successful_source_action_count_minimum": 1,
+    "preloaded_inventory_forbidden": true,
+    "positive_inventory_delta_required": true,
+    "terminal_health_min_exclusive": 0,
+    "terminal_bot_connected_required": true,
+    "active_episode_death_count": 0,
+    "active_episode_respawn_count": 0,
+    "uninterrupted_survival_required": true
+  },
+  "autonomy": {
+    "terminal_goal_external_only": true,
+    "intermediate_goal_sources": [
+      "goal_generator",
+      "curriculum"
+    ],
+    "external_step_script_allowed": false
+  },
+  "deadline": {
+    "base_policy_id": "m4-absolute-episode-deadline-v1",
+    "single_absolute_deadline_required": true,
+    "post_deadline_execution_allowed": false
+  }
+}

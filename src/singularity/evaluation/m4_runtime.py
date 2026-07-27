@@ -8,12 +8,14 @@ import platform
 from collections import Counter
 
 from singularity.evaluation.m4_protocol import (
+    M4_TASK_IDS,
     PROTOCOL,
     PROTOCOL_SHA256,
     canonical_sha256,
     planner_provider_controls_report,
     task_contract,
     task_contract_sha256,
+    task_spec,
     validate_preflight,
 )
 
@@ -368,7 +370,7 @@ def build_m4_episode_progress_report(
     task_id = str(manifest.get("task_id") or preflight.get("task_id") or "").upper().strip()
     if task_id == "BM-011":
         return build_m4_preparation_report(events, result, preflight, manifest, eligibility)
-    if task_id != "BM-012":
+    if task_id not in M4_TASK_IDS or not task_contract(task_id):
         raise ValueError(f"unsupported M4 progress report task: {task_id or '<missing>'}")
 
     active = _active_events(events)
@@ -394,9 +396,40 @@ def build_m4_episode_progress_report(
     terminal = result.get("terminal_state", {}) if isinstance(result.get("terminal_state"), dict) else {}
     after = observations[-1] if observations else terminal
     planner_controls = planner_provider_controls_report(active)
-    resource_evidence = eligibility.get("evidence", {}).get("resource_acquisition", {})
-    resource_evidence = resource_evidence if isinstance(resource_evidence, dict) else {}
+    eligibility_evidence = (
+        eligibility.get("evidence", {})
+        if isinstance(eligibility.get("evidence"), dict)
+        else {}
+    )
+    task_provenance = eligibility_evidence.get("task_provenance", {})
+    if not isinstance(task_provenance, dict) or not task_provenance:
+        task_provenance = eligibility_evidence.get("resource_acquisition", {})
+    task_provenance = task_provenance if isinstance(task_provenance, dict) else {}
+    resource_evidence = (
+        task_provenance if task_id == "BM-012" else {}
+    )
+    output_evidence = (
+        task_provenance if task_id in {"BM-013", "BM-014"} else {}
+    )
     first_unrecovered = _first_unrecovered_transition(active)
+    contract = task_contract(task_id)
+    verifier = contract.get("terminal_verifier", {}) if isinstance(contract, dict) else {}
+    task = task_spec(task_id)
+    goal_signals = {
+        str(verifier.get("required_action_type") or "").lower(),
+        str(verifier.get("output_item") or "").lower(),
+        str(verifier.get("output_item") or "").replace("_", " ").lower(),
+        str(task.get("name") or "").lower(),
+        str(task.get("terminal_goal") or "").lower(),
+    }
+    if task_id == "BM-012":
+        goal_signals.update({"iron", "stone pickaxe", "cobblestone"})
+    goal_signals.discard("")
+    task_goal_present = any(
+        signal in str(goal.get("goal") or "").lower()
+        for goal in goals
+        for signal in goal_signals
+    )
     progress_gate_passed = bool(
         preflight.get("passed") is True
         and goals
@@ -404,24 +437,29 @@ def build_m4_episode_progress_report(
         and planner_controls["passed"]
         and result.get("deadline_eligible") is True
         and (
-            resource_evidence.get("successful_source_action_count", 0) > 0
-            or any(
-                token in str(goal.get("goal") or "").lower()
-                for goal in goals
-                for token in ("iron", "stone pickaxe", "cobblestone")
-            )
+            task_provenance.get("successful_source_action_count", 0) > 0
+            or task_goal_present
         )
     )
+    task_slug = task_id.lower().replace("-", "")
     return {
-        "type": "m4_resource_progress_report",
+        "type": (
+            "m4_resource_progress_report"
+            if task_id == "BM-012"
+            else "m4_task_progress_report"
+        ),
         "schema_version": 1,
         "task_id": task_id,
         "profile": PROTOCOL["profile"],
         "protocol_sha256": PROTOCOL_SHA256,
-        "task_contract_id": str(task_contract(task_id).get("id") or ""),
+        "task_contract_id": str(contract.get("id") or ""),
         "task_contract_sha256": task_contract_sha256(task_id),
         "readiness": "eligible" if eligibility.get("eligible") is True else "review",
-        "decision": "count_bm012_success" if eligibility.get("eligible") is True else "diagnose_first_unrecovered_transition",
+        "decision": (
+            f"count_{task_slug}_success"
+            if eligibility.get("eligible") is True
+            else "diagnose_first_unrecovered_transition"
+        ),
         "progress_gate_passed": progress_gate_passed,
         "counts_toward_task_success": bool(eligibility.get("eligible")),
         "episode_id": manifest.get("episode_id"),
@@ -431,7 +469,9 @@ def build_m4_episode_progress_report(
         "planner_provider_controls": planner_controls,
         "action_count": len(actions),
         "successful_action_count": len(successful_actions),
+        "task_provenance": task_provenance,
         "resource_acquisition": resource_evidence,
+        "output_provenance": output_evidence,
         "before_state": _compact_state(before),
         "after_state": _compact_state(after),
         "time_remaining_s": _remaining_time(manifest),

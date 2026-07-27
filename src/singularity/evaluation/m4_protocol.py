@@ -19,8 +19,25 @@ BM012_CONTRACT_PATH = Path(__file__).resolve().parent.parent / "data" / "m4_bm01
 BM012_CONTRACT_BYTES = BM012_CONTRACT_PATH.read_bytes()
 BM012_CONTRACT = json.loads(BM012_CONTRACT_BYTES.decode("utf-8"))
 BM012_CONTRACT_SHA256 = hashlib.sha256(BM012_CONTRACT_BYTES).hexdigest()
-TASK_CONTRACTS_BY_ID = {"BM-012": BM012_CONTRACT}
-TASK_CONTRACT_SHA256_BY_ID = {"BM-012": BM012_CONTRACT_SHA256}
+BM013_CONTRACT_PATH = Path(__file__).resolve().parent.parent / "data" / "m4_bm013_protocol.json"
+BM013_CONTRACT_BYTES = BM013_CONTRACT_PATH.read_bytes()
+BM013_CONTRACT = json.loads(BM013_CONTRACT_BYTES.decode("utf-8"))
+BM013_CONTRACT_SHA256 = hashlib.sha256(BM013_CONTRACT_BYTES).hexdigest()
+BM014_CONTRACT_PATH = Path(__file__).resolve().parent.parent / "data" / "m4_bm014_protocol.json"
+BM014_CONTRACT_BYTES = BM014_CONTRACT_PATH.read_bytes()
+BM014_CONTRACT = json.loads(BM014_CONTRACT_BYTES.decode("utf-8"))
+BM014_CONTRACT_SHA256 = hashlib.sha256(BM014_CONTRACT_BYTES).hexdigest()
+TASK_CONTRACTS_BY_ID = {
+    "BM-012": BM012_CONTRACT,
+    "BM-013": BM013_CONTRACT,
+    "BM-014": BM014_CONTRACT,
+}
+TASK_CONTRACT_SHA256_BY_ID = {
+    "BM-012": BM012_CONTRACT_SHA256,
+    "BM-013": BM013_CONTRACT_SHA256,
+    "BM-014": BM014_CONTRACT_SHA256,
+}
+M4_TASK_IDS = frozenset(TASKS_BY_ID)
 M4_PLAYER_LIFECYCLE_VERIFIER_ID = str(
     PROTOCOL.get("identities", {}).get("player_lifecycle_verifier") or ""
 )
@@ -334,11 +351,88 @@ def task_contract_integrity_report(task_id: str) -> dict:
     )
     verifier = contract.get("terminal_verifier", {})
     require("terminal_verifier_id", bool(str(verifier.get("id") or "")))
-    require("terminal_event_type", verifier.get("event_type") == "terminal_resource_verification")
+    action_type = str(verifier.get("required_action_type") or "")
+    expected_event_type = {
+        "dig": "terminal_resource_verification",
+        "smelt": "terminal_task_verification",
+        "craft": "terminal_task_verification",
+    }.get(action_type)
+    require("source_action", expected_event_type is not None)
+    require("terminal_event_type", verifier.get("event_type") == expected_event_type)
+    require(
+        "terminal_payload_type",
+        verifier.get("payload_type")
+        == (
+            "m4_terminal_resource_verification"
+            if action_type == "dig"
+            else "m4_terminal_task_verification"
+        ),
+    )
     require("terminal_source", verifier.get("source") == "machine_state")
     require("terminal_reason", verifier.get("termination_reason") == "terminal_task_verified")
-    require("source_action", verifier.get("required_action_type") == "dig")
-    require("source_blocks", set(verifier.get("source_blocks", [])) == {"iron_ore", "deepslate_iron_ore"})
+    require("preloaded_inventory_forbidden", verifier.get("preloaded_inventory_forbidden") is True)
+    require("positive_inventory_delta_required", verifier.get("positive_inventory_delta_required") is True)
+    require(
+        "successful_source_action_count_minimum",
+        isinstance(verifier.get("successful_source_action_count_minimum"), int)
+        and not isinstance(verifier.get("successful_source_action_count_minimum"), bool)
+        and verifier["successful_source_action_count_minimum"] > 0,
+    )
+    if action_type == "dig":
+        require(
+            "source_blocks",
+            set(verifier.get("source_blocks", [])) == {"iron_ore", "deepslate_iron_ore"},
+        )
+        criteria = contract.get("success_criteria", {}).get("inventory_any", {})
+        require(
+            "dig_output_criteria",
+            isinstance(criteria, dict)
+            and criteria
+            and all(
+                isinstance(count, int) and not isinstance(count, bool) and count > 0
+                for count in criteria.values()
+            ),
+        )
+    elif action_type in {"smelt", "craft"}:
+        output_item = str(verifier.get("output_item") or "")
+        output_count = verifier.get("output_count")
+        criteria = contract.get("success_criteria", {}).get("inventory", {})
+        require("output_item", bool(output_item))
+        require(
+            "output_count",
+            isinstance(output_count, int)
+            and not isinstance(output_count, bool)
+            and output_count > 0,
+        )
+        require(
+            "output_success_criteria",
+            bool(output_item)
+            and isinstance(output_count, int)
+            and criteria == {output_item: output_count},
+        )
+        if action_type == "smelt":
+            require("smelt_input_item", bool(str(verifier.get("input_item") or "")))
+            fuels = verifier.get("allowed_fuels", [])
+            require(
+                "smelt_allowed_fuels",
+                isinstance(fuels, list)
+                and bool(fuels)
+                and all(bool(str(fuel or "")) for fuel in fuels),
+            )
+        else:
+            ingredients = verifier.get("required_ingredients", {})
+            require(
+                "craft_required_ingredients",
+                isinstance(ingredients, dict)
+                and bool(ingredients)
+                and all(
+                    bool(str(item or ""))
+                    and isinstance(count, int)
+                    and not isinstance(count, bool)
+                    and count > 0
+                    for item, count in ingredients.items()
+                ),
+            )
     return {
         "passed": not issues,
         "issues": issues,
@@ -434,7 +528,7 @@ def evaluate_m4_episode(
         or result.get("task_id")
         or ""
     ).upper().strip()
-    if normalized not in {"BM-011", "BM-012"}:
+    if normalized not in M4_TASK_IDS:
         return {
             "type": "m4_episode_eligibility",
             "task_id": normalized,
@@ -465,6 +559,24 @@ def evaluate_bm012_episode(
     manifest: dict,
 ) -> dict:
     return _evaluate_m4_episode(events, result, preflight, manifest, "BM-012")
+
+
+def evaluate_bm013_episode(
+    events: list[dict],
+    result: dict,
+    preflight: dict,
+    manifest: dict,
+) -> dict:
+    return _evaluate_m4_episode(events, result, preflight, manifest, "BM-013")
+
+
+def evaluate_bm014_episode(
+    events: list[dict],
+    result: dict,
+    preflight: dict,
+    manifest: dict,
+) -> dict:
+    return _evaluate_m4_episode(events, result, preflight, manifest, "BM-014")
 
 
 def _evaluate_m4_episode(
@@ -535,14 +647,14 @@ def _evaluate_m4_episode(
     require("manifest_content_hash", evidence_hashes.get("manifest_sha256") == canonical_sha256(manifest))
     require("session_content_hash", evidence_hashes.get("session_sha256") == canonical_sha256(events))
     require("result_content_hash", evidence_hashes.get("result_sha256") == canonical_sha256(unhashed_result))
-    if task_id == "BM-012":
+    if contract:
         require("result_type", result.get("type") == "m4_episode_result")
         require("result_task", result.get("task_id") == task_id)
         require("result_profile", result.get("profile") == PROTOCOL["profile"])
 
     event_types = [str(event.get("type") or "") for event in events if isinstance(event, dict)]
     required_events = list(PROTOCOL["validation_contract"]["autonomy"]["required_events"])
-    if task_id == "BM-012":
+    if contract:
         required_events = [
             contract["terminal_verifier"]["event_type"]
             if event_type == "terminal_survival_verification"
@@ -719,7 +831,9 @@ def _evaluate_m4_episode(
     health = terminal_observation.get("health", terminal_state.get("health", 0))
     require("terminal_health", _finite_number(health) and float(health) > 0)
     require("terminal_bot_connected", terminal_state.get("bot_connected") is True)
+    task_provenance = {}
     resource_acquisition = {}
+    output_provenance = {}
     if task_id == "BM-011":
         terminal_machine_verified = _terminal_verification_matches(
             active_events,
@@ -727,34 +841,46 @@ def _evaluate_m4_episode(
             terminal_state,
         )
     else:
-        resource_acquisition = _resource_acquisition_report(
-            active_events,
-            observations,
-            terminal_state,
-            contract,
+        if contract.get("terminal_verifier", {}).get("required_action_type") == "dig":
+            task_provenance = _resource_acquisition_report(
+                active_events,
+                observations,
+                terminal_state,
+                contract,
+            )
+            resource_acquisition = task_provenance
+            issue_prefix = "resource"
+        else:
+            task_provenance = _task_output_provenance_report(
+                active_events,
+                observations,
+                terminal_state,
+                contract,
+            )
+            output_provenance = task_provenance
+            issue_prefix = "output"
+        require(
+            f"{issue_prefix}_initial_inventory_empty",
+            task_provenance.get("initial_target_count") == 0,
+            task_provenance,
         )
         require(
-            "resource_initial_inventory_empty",
-            resource_acquisition.get("initial_target_count") == 0,
-            resource_acquisition,
+            f"{issue_prefix}_terminal_inventory_target",
+            task_provenance.get("terminal_target_passed") is True,
+            task_provenance,
         )
         require(
-            "resource_terminal_inventory_target",
-            resource_acquisition.get("terminal_target_passed") is True,
-            resource_acquisition,
-        )
-        require(
-            "resource_successful_source_actions",
-            resource_acquisition.get("successful_source_action_count", 0)
+            f"{issue_prefix}_successful_source_actions",
+            task_provenance.get("successful_source_action_count", 0)
             >= int(contract["terminal_verifier"]["successful_source_action_count_minimum"]),
-            resource_acquisition,
+            task_provenance,
         )
         require(
-            "resource_positive_inventory_delta",
-            resource_acquisition.get("positive_inventory_delta_passed") is True,
-            resource_acquisition,
+            f"{issue_prefix}_positive_inventory_delta",
+            task_provenance.get("positive_inventory_delta_passed") is True,
+            task_provenance,
         )
-        terminal_machine_verified = _terminal_resource_verification_matches(
+        terminal_machine_verified = _terminal_task_verification_matches(
             active_events,
             terminal_observation,
             terminal_state,
@@ -827,7 +953,9 @@ def _evaluate_m4_episode(
             "terminal_health": health,
             "task_contract_id": str(contract.get("id") or ""),
             "task_contract_sha256": task_contract_sha256(task_id),
+            "task_provenance": task_provenance,
             "resource_acquisition": resource_acquisition,
+            "output_provenance": output_provenance,
             "player_lifecycle_verifier_id": M4_PLAYER_LIFECYCLE_VERIFIER_ID,
             "player_lifecycle_event_count": len(lifecycle_events),
             "maximum_death_count": maximum_death_count,
@@ -940,7 +1068,10 @@ def evaluate_m4_episode_for_protocol_hash(
     with _PROTOCOL_REPLAY_LOCK:
         active_sha256 = PROTOCOL_SHA256
         active_llm = PROTOCOL.get("llm")
-        contract = TASK_CONTRACTS_BY_ID.get(task_id)
+        # Only BM-012 existed under the declared predecessor protocol. Its
+        # immutable historical task contract is the sole contract that may be
+        # rebound while replaying that protocol.
+        contract = TASK_CONTRACTS_BY_ID.get(task_id) if task_id == "BM-012" else None
         active_contract_base = contract.get("base_protocol_sha256") if contract else None
         active_contract_sha256 = TASK_CONTRACT_SHA256_BY_ID.get(task_id)
         try:
@@ -1090,6 +1221,85 @@ def _terminal_verification_matches(events: list[dict], observation: dict, termin
     )
 
 
+def _terminal_task_verification_matches(
+    events: list[dict],
+    observation: dict,
+    terminal_state: dict,
+    contract: dict,
+) -> bool:
+    action_type = str(
+        (contract.get("terminal_verifier", {}) if isinstance(contract, dict) else {}).get(
+            "required_action_type"
+        )
+        or ""
+    )
+    if action_type == "dig":
+        return _terminal_resource_verification_matches(
+            events,
+            observation,
+            terminal_state,
+            contract,
+        )
+    if action_type not in {"smelt", "craft"}:
+        return False
+
+    verifier = contract.get("terminal_verifier", {}) if isinstance(contract, dict) else {}
+    event_type = str(verifier.get("event_type") or "")
+    verification = next(
+        (
+            event.get("data", {})
+            for event in reversed(events)
+            if event.get("type") == event_type and isinstance(event.get("data"), dict)
+        ),
+        {},
+    )
+    output_item = str(verifier.get("output_item") or "")
+    required_count = verifier.get("output_count")
+    observed_inventory = _inventory_counts(observation.get("inventory"))
+    terminal_inventory = _inventory_counts(terminal_state.get("inventory"))
+    verified_inventory = _inventory_counts(verification.get("inventory"))
+    verified_output_item = str(
+        verification.get("output_item")
+        or verification.get("qualifying_item")
+        or ""
+    )
+    observed_lifecycle = observation.get("player_lifecycle")
+    terminal_lifecycle = terminal_state.get("player_lifecycle")
+    verified_lifecycle = verification.get("player_lifecycle")
+    lifecycle_report = validate_m4_player_lifecycle(
+        verified_lifecycle,
+        episode_id=str((observed_lifecycle or {}).get("episode_id") or ""),
+        require_uninterrupted=True,
+    )
+    return bool(
+        verification.get("type") == verifier.get("payload_type")
+        and verification.get("schema_version") == 1
+        and verification.get("passed") is True
+        and verification.get("source") == verifier.get("source")
+        and verification.get("task_id") == contract.get("task_id")
+        and verification.get("verifier_id") == verifier.get("id")
+        and verification.get("task_contract_id") == contract.get("id")
+        and verification.get("task_contract_sha256") == task_contract_sha256(contract.get("task_id"))
+        and verified_output_item == output_item
+        and verification.get("required_action_type") == action_type
+        and isinstance(required_count, int)
+        and not isinstance(required_count, bool)
+        and verification.get("required_count") == required_count
+        and verification.get("observed_count") == observed_inventory.get(output_item)
+        and observed_inventory.get(output_item, 0) >= required_count
+        and observed_inventory == terminal_inventory == verified_inventory
+        and verification.get("health") == observation.get("health", terminal_state.get("health"))
+        and verification.get("bot_connected") is True
+        and verification.get("uninterrupted_survival") is True
+        and verification.get("player_lifecycle_verifier_id")
+        == M4_PLAYER_LIFECYCLE_VERIFIER_ID
+        and lifecycle_report["passed"]
+        and _lifecycle_terminal_signature(verified_lifecycle)
+        == _lifecycle_terminal_signature(observed_lifecycle)
+        == _lifecycle_terminal_signature(terminal_lifecycle)
+    )
+
+
 def _terminal_resource_verification_matches(
     events: list[dict],
     observation: dict,
@@ -1199,6 +1409,138 @@ def _resource_acquisition_report(
         "positive_inventory_delta_passed": any(
             positive_delta.get(item, 0) >= int(criteria[item]) for item in qualifying_items
         ),
+        "successful_source_action_count": len(source_actions),
+        "successful_source_actions": source_actions,
+    }
+
+
+def _task_output_provenance_report(
+    events: list[dict],
+    observations: list[dict],
+    terminal_state: dict,
+    contract: dict,
+) -> dict:
+    """Rebuild smelt/craft output provenance from action-bound machine snapshots."""
+    verifier = contract.get("terminal_verifier", {}) if isinstance(contract, dict) else {}
+    action_type = str(verifier.get("required_action_type") or "")
+    output_item = str(verifier.get("output_item") or "")
+    output_count = verifier.get("output_count")
+    required_output_count = (
+        output_count
+        if isinstance(output_count, int) and not isinstance(output_count, bool) and output_count > 0
+        else 0
+    )
+    initial_inventory = _inventory_counts((observations[0] if observations else {}).get("inventory"))
+    terminal_observation = observations[-1] if observations else {}
+    terminal_inventory = _inventory_counts(
+        terminal_observation.get("inventory", terminal_state.get("inventory"))
+    )
+    source_actions = []
+    successful_action_candidates = 0
+    for index, event in enumerate(events):
+        if event.get("type") != "action" or not isinstance(event.get("data"), dict):
+            continue
+        data = event["data"]
+        action = data.get("action", {}) if isinstance(data.get("action"), dict) else {}
+        result = data.get("result", {}) if isinstance(data.get("result"), dict) else {}
+        params = action.get("parameters", {}) if isinstance(action.get("parameters"), dict) else {}
+        if action.get("type") != action_type or result.get("success") is not True:
+            continue
+        successful_action_candidates += 1
+        before = data.get("pre_observation", {})
+        after = data.get("post_observation", {})
+        if not isinstance(before, dict) or not isinstance(after, dict):
+            continue
+        before_inventory = _inventory_counts(before.get("inventory"))
+        after_inventory = _inventory_counts(after.get("inventory"))
+        inventory_delta = {
+            item: after_inventory.get(item, 0) - before_inventory.get(item, 0)
+            for item in sorted(set(before_inventory) | set(after_inventory))
+            if after_inventory.get(item, 0) != before_inventory.get(item, 0)
+        }
+        action_item = str(params.get("item") or "")
+        output_delta = inventory_delta.get(output_item, 0)
+        if (
+            not output_item
+            or action_item != output_item
+            or output_delta < required_output_count
+        ):
+            continue
+
+        action_specific_evidence = {}
+        if action_type == "smelt":
+            input_item = str(verifier.get("input_item") or "")
+            fuel_item = str(params.get("fuel") or "")
+            input_consumed = -inventory_delta.get(input_item, 0)
+            fuel_consumed = -inventory_delta.get(fuel_item, 0)
+            if (
+                str(params.get("input") or "") != input_item
+                or fuel_item not in set(verifier.get("allowed_fuels", []))
+                or input_consumed < required_output_count
+                or fuel_consumed < 1
+            ):
+                continue
+            action_specific_evidence = {
+                "input_item": input_item,
+                "input_consumed": input_consumed,
+                "fuel_item": fuel_item,
+                "fuel_consumed": fuel_consumed,
+            }
+        elif action_type == "craft":
+            required_ingredients = verifier.get("required_ingredients", {})
+            required_ingredients = (
+                required_ingredients if isinstance(required_ingredients, dict) else {}
+            )
+            consumed_ingredients = {
+                str(item): -inventory_delta.get(str(item), 0)
+                for item in required_ingredients
+            }
+            if not required_ingredients or any(
+                consumed_ingredients.get(str(item), 0) < int(required_count)
+                for item, required_count in required_ingredients.items()
+            ):
+                continue
+            action_specific_evidence = {
+                "consumed_ingredients": consumed_ingredients,
+            }
+        else:
+            continue
+
+        source_actions.append({
+            "event_index": index + 1,
+            "action_type": action_type,
+            "output_item": output_item,
+            "output_delta": output_delta,
+            "inventory_delta": inventory_delta,
+            **action_specific_evidence,
+        })
+
+    initial_target_count = initial_inventory.get(output_item, 0)
+    terminal_target_count = terminal_inventory.get(output_item, 0)
+    positive_delta = terminal_target_count - initial_target_count
+    return {
+        "target_items": [output_item] if output_item else [],
+        "output_item": output_item,
+        "required_count": required_output_count,
+        "initial_inventory": {output_item: initial_target_count} if output_item else {},
+        "terminal_inventory": {output_item: terminal_target_count} if output_item else {},
+        "initial_target_count": initial_target_count,
+        "terminal_target_count": terminal_target_count,
+        "qualifying_items": (
+            [output_item]
+            if output_item and terminal_target_count >= required_output_count
+            else []
+        ),
+        "terminal_target_passed": bool(
+            output_item and terminal_target_count >= required_output_count
+        ),
+        "positive_inventory_delta": (
+            {output_item: positive_delta} if output_item else {}
+        ),
+        "positive_inventory_delta_passed": bool(
+            output_item and positive_delta >= required_output_count
+        ),
+        "successful_action_candidate_count": successful_action_candidates,
         "successful_source_action_count": len(source_actions),
         "successful_source_actions": source_actions,
     }

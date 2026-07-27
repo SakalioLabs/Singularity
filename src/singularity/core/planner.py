@@ -690,7 +690,7 @@ class Planner:
             return self._stone_pickaxe_system_prompt()
         prompt = f"""You are a Minecraft survival planner. Given a goal and current world state, decompose it into subtasks and immediate actions.
 
-Available actions: move_to, look_at, dig, place, craft, build_shelter_cell, attack, equip, use_item, chat, wait.
+Available actions: move_to, look_at, dig, place, craft, smelt, build_shelter_cell, attack, equip, use_item, chat, wait.
 
 MINECRAFT KNOWLEDGE SUMMARY:
 {_CRAFTING_KNOWLEDGE}
@@ -748,6 +748,8 @@ M4 FIXED OUTPUT CONTRACT:
 - For the BM-012 raw-iron goal, treat m4_resource_scan as machine-observed resource evidence. If nearest_iron_ore is present, navigate to its exact position and dig that exact iron_ore/deepslate_iron_ore. If the hand already holds stone_pickaxe, do not equip stone_pickaxe again; while searching by digging stone-like blocks for iron, keep stone_pickaxe as the dig preferred tool instead of downgrading to wooden_pickaxe.
 - A craft action must use item and may use a positive integer count; never use recipe as an alias.
 - Example: {"type":"craft","parameters":{"item":"oak_planks","count":4}}.
+- A smelt action must use exact item, input, fuel, count, and the finite x/y/z coordinates of an observed nearby furnace. timeout_ms is optional and must be a positive integer. Never omit or alias the input or fuel.
+- Example: {"type":"smelt","parameters":{"item":"iron_ingot","input":"raw_iron","fuel":"coal","count":3,"x":4,"y":63,"z":2,"timeout_ms":35000}}.
 - A place action must use item plus top-level finite x, y, and z reference-block coordinates; never use block as an alias.
 - For place, the actual target is the block cell at floor(x), floor(y)+1, floor(z). Choose a reference whose target is air or replaceable; never target an observed solid block. The target must also remain outside every player collision cell; never target the player's feet/head space. After an occupied-target or player-collision rejection, use one supplied adjacent reference candidate and never retry the rejected reference.
 - Example: {"type":"place","parameters":{"item":"crafting_table","x":106,"y":135,"z":-29}}.
@@ -1732,6 +1734,7 @@ Plan the steps to achieve this goal."""
                 "dig_action_count": 0,
                 "craft_action_count": 0,
                 "place_action_count": 0,
+                "smelt_action_count": 0,
                 "normalized_action_count": 0,
                 "normalizations": [],
                 "issues": [],
@@ -1742,6 +1745,7 @@ Plan the steps to achieve this goal."""
         dig_action_count = 0
         craft_action_count = 0
         place_action_count = 0
+        smelt_action_count = 0
 
         for index, action in enumerate(actions):
             if not isinstance(action, dict):
@@ -1749,7 +1753,7 @@ Plan the steps to achieve this goal."""
                 continue
             grounded_action = dict(action)
             action_type = str(action.get("type") or "")
-            if action_type not in {"dig", "craft", "place"}:
+            if action_type not in {"dig", "craft", "place", "smelt"}:
                 grounded_actions.append(grounded_action)
                 continue
             if action_type == "dig":
@@ -1764,9 +1768,15 @@ Plan the steps to achieve this goal."""
                     action.get("parameters"),
                     action_index=index,
                 )
-            else:
+            elif action_type == "place":
                 place_action_count += 1
                 canonical, evidence = cls._ground_m4_place_parameters(
+                    action.get("parameters"),
+                    action_index=index,
+                )
+            else:
+                smelt_action_count += 1
+                canonical, evidence = cls._ground_m4_smelt_parameters(
                     action.get("parameters"),
                     action_index=index,
                 )
@@ -1785,6 +1795,7 @@ Plan the steps to achieve this goal."""
             "dig_action_count": dig_action_count,
             "craft_action_count": craft_action_count,
             "place_action_count": place_action_count,
+            "smelt_action_count": smelt_action_count,
             "normalized_action_count": len(normalizations),
             "normalizations": normalizations,
             "issues": sorted(set(issues)),
@@ -2752,6 +2763,94 @@ Plan the steps to achieve this goal."""
             "action_type": "craft",
             "normalized": normalized,
             "aliases": sorted(set(aliases)),
+            "original_parameters_sha256": cls._parameter_sha256(params),
+            "canonical_parameters": canonical,
+            "issues": sorted(set(issues)),
+        }
+
+    @classmethod
+    def _ground_m4_smelt_parameters(cls, value, *, action_index: int) -> tuple[dict, dict]:
+        """Fail closed unless a smelt request names exact materials and furnace."""
+        prefix = f"action[{action_index}]:"
+        if not isinstance(value, dict):
+            return {}, {
+                "action_index": action_index,
+                "action_type": "smelt",
+                "normalized": False,
+                "aliases": [],
+                "original_parameters_sha256": cls._parameter_sha256(value),
+                "canonical_parameters": {},
+                "issues": [prefix + "smelt_parameters_not_object"],
+            }
+
+        params = dict(value)
+        allowed = {
+            "item",
+            "input",
+            "fuel",
+            "count",
+            "x",
+            "y",
+            "z",
+            "timeout_ms",
+        }
+        issues: list[str] = []
+        unknown = sorted(str(key) for key in params if key not in allowed)
+        if unknown:
+            issues.append(prefix + "smelt_unknown_parameters:" + ",".join(unknown))
+
+        canonical = {}
+        for field in ("item", "input", "fuel"):
+            value = params.get(field)
+            if not isinstance(value, str) or not value.strip():
+                issues.append(prefix + f"smelt_{field}_missing_or_invalid")
+                continue
+            canonical[field] = value.strip()
+
+        count = params.get("count")
+        if (
+            not isinstance(count, int)
+            or isinstance(count, bool)
+            or not 1 <= count <= 64
+        ):
+            issues.append(prefix + "smelt_count_invalid")
+        else:
+            canonical["count"] = count
+
+        missing_coordinates = []
+        for axis in ("x", "y", "z"):
+            coordinate = params.get(axis) if axis in params else None
+            if (
+                not isinstance(coordinate, int)
+                or isinstance(coordinate, bool)
+            ):
+                missing_coordinates.append(axis)
+            else:
+                canonical[axis] = coordinate
+        if missing_coordinates:
+            issues.append(
+                prefix
+                + "smelt_furnace_coordinates_missing_or_invalid:"
+                + ",".join(missing_coordinates)
+            )
+
+        if "timeout_ms" in params:
+            timeout_ms = params.get("timeout_ms")
+            if (
+                not isinstance(timeout_ms, int)
+                or isinstance(timeout_ms, bool)
+                or timeout_ms <= 0
+            ):
+                issues.append(prefix + "smelt_timeout_ms_invalid")
+            else:
+                canonical["timeout_ms"] = timeout_ms
+
+        normalized = canonical != params
+        return canonical, {
+            "action_index": action_index,
+            "action_type": "smelt",
+            "normalized": normalized,
+            "aliases": [],
             "original_parameters_sha256": cls._parameter_sha256(params),
             "canonical_parameters": canonical,
             "issues": sorted(set(issues)),

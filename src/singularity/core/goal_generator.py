@@ -22,6 +22,14 @@ class GoalGenerator:
         "wooden_sword", "stone_sword", "iron_sword", "diamond_sword",
         "wooden_axe", "stone_axe", "iron_axe", "diamond_axe",
     )
+    LOG_ITEMS = (
+        "oak_log", "birch_log", "spruce_log", "jungle_log", "acacia_log",
+        "dark_oak_log", "mangrove_log", "cherry_log",
+    )
+    PLANK_ITEMS = (
+        "oak_planks", "birch_planks", "spruce_planks", "jungle_planks",
+        "acacia_planks", "dark_oak_planks", "mangrove_planks", "cherry_planks",
+    )
 
     def __init__(self):
         self.last_decision: dict = {}
@@ -179,8 +187,19 @@ class GoalGenerator:
             )
 
         # Priority 6: tool and resource progression.
-        if str(task_id or "").upper().strip() == "BM-012":
+        normalized_task_id = str(task_id or "").upper().strip()
+        if normalized_task_id == "BM-012":
             return self._bm012_progression(
+                observation,
+                inv,
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if normalized_task_id in {"BM-013", "BM-014"}:
+            return self._bm013_bm014_progression(
+                normalized_task_id,
                 observation,
                 inv,
                 time_of_day,
@@ -205,6 +224,199 @@ class GoalGenerator:
         return self._progression(
             "Explore surroundings and gather resources",
             "basic_progression_ready",
+            time_of_day,
+            health,
+            hunger,
+            shelter_verified,
+        )
+
+    def _bm013_bm014_progression(
+        self,
+        task_id: str,
+        observation: dict,
+        inventory: dict,
+        time_of_day: int,
+        health: float,
+        hunger: float,
+        shelter_verified: bool,
+    ) -> str:
+        """Return the strict fresh-world smelting/iron-pickaxe frontier.
+
+        The surrounding ``next_goal`` safety checks deliberately run before this
+        task chain.  Each frontier is derived only from the current machine
+        observation, so a retry cannot advance from planner prose alone.
+        """
+        table_nearby = self._nearby_block_present(observation, "crafting_table")
+        furnace_nearby = self._nearby_block_present(observation, "furnace")
+        log_count = sum(self._count(inventory.get(item)) for item in self.LOG_ITEMS)
+        plank_count = sum(self._count(inventory.get(item)) for item in self.PLANK_ITEMS)
+        table_owned = self._count(inventory.get("crafting_table")) >= 1
+        wooden_pickaxe = self._count(inventory.get("wooden_pickaxe"))
+        stone_pickaxe = self._count(inventory.get("stone_pickaxe"))
+        cobblestone = self._count(inventory.get("cobblestone"))
+        raw_iron = self._count(inventory.get("raw_iron"))
+        coal = self._count(inventory.get("coal")) + self._count(inventory.get("charcoal"))
+        furnace_owned = self._count(inventory.get("furnace")) >= 1
+        iron_ingots = self._count(inventory.get("iron_ingot"))
+        sticks = self._count(inventory.get("stick"))
+        iron_pickaxe = self._count(inventory.get("iron_pickaxe"))
+        raw_iron_target = 1 if task_id == "BM-013" else 3
+        terminal_material_ready = bool(
+            iron_ingots >= raw_iron_target or iron_pickaxe >= 1
+        )
+        if task_id == "BM-013" and iron_ingots >= 1:
+            return self._progression(
+                "Smelt an iron ingot",
+                "bm013_terminal_inventory_ready",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if task_id == "BM-014" and iron_pickaxe >= 1:
+            return self._progression(
+                "Craft an iron pickaxe",
+                "bm014_terminal_inventory_ready",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+
+        # A fresh episode first establishes enough wood for the complete chain.
+        # Once a later machine-observed artifact exists, do not regress merely
+        # because crafting consumed the original logs.
+        wood_frontier_established = bool(
+            table_owned
+            or table_nearby
+            or wooden_pickaxe
+            or stone_pickaxe
+            or furnace_owned
+            or furnace_nearby
+            or iron_ingots
+            or iron_pickaxe
+        )
+        if not wood_frontier_established and log_count < 6 and plank_count < 24:
+            return self._progression(
+                "Gather 6 oak logs for iron-tool progression",
+                f"{task_id.lower().replace('-', '')}_wood_reserve_below_target",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if (
+            not terminal_material_ready
+            and not (table_owned or table_nearby or wooden_pickaxe or stone_pickaxe)
+        ):
+            return self._progression(
+                "Craft a crafting table for iron-tool progression",
+                f"{task_id.lower().replace('-', '')}_crafting_table_missing",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if (
+            not terminal_material_ready
+            and wooden_pickaxe < 1
+            and stone_pickaxe < 1
+        ):
+            return self._progression(
+                "Craft a wooden pickaxe for cobblestone acquisition",
+                f"{task_id.lower().replace('-', '')}_wooden_pickaxe_missing",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if not terminal_material_ready and stone_pickaxe < 1 and cobblestone < 11:
+            return self._progression(
+                "Gather 11 cobblestone for stone pickaxe and furnace",
+                f"{task_id.lower().replace('-', '')}_cobblestone_below_toolchain_requirement",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if not terminal_material_ready and stone_pickaxe < 1:
+            return self._progression(
+                "Craft a stone pickaxe for ore acquisition",
+                f"{task_id.lower().replace('-', '')}_stone_pickaxe_ready_to_craft",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if raw_iron < raw_iron_target and iron_ingots < raw_iron_target:
+            return self._progression(
+                (
+                    f"Collect {raw_iron_target} raw iron from iron ore "
+                    "with the stone pickaxe"
+                ),
+                f"{task_id.lower().replace('-', '')}_raw_iron_below_target",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if coal < 1 and iron_ingots < raw_iron_target:
+            return self._progression(
+                "Collect 1 coal for furnace fuel with the stone pickaxe",
+                f"{task_id.lower().replace('-', '')}_furnace_fuel_missing",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if not (furnace_owned or furnace_nearby) and iron_ingots < raw_iron_target:
+            return self._progression(
+                "Craft a furnace for iron smelting",
+                f"{task_id.lower().replace('-', '')}_furnace_missing",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if iron_ingots < raw_iron_target:
+            terminal_goal = (
+                "Smelt an iron ingot"
+                if task_id == "BM-013"
+                else "Smelt 3 iron ingots from 3 raw iron using coal"
+            )
+            return self._progression(
+                terminal_goal,
+                f"{task_id.lower().replace('-', '')}_iron_ready_to_smelt",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if task_id == "BM-013":
+            return self._progression(
+                "Smelt an iron ingot",
+                "bm013_terminal_inventory_ready",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if iron_pickaxe < 1 and sticks < 2:
+            return self._progression(
+                "Ensure 2 sticks for crafting the iron pickaxe",
+                "bm014_iron_pickaxe_sticks_missing",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        return self._progression(
+            "Craft an iron pickaxe",
+            (
+                "bm014_terminal_inventory_ready"
+                if iron_pickaxe >= 1
+                else "bm014_iron_pickaxe_ready_to_craft"
+            ),
             time_of_day,
             health,
             hunger,
@@ -393,6 +605,15 @@ class GoalGenerator:
     @staticmethod
     def _has_verified_shelter(observation: dict) -> bool:
         return is_machine_verified_shelter(observation.get("shelter_verification"))
+
+    @staticmethod
+    def _nearby_block_present(observation: dict, block_name: str) -> bool:
+        blocks = observation.get("nearby_blocks", []) if isinstance(observation, dict) else []
+        return any(
+            isinstance(block, dict)
+            and str(block.get("name") or "").strip() == str(block_name or "").strip()
+            for block in (blocks if isinstance(blocks, list) else [])
+        )
 
     @staticmethod
     def _normalized_time(value) -> int:
