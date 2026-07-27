@@ -1,0 +1,11 @@
+{
+    "type":  "m4_runtime_blocker",
+    "schema_version":  1,
+    "generated_at_utc":  "2026-07-27T13:29:49.8252617Z",
+    "task_id":  "BM-014",
+    "episode_id":  "m4_episode_20260727_212938_0dbddb54",
+    "level_name":  "m4_episode_20260727_212938_0dbddb54_bm014",
+    "blocker":  "M4 runtime blocked: no configured LLM credential passed provider preflight.",
+    "evidence_dir":  "logs\\benchmarks\\m4\\m4_episode_20260727_212938_0dbddb54",
+    "counts_toward_task_success":  false
+}

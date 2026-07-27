@@ -5,11 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 AUTHORIZATION_PATH = ROOT / "workspace/evals/m4_probe55_authorization.json"
+AUTHORIZATION_COMMIT = "c6e900526a0a79b38eac4bf1ebe3948e5b1cfe5a"
 GATE_PARENT_COMMIT = "19c495d5aab0fcf46a09e077a33a368c42987130"
 GATE_TREE = "2c2cf0020d9072c7049e2f83c02bc2af6e90a110"
 POLICY_ID = "m4-bm013-bm014-portable-crafting-table-recovery-v1"
@@ -368,8 +370,25 @@ def test_probe55_authorization_binds_every_portable_recovery_boundary():
     }
 
 
-def test_probe55_authorization_is_unconsumed_one_use_and_strictly_bounded():
+def test_probe55_authorization_was_issued_unconsumed_then_consumed_at_line_2():
     authorization = _json(AUTHORIZATION_PATH)
+    relative_path = AUTHORIZATION_PATH.relative_to(ROOT).as_posix()
+    issued = _git_json(AUTHORIZATION_COMMIT, relative_path)
+    consumed_fields = {
+        "consumed_by_episode",
+        "consumed_session_id",
+        "consumed_level_name",
+        "consumed_at",
+        "consumed_at_utc",
+        "consumed_monotonic_s",
+        "consumed_event_line",
+        "consumed_evidence_dir",
+        "consumed_report_path",
+    }
+    assert set(authorization) - set(issued) == consumed_fields
+    for key, value in issued.items():
+        if key != "consumed":
+            assert authorization[key] == value
 
     assert authorization["authorized"] is True
     assert authorization["one_use"] is True
@@ -385,7 +404,8 @@ def test_probe55_authorization_is_unconsumed_one_use_and_strictly_bounded():
     assert authorization[
         "counts_toward_capability_before_independent_verification"
     ] is False
-    assert authorization["consumed"] is False
+    assert issued["consumed"] is False
+    assert authorization["consumed"] is True
     assert authorization["next_authorization"] is False
     assert authorization["probe_56_authorized"] is False
 
@@ -396,22 +416,51 @@ def test_probe55_authorization_is_unconsumed_one_use_and_strictly_bounded():
         "probe_55_episode_id",
         "probe_55_session_id",
         "probe_55_level_name",
-        "consumed_by_episode",
-        "consumed_session_id",
-        "consumed_level_name",
-        "consumed_at",
-        "consumed_at_utc",
-        "consumed_monotonic_s",
-        "consumed_event_line",
-        "consumed_evidence_dir",
-        "consumed_report_path",
     }
     assert forbidden_exact.isdisjoint(authorization)
     assert not any(
         key.startswith("probe_56_") and key != "probe_56_authorized"
         for key in authorization
     )
-    assert not any(
-        key.startswith("consumed_")
-        for key in authorization
+    assert "probe_55_authorized" not in authorization
+    assert "authorization_commit" not in authorization
+    assert "authorization_tree" not in authorization
+    assert issued["probe_56_authorized"] is False
+
+    evidence_dir = ROOT / authorization["consumed_evidence_dir"]
+    jsonl_path = evidence_dir / (
+        f"session_{authorization['consumed_session_id']}.jsonl"
+    )
+    with jsonl_path.open(encoding="utf-8") as handle:
+        first_event = json.loads(next(handle))
+        consumed_event = json.loads(next(handle))
+
+    assert first_event["type"] == "connect"
+    assert authorization["consumed_event_line"] == 2
+    assert authorization["consumed_at"] == consumed_event["type"] == (
+        "autonomous_start"
+    )
+    assert authorization["consumed_session_id"] == consumed_event["session"]
+    assert authorization["consumed_monotonic_s"] == consumed_event["monotonic_s"]
+    assert authorization["consumed_at_utc"] == (
+        datetime.fromtimestamp(consumed_event["ts"], tz=timezone.utc)
+        .isoformat(timespec="microseconds")
+        .replace("+00:00", "Z")
+    )
+    assert authorization["consumed_by_episode"] == evidence_dir.name
+    assert consumed_event["data"]["task_id"] == authorization["task_id"]
+    assert (
+        consumed_event["data"]["task_contract_id"]
+        == authorization["task_contract_id"]
+    )
+    assert (
+        consumed_event["data"]["task_contract_sha256"]
+        == authorization["task_contract_sha256"]
+    )
+    manifest = _json(evidence_dir / "manifest.json")
+    assert manifest["episode_id"] == authorization["consumed_by_episode"]
+    assert manifest["session_id"] == authorization["consumed_session_id"]
+    assert manifest["level_name"] == authorization["consumed_level_name"]
+    assert authorization["consumed_report_path"] == (
+        "workspace/evals/m4_probe55_report.json"
     )

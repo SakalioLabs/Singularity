@@ -711,13 +711,13 @@ def test_repository_capability_documents_match_canonical_report():
     assert m4["repeat_verified_benchmark_count"] == 3
     assert m4["missing_evidence"] == ["BM-014:needs_2_more_successes"]
     assert bm014["status"] == "live_observed"
-    assert bm014["attempts"] == 4
+    assert bm014["attempts"] == 5
     assert bm014["successes"] == 1
-    assert bm014["failures"] == 3
+    assert bm014["failures"] == 4
     assert bm014["repeats_required"] == 3
     assert bm014["evidence_refs"][-1] == (
-        "69d1d0b2-ec0:"
-        "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/session.json"
+        "38fade74-857:"
+        "logs/benchmarks/m4/m4_episode_20260727_220522_099cfa0a/session.json"
     )
     assert report["summary"]["live_observed_phase_count"] == 1
     assert report["summary"]["failing_phase_count"] == 2
