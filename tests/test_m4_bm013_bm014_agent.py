@@ -530,6 +530,383 @@ def test_machine_furnace_place_coal_search_and_iron_pickaxe_actions_are_bounded(
     ]
 
 
+def test_remote_ore_move_reclaims_only_a_current_episode_owned_crafting_table():
+    agent = _machine_agent("BM-014")
+    table = _table()
+    table_position = table["position"]
+    table_key = ",".join(str(table_position[axis]) for axis in ("x", "y", "z"))
+    agent._m4_episode_block_delta = {
+        "placed": {
+            table_key: {
+                "operation": "place",
+                "action_type": "place",
+                "success": True,
+                "position": table_position,
+                "before": {"name": "air"},
+                "after": {"name": "crafting_table"},
+            },
+        },
+        "removed": {},
+    }
+    remote_iron = {
+        "name": "iron_ore",
+        "position": {"x": 12, "y": 62, "z": 0},
+        "distance": 12,
+    }
+    state = _observation(
+        {
+            "stone_pickaxe": 1,
+            "cobblestone": 8,
+            "held_item": "stone_pickaxe",
+        },
+        [table, remote_iron],
+        held_item="stone_pickaxe",
+    )
+    plan = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        state,
+        "Collect 3 raw iron from iron ore with the stone pickaxe",
+    )
+    assert plan["actions"] == [{
+        "type": "dig",
+        "parameters": {**table_position, "block": "crafting_table"},
+    }]
+    evidence = plan["machine_step_plan"]
+    assert evidence["reason"] == (
+        "reclaim_episode_owned_crafting_table_before_remote_resource_move"
+    )
+    assert evidence["target"]["machine_observed"] is True
+    assert evidence["target"]["episode_owned"] is True
+    assert evidence["target"]["requires_current_observation_before_use"] is True
+    assert evidence["portable_crafting_table_recovery_policy_id"] == (
+        "m4-bm013-bm014-portable-crafting-table-recovery-v1"
+    )
+
+    unowned = _machine_agent("BM-014")
+    unowned._m4_episode_block_delta = {"placed": {}, "removed": {}}
+    unowned_plan = unowned._m4_bm013_bm014_toolchain_machine_step_plan(
+        state,
+        "Collect 3 raw iron from iron ore with the stone pickaxe",
+    )
+    assert unowned_plan["actions"] == [{
+        "type": "move_to",
+        "parameters": remote_iron["position"],
+    }]
+    assert (
+        unowned_plan["machine_step_plan"][
+            "portable_crafting_table_recovery_policy_id"
+        ]
+        is None
+    )
+
+    out_of_range = _machine_agent("BM-014")
+    out_of_range._m4_episode_block_delta = agent._m4_episode_block_delta
+    remote_table = {
+        **table,
+        "distance": 5,
+    }
+    out_of_range_plan = (
+        out_of_range._m4_bm013_bm014_toolchain_machine_step_plan(
+            _observation(
+                {
+                    "stone_pickaxe": 1,
+                    "cobblestone": 8,
+                    "held_item": "stone_pickaxe",
+                },
+                [remote_table, remote_iron],
+                held_item="stone_pickaxe",
+            ),
+            "Collect 3 raw iron from iron ore with the stone pickaxe",
+        )
+    )
+    assert out_of_range_plan["actions"] == [{
+        "type": "move_to",
+        "parameters": remote_iron["position"],
+    }]
+
+
+def test_probe54_missing_station_returns_to_nearest_retained_owned_table():
+    agent = _machine_agent("BM-014")
+    far_position = {"x": 112, "y": 136, "z": -28}
+    near_position = {"x": 113, "y": 128, "z": -29}
+
+    def placed_record(position):
+        return {
+            "operation": "place",
+            "action_type": "place",
+            "success": True,
+            "position": position,
+            "before": {"name": "air"},
+            "after": {"name": "crafting_table"},
+        }
+
+    agent._m4_episode_block_delta = {
+        "placed": {
+            "112,136,-28": placed_record(far_position),
+            "113,128,-29": placed_record(near_position),
+        },
+        # Probe 54 had mined stone from the eventual near table cell before
+        # placing the table there, so the aggregate buckets contain both keys.
+        "removed": {
+            "113,128,-29": {
+                "operation": "remove",
+                "action_type": "dig",
+                "success": True,
+                "position": near_position,
+                "before": {"name": "stone"},
+                "after": {"name": "air"},
+            },
+        },
+    }
+    agent.session_logger.events = [
+        {
+            "type": "action",
+            "data": {
+                "action": {
+                    "type": "place",
+                    "parameters": {"item": "crafting_table", **far_position},
+                },
+                "result": {
+                    "success": True,
+                    "target_block_before": {
+                        "name": "air",
+                        "position": far_position,
+                    },
+                    "target_block_after": {
+                        "name": "crafting_table",
+                        "position": far_position,
+                    },
+                },
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {
+                    "type": "dig",
+                    "parameters": {"block": "stone", **near_position},
+                },
+                "result": {
+                    "success": True,
+                    "target_block_before": {
+                        "name": "stone",
+                        "position": near_position,
+                    },
+                    "target_block_after": {
+                        "name": "air",
+                        "position": near_position,
+                    },
+                },
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {
+                    "type": "place",
+                    "parameters": {"item": "crafting_table", **near_position},
+                },
+                "result": {
+                    "success": True,
+                    "target_block_before": {
+                        "name": "air",
+                        "position": near_position,
+                    },
+                    "target_block_after": {
+                        "name": "crafting_table",
+                        "position": near_position,
+                    },
+                },
+            },
+        },
+    ]
+    state = _observation(
+        {
+            "wooden_pickaxe": 1,
+            "stone_pickaxe": 1,
+            "cobblestone": 80,
+            "raw_iron": 4,
+            "coal": 1,
+            "oak_planks": 3,
+        },
+        [],
+        position={"x": 118.5, "y": 123, "z": -49.49},
+    )
+    plan = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        state,
+        "Craft a furnace for iron smelting",
+    )
+    assert plan["actions"] == [{
+        "type": "move_to",
+        "parameters": near_position,
+    }]
+    evidence = plan["machine_step_plan"]
+    assert evidence["reason"] == (
+        "return_to_episode_owned_crafting_table_for_current_reobservation"
+    )
+    assert evidence["target"]["machine_observed"] is False
+    assert evidence["target"]["historically_machine_verified"] is True
+    assert evidence["target"]["episode_owned"] is True
+    assert evidence["target"]["requires_current_observation_before_use"] is True
+    assert evidence["portable_crafting_table_recovery_policy_id"] == (
+        "m4-bm013-bm014-portable-crafting-table-recovery-v1"
+    )
+
+
+def test_missing_station_uses_only_machine_observed_log_or_fails_closed():
+    agent = _machine_agent("BM-014")
+    agent._m4_episode_block_delta = {"placed": {}, "removed": {}}
+    inventory = {
+        "stone_pickaxe": 1,
+        "cobblestone": 80,
+        "raw_iron": 4,
+        "coal": 1,
+        "oak_planks": 3,
+    }
+    oak = {
+        "name": "oak_log",
+        "position": {"x": 2, "y": 64, "z": 0},
+        "distance": 2,
+    }
+    recovery = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        _observation(inventory, [oak]),
+        "Craft a furnace for iron smelting",
+    )
+    assert recovery["actions"] == [{
+        "type": "dig",
+        "parameters": {**oak["position"], "block": "oak_log"},
+    }]
+    assert recovery["machine_step_plan"]["reason"] == (
+        "dig_verified_oak_log_for_portable_crafting_table_recovery"
+    )
+    assert recovery["machine_step_plan"]["target"]["recovery_mode"] == (
+        "machine_observed_log"
+    )
+
+    blocked = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        _observation(inventory, []),
+        "Craft a furnace for iron smelting",
+    )
+    assert blocked["status"] == "blocked"
+    assert blocked["actions"] == []
+    assert blocked["reason_code"] == (
+        "portable_crafting_table_recovery_unavailable"
+    )
+    assert blocked["bounded_block"]["policy_id"] == (
+        "m4-bm013-bm014-portable-crafting-table-recovery-v1"
+    )
+    assert blocked["bounded_block"]["fallback_suppressed"] is True
+    assert "llm_plan" in blocked["bounded_block"]["suppressed_paths"]
+
+
+def test_missing_station_does_not_loop_on_an_unobserved_reached_table_target():
+    agent = _machine_agent("BM-014")
+    position = {"x": 1, "y": 63, "z": 0}
+    agent._m4_episode_block_delta = {
+        "placed": {
+            "1,63,0": {
+                "operation": "place",
+                "action_type": "place",
+                "success": True,
+                "position": position,
+                "before": {"name": "air"},
+                "after": {"name": "crafting_table"},
+            },
+        },
+        "removed": {},
+    }
+    inventory = {
+        "stone_pickaxe": 1,
+        "cobblestone": 80,
+        "raw_iron": 4,
+        "coal": 1,
+        "oak_planks": 3,
+    }
+    reached_without_table = _observation(
+        inventory,
+        [],
+        position={"x": 1.5, "y": 63, "z": 0.5},
+    )
+    blocked = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        reached_without_table,
+        "Craft a furnace for iron smelting",
+    )
+    assert blocked["status"] == "blocked"
+    assert blocked["actions"] == []
+    assert blocked["reason_code"] == (
+        "portable_crafting_table_recovery_unavailable"
+    )
+
+    oak = {
+        "name": "oak_log",
+        "position": {"x": 2, "y": 63, "z": 0},
+        "distance": 1,
+    }
+    recover = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        _observation(
+            inventory,
+            [oak],
+            position={"x": 1.5, "y": 63, "z": 0.5},
+        ),
+        "Craft a furnace for iron smelting",
+    )
+    assert recover["actions"] == [{
+        "type": "dig",
+        "parameters": {**oak["position"], "block": "oak_log"},
+    }]
+    assert recover["machine_step_plan"]["target"]["recovery_mode"] == (
+        "machine_observed_log"
+    )
+
+
+def test_removed_owned_table_is_not_a_return_target_and_bm012_is_unchanged():
+    agent = _machine_agent("BM-014")
+    position = {"x": 1, "y": 63, "z": 0}
+    record = {
+        "operation": "place",
+        "action_type": "place",
+        "success": True,
+        "position": position,
+        "before": {"name": "air"},
+        "after": {"name": "crafting_table"},
+    }
+    agent._m4_episode_block_delta = {
+        "placed": {"1,63,0": record},
+        "removed": {
+            "1,63,0": {
+                "operation": "remove",
+                "action_type": "dig",
+                "success": True,
+                "position": position,
+                "before": {"name": "crafting_table"},
+                "after": {"name": "air"},
+            },
+        },
+    }
+    blocked = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        _observation(
+            {"stone_pickaxe": 1, "cobblestone": 8, "oak_planks": 3},
+            [],
+        ),
+        "Craft a furnace for iron smelting",
+    )
+    assert blocked["reason_code"] == (
+        "portable_crafting_table_recovery_unavailable"
+    )
+
+    bm012 = _machine_agent("BM-012")
+    bm012._m4_episode_block_delta = {
+        "placed": {"1,63,0": record},
+        "removed": {},
+    }
+    action, reason, target = bm012._m4_bm012_crafting_table_access_action(
+        _observation({"oak_planks": 3}, []),
+        {"oak_planks": 3},
+    )
+    assert action is None
+    assert reason == "crafting_table_materials_missing"
+    assert target == {}
+
+
 def test_probe51_furnace_place_uses_machine_verified_table_top_instead_of_cave_shell():
     agent = _machine_agent("BM-014")
     table_position = {"x": 118, "y": 122, "z": -49}

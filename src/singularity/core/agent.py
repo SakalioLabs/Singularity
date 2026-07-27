@@ -148,6 +148,9 @@ M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID = (
 M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_KEY = (
     "m4_crafting_table_place_candidates"
 )
+M4_BM013_BM014_PORTABLE_CRAFTING_TABLE_RECOVERY_POLICY_ID = (
+    "m4-bm013-bm014-portable-crafting-table-recovery-v1"
+)
 M4_BM013_BM014_LOCAL_PLACE_CANDIDATE_LIMIT = 27
 M4_BM012_RESOURCE_SCAN_RADIUS = 16
 M4_BM012_RESOURCE_SCAN_NAMES = frozenset({
@@ -8923,11 +8926,41 @@ class Agent:
                 observation,
                 inventory,
             )
+            if (
+                isinstance(action, dict)
+                and action.get("type") == "move_to"
+            ):
+                reclaim_action, reclaim_reason, reclaim_target = (
+                    self._m4_bm013_bm014_reclaim_owned_crafting_table_action(
+                        observation,
+                    )
+                )
+                if reclaim_action is not None:
+                    action, reason, target = (
+                        reclaim_action,
+                        reclaim_reason,
+                        reclaim_target,
+                    )
         elif goal_lower.startswith("collect 1 coal"):
             action, reason, target = self._m4_bm013_bm014_coal_action(
                 observation,
                 inventory,
             )
+            if (
+                isinstance(action, dict)
+                and action.get("type") == "move_to"
+            ):
+                reclaim_action, reclaim_reason, reclaim_target = (
+                    self._m4_bm013_bm014_reclaim_owned_crafting_table_action(
+                        observation,
+                    )
+                )
+                if reclaim_action is not None:
+                    action, reason, target = (
+                        reclaim_action,
+                        reclaim_reason,
+                        reclaim_target,
+                    )
         elif goal_lower.startswith("craft a furnace"):
             action, reason, target = self._m4_bm013_bm014_furnace_action(
                 observation,
@@ -9027,6 +9060,34 @@ class Agent:
                         ],
                     },
                 }
+            if reason == "portable_crafting_table_recovery_unavailable":
+                return {
+                    "schema_version": "m4-machine-step-plan-v1",
+                    "plan_kind": "machine_step",
+                    "goal": goal_text,
+                    "status": "blocked",
+                    "reasoning": (
+                        f"{task_id} bounded machine-state step withheld station "
+                        "recovery because neither a retained episode-owned table "
+                        "nor a machine-observed log source is available"
+                    ),
+                    "reason_code": reason,
+                    "subtasks": [],
+                    "actions": [],
+                    "bounded_block": {
+                        "policy_id": (
+                            M4_BM013_BM014_PORTABLE_CRAFTING_TABLE_RECOVERY_POLICY_ID
+                        ),
+                        "fallback_suppressed": True,
+                        "suppressed_paths": [
+                            "learned_skill",
+                            "bm012_machine_step",
+                            "llm_plan",
+                            "rule_plan",
+                            "visual_action_grounding",
+                        ],
+                    },
+                }
             return None
 
         gate_evidence = dict(
@@ -9075,6 +9136,12 @@ class Agent:
                 == "crafting_table"
                 and target.get("policy_id")
                 == M4_BM013_BM014_CRAFTING_TABLE_PLACE_LOCAL_SNAPSHOT_POLICY_ID
+                else None
+            ),
+            "portable_crafting_table_recovery_policy_id": (
+                M4_BM013_BM014_PORTABLE_CRAFTING_TABLE_RECOVERY_POLICY_ID
+                if target.get("policy_id")
+                == M4_BM013_BM014_PORTABLE_CRAFTING_TABLE_RECOVERY_POLICY_ID
                 else None
             ),
             "llm_gate_policy_id": M4_BM013_BM014_LLM_GATE_POLICY_ID,
@@ -9409,7 +9476,288 @@ class Agent:
                 "craft_oak_planks_for_crafting_table",
                 {},
             )
+        if (
+            str(
+                getattr(
+                    getattr(self, "config", None),
+                    "planner_protocol",
+                    "",
+                )
+                or ""
+            )
+            == "m4-fixed-v1"
+            and str(getattr(self, "_m4_task_id", "") or "")
+            in {"BM-013", "BM-014"}
+        ):
+            return_action, return_reason, return_target = (
+                self._m4_bm013_bm014_return_to_owned_crafting_table_action(
+                    observation,
+                )
+            )
+            if return_action is not None:
+                return return_action, return_reason, return_target
+            log_action, log_reason, log_target = self._m4_bm012_oak_log_action(
+                observation,
+            )
+            if log_action is not None:
+                return (
+                    log_action,
+                    f"{log_reason}_for_portable_crafting_table_recovery",
+                    {
+                        **dict(log_target or {}),
+                        "policy_id": (
+                            M4_BM013_BM014_PORTABLE_CRAFTING_TABLE_RECOVERY_POLICY_ID
+                        ),
+                        "recovery_mode": "machine_observed_log",
+                        "requires_current_observation_before_use": True,
+                    },
+                )
+            return (
+                None,
+                "portable_crafting_table_recovery_unavailable",
+                {
+                    "policy_id": (
+                        M4_BM013_BM014_PORTABLE_CRAFTING_TABLE_RECOVERY_POLICY_ID
+                    ),
+                    "recovery_mode": "fail_closed",
+                },
+            )
         return None, "crafting_table_materials_missing", {}
+
+    def _m4_bm013_bm014_episode_owned_crafting_table_positions(self) -> list[dict]:
+        """Replay successful block mutations and return tables left by this episode."""
+        latest_blocks = {}
+        mutation_event_observed = False
+        events = getattr(getattr(self, "session_logger", None), "events", [])
+        events = events if isinstance(events, list) else []
+        for event in events:
+            if not isinstance(event, dict) or event.get("type") != "action":
+                continue
+            data = event.get("data", {})
+            data = data if isinstance(data, dict) else {}
+            action = data.get("action", {})
+            result = data.get("result", {})
+            action = action if isinstance(action, dict) else {}
+            result = result if isinstance(result, dict) else {}
+            action_type = str(action.get("type") or "")
+            if action_type not in {"place", "dig"} or result.get("success") is not True:
+                continue
+            before = result.get("target_block_before", {})
+            after = result.get("target_block_after", {})
+            before = before if isinstance(before, dict) else {}
+            after = after if isinstance(after, dict) else {}
+            before_position = self._m4_integral_block_position(before.get("position"))
+            after_position = self._m4_integral_block_position(after.get("position"))
+            before_name = str(before.get("name") or "")
+            after_name = str(after.get("name") or "")
+            if (
+                not before_position
+                or before_position != after_position
+                or not before_name
+                or not after_name
+                or before_name == after_name
+            ):
+                continue
+            params = (
+                action.get("parameters", {})
+                if isinstance(action.get("parameters"), dict)
+                else {}
+            )
+            if (
+                action_type == "place"
+                and (
+                    str(params.get("item") or "") != after_name
+                    or after_name != "crafting_table"
+                )
+            ):
+                continue
+            mutation_event_observed = True
+            key = (
+                after_position["x"],
+                after_position["y"],
+                after_position["z"],
+            )
+            latest_blocks[key] = {
+                "name": after_name,
+                "position": after_position,
+            }
+        if mutation_event_observed:
+            return sorted(
+                (
+                    dict(block["position"])
+                    for block in latest_blocks.values()
+                    if block["name"] == "crafting_table"
+                ),
+                key=lambda position: (
+                    position["x"],
+                    position["y"],
+                    position["z"],
+                ),
+            )
+
+        # Isolated offline callers may not install a SessionLogger. In that
+        # case, accept only an unambiguous final-state delta with no same-cell
+        # removal record. Live M4 always takes the ordered event-replay branch.
+        delta = getattr(self, "_m4_episode_block_delta", {})
+        delta = delta if isinstance(delta, dict) else {}
+        placed = delta.get("placed", {})
+        removed = delta.get("removed", {})
+        placed = placed if isinstance(placed, dict) else {}
+        removed = removed if isinstance(removed, dict) else {}
+        positions = []
+        for key, record in placed.items():
+            if not isinstance(record, dict) or key in removed:
+                continue
+            after = record.get("after", {})
+            if (
+                record.get("success") is not True
+                or str(record.get("operation") or "") != "place"
+                or not isinstance(after, dict)
+                or str(after.get("name") or "") != "crafting_table"
+            ):
+                continue
+            position = self._m4_integral_block_position(record.get("position"))
+            if not position:
+                continue
+            if key != f"{position['x']},{position['y']},{position['z']}":
+                continue
+            positions.append(position)
+        return sorted(
+            positions,
+            key=lambda position: (
+                position["x"],
+                position["y"],
+                position["z"],
+            ),
+        )
+
+    def _m4_bm013_bm014_reclaim_owned_crafting_table_action(
+        self,
+        observation: dict,
+    ) -> tuple[dict | None, str, dict]:
+        """Pick up a currently observed owned table before a remote resource move."""
+        owned_positions = {
+            (position["x"], position["y"], position["z"])
+            for position in (
+                self._m4_bm013_bm014_episode_owned_crafting_table_positions()
+            )
+        }
+        owned_tables = []
+        for table in self._m4_bm012_block_candidates(
+            observation,
+            {"crafting_table"},
+        ):
+            position = self._m4_integral_block_position(table.get("position"))
+            if (
+                position
+                and (
+                    position["x"],
+                    position["y"],
+                    position["z"],
+                )
+                in owned_positions
+            ):
+                owned_tables.append((table, position))
+        if not owned_tables:
+            return None, "owned_crafting_table_not_currently_observed", {}
+        table, position = owned_tables[0]
+        if self._m4_bm012_block_distance(table) > 4.5:
+            return None, "owned_crafting_table_not_within_interaction_range", {}
+        return (
+            {
+                "type": "dig",
+                "parameters": {
+                    **position,
+                    "block": "crafting_table",
+                },
+            },
+            "reclaim_episode_owned_crafting_table_before_remote_resource_move",
+            {
+                "name": "crafting_table",
+                "position": position,
+                "machine_observed": True,
+                "episode_owned": True,
+                "source": (
+                    "nearby_blocks+successful_episode_block_mutation_history"
+                ),
+                "policy_id": (
+                    M4_BM013_BM014_PORTABLE_CRAFTING_TABLE_RECOVERY_POLICY_ID
+                ),
+                "recovery_mode": "reclaim_before_remote_move",
+                "requires_current_observation_before_use": True,
+            },
+        )
+
+    def _m4_bm013_bm014_return_to_owned_crafting_table_action(
+        self,
+        observation: dict,
+    ) -> tuple[dict | None, str, dict]:
+        """Navigate to the nearest retained owned-table coordinate for reobservation."""
+        positions = self._m4_bm013_bm014_episode_owned_crafting_table_positions()
+        player = (
+            observation.get("position", {})
+            if isinstance(observation, dict)
+            and isinstance(observation.get("position"), dict)
+            else {}
+        )
+        try:
+            player_coordinates = tuple(float(player[axis]) for axis in ("x", "y", "z"))
+        except (KeyError, TypeError, ValueError):
+            return None, "owned_crafting_table_return_player_position_invalid", {}
+        if not all(math.isfinite(value) for value in player_coordinates):
+            return None, "owned_crafting_table_return_player_position_invalid", {}
+        if not positions:
+            return None, "owned_crafting_table_return_target_missing", {}
+        target_position = min(
+            positions,
+            key=lambda position: (
+                sum(
+                    (
+                        float(position[axis])
+                        - player_coordinates[index]
+                    )
+                    ** 2
+                    for index, axis in enumerate(("x", "y", "z"))
+                ),
+                position["x"],
+                position["y"],
+                position["z"],
+            ),
+        )
+        target_distance_squared = sum(
+            (
+                float(target_position[axis])
+                - player_coordinates[index]
+            )
+            ** 2
+            for index, axis in enumerate(("x", "y", "z"))
+        )
+        if target_distance_squared <= 4.5 ** 2:
+            return (
+                None,
+                "owned_crafting_table_not_reobserved_within_interaction_range",
+                {},
+            )
+        return (
+            {
+                "type": "move_to",
+                "parameters": dict(target_position),
+            },
+            "return_to_episode_owned_crafting_table_for_current_reobservation",
+            {
+                "name": "crafting_table",
+                "position": dict(target_position),
+                "machine_observed": False,
+                "historically_machine_verified": True,
+                "episode_owned": True,
+                "source": "successful_episode_block_mutation_history",
+                "policy_id": (
+                    M4_BM013_BM014_PORTABLE_CRAFTING_TABLE_RECOVERY_POLICY_ID
+                ),
+                "recovery_mode": "return_for_current_reobservation",
+                "requires_current_observation_before_use": True,
+            },
+        )
 
     def _m4_bm012_wooden_pickaxe_action(
         self,

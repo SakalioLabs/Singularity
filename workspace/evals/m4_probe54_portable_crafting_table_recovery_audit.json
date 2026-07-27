@@ -1,0 +1,260 @@
+{
+  "type": "m4_probe54_portable_crafting_table_recovery_audit",
+  "schema_version": 1,
+  "generated_at": "2026-07-27T13:32:00Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_id": "BM-014",
+  "task_contract_id": "m4-bm014-iron-pickaxe-contract-v1",
+  "task_contract_sha256": "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f",
+  "classification": "offline_capability_failure_remediation",
+  "failure_classification": "capability_navigation_inventory_preservation_failure",
+  "counts_toward_bm014_success": false,
+  "counts_toward_capability": false,
+  "bindings": {
+    "probe_54_report_path": "workspace/evals/m4_probe54_report.json",
+    "probe_54_report_sha256": "73a85d42578897660c465ab66cf956197398f493cc0f868421d84741bcce7650",
+    "probe_54_report_type": "m4_probe_report",
+    "probe_54_report_schema_version": 1,
+    "probe_54_episode_id": "m4_episode_20260727_200833_e85a7757",
+    "probe_54_session_id": "69d1d0b2-ec0",
+    "probe_54_level_name": "m4_episode_20260727_200833_e85a7757_bm014",
+    "probe_54_authorization_path": "workspace/evals/m4_probe54_authorization.json",
+    "probe_54_authorization_commit": "4aaf0011071c0dc7ca73ee10b9a7e96b337669cb",
+    "probe_54_authorization_tree": "20e44f903930a88520c57ba6dcf9148d3a8e4785",
+    "probe_54_issued_authorization_sha256": "81eab72e83d5d73bdda09a02fb47541bc36678631f10455dcd06a273af81ade5",
+    "probe_54_consumed_authorization_sha256": "90df767c067abc521e41b9e3349b31200651d4ff1248d0f3a6f81c676d34e15c",
+    "probe_54_authorization_consumed": true,
+    "probe_54_consumed_event_line": 2,
+    "probe_54_consumed_monotonic_s": 904337.5,
+    "probe_54_consumed_at_utc": "2026-07-27T12:09:13.528565Z",
+    "raw_evidence_paths": {
+      "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/session_69d1d0b2-ec0.jsonl",
+      "preparation": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/preparation.json",
+      "result": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/result.json",
+      "eligibility": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/eligibility.json",
+      "manifest": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/manifest.json",
+      "preflight": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/preflight.json",
+      "session_summary": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/session_69d1d0b2-ec0_summary.json",
+      "session_json": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/session.json",
+      "protocol_status": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/protocol_status.json",
+      "reset": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/reset.json"
+    },
+    "raw_evidence_sha256": {
+      "raw_session_jsonl": "d797c440e0d9f3c9d2be133a5dc208bb45a2bdf551f259a031d1997c97359c35",
+      "preparation": "083351ce38d6ecc1f026b4466e309cd8f0812dbc433fc97cf67f31c3392334a7",
+      "result": "11cebc0461162f8159b92bfa2ddbb7e666f15d5db905cec68a9f22d36e02309e",
+      "eligibility": "7a6f3767bfbc1e635fc29384a4acbec25909a1390748d927961f9de1b3367bb6",
+      "manifest": "d0faabc210a0a8a2391d89adc3f00182a926cd0a69539a3e44d8b67a46c43c94",
+      "preflight": "570275ffca59889c834d6496e935dc3f2c085eedfbbd06215b892dc25da840f1",
+      "session_summary": "299979f157f4b8e2fe3a99eae2b13170896c8c1b11c95e9d9d94acdd58cb8b88",
+      "session_json": "c738969f493f76a3b4920aa1ecb59611380a0a75492c7918b10733e2a587486e",
+      "protocol_status": "8cce18d11b885732f5445d00517f935c8f3cc4e30be491b04a4e66f3bc711fdf",
+      "reset": "478f9ae7f0fa78dcba7dcef21f3d2f0066728b01d0438d24933ba9646f91c1fc"
+    }
+  },
+  "retained_failure": {
+    "capability_failure": true,
+    "infrastructure_failure": false,
+    "root_cause": "navigation_inventory_depletion_caused_portable_station_recovery_gap_with_planner_timeout_amplification",
+    "planner_timeout_role": "secondary_amplification",
+    "probe_53_table_snapshot_repair_live_positive": true,
+    "probe_53_table_place_action_lines": [
+      173,
+      433
+    ],
+    "probe_53_table_place_success_count": 2,
+    "probe_53_table_place_failure_count": 0,
+    "probe_53_occupied_target_failure_count": 0,
+    "same_cell_ordered_mutation_replay": {
+      "position": {
+        "x": 113,
+        "y": 128,
+        "z": -29
+      },
+      "stone_dig_action_line": 387,
+      "crafting_table_place_action_line": 433,
+      "ordered_replay_final_block": "crafting_table"
+    },
+    "navigation_inventory_depletion": {
+      "action_line": 536,
+      "action_type": "move_to",
+      "action_success": true,
+      "target": {
+        "x": 118,
+        "y": 123,
+        "z": -51
+      },
+      "inventory_before": {
+        "oak_log": 2,
+        "oak_planks": 3,
+        "wooden_pickaxe": 1,
+        "stone_pickaxe": 1,
+        "cobblestone": 35,
+        "dirt": 3,
+        "raw_iron": 3
+      },
+      "inventory_after": {
+        "wooden_pickaxe": 1,
+        "stone_pickaxe": 1,
+        "cobblestone": 79,
+        "dirt": 2,
+        "raw_iron": 4,
+        "oak_planks": 3
+      },
+      "oak_log_delta": -2,
+      "crafting_table_after": 0,
+      "oak_planks_after": 3,
+      "portable_station_materials_preserved": false
+    },
+    "terminal_furnace_goal": "Craft a furnace for iron smelting",
+    "terminal_crafting_table_observed": false,
+    "terminal_crafting_table_inventory_count": 0,
+    "terminal_oak_log_inventory_count": 0,
+    "terminal_oak_planks_inventory_count": 3,
+    "planner_timeline": {
+      "first_timeout_call_line": 561,
+      "transport_recovery_line": 564,
+      "second_timeout_call_line": 569,
+      "first_unrecovered_transition_line": 571,
+      "first_timeout_request_s": 90.0,
+      "second_timeout_request_s": 6.079,
+      "distinct_next_cycle_calls": true,
+      "same_call_retry_count": 0,
+      "automatic_retry": false,
+      "deadline_phase": "post_planner",
+      "new_action_suppressed": true
+    },
+    "termination_reason": "episode_deadline",
+    "episode_elapsed_s": 300.031,
+    "bm014_attempt_count_after": 4,
+    "bm014_failure_count_after": 3,
+    "bm014_eligible_success_count_after": 1,
+    "bm014_remaining_success_count_after": 2
+  },
+  "offline_repair": {
+    "status": "completed_offline_pending_evidence_commit_push_readback",
+    "policy_id": "m4-bm013-bm014-portable-crafting-table-recovery-v1",
+    "scope": "BM-013/BM-014 portable crafting-table preservation and bounded station recovery only",
+    "ordered_mutation_replay": {
+      "source": "successful action events in session order",
+      "successful_place_and_dig_only": true,
+      "same_coordinate_later_mutation_wins": true,
+      "probe_54_stone_dig_then_table_place_same_coordinate_retained": true,
+      "removed_or_replaced_table_excluded": true,
+      "aggregate_delta_fallback_live_enabled": false,
+      "aggregate_delta_fallback_isolated_offline_only": true,
+      "ambiguous_aggregate_place_and_remove_same_cell_rejected": true
+    },
+    "remote_resource_move_reclaim": {
+      "task_scope": [
+        "BM-013",
+        "BM-014"
+      ],
+      "goal_scope": [
+        "collect raw iron",
+        "collect coal"
+      ],
+      "underlying_next_action_must_be_remote_move_to": true,
+      "crafting_table_must_be_currently_machine_observed": true,
+      "crafting_table_must_be_episode_owned_by_successful_mutation_history": true,
+      "maximum_interaction_distance": 4.5,
+      "reclaim_action": "dig crafting_table",
+      "arbitrary_unowned_table_reclaimed": false,
+      "historical_coordinate_alone_authorizes_reclaim": false
+    },
+    "historical_table_return": {
+      "use": "navigation target for current reobservation only",
+      "nearest_retained_episode_owned_position_selected": true,
+      "historical_coordinate_treated_as_current_block_observation": false,
+      "current_reobservation_required_before_use": true,
+      "return_move_requires_distance_above": 4.5,
+      "within_4_5_and_not_currently_visible_repeats_navigation": false,
+      "within_4_5_and_not_currently_visible_falls_through_to_material_recovery": true
+    },
+    "material_recovery": {
+      "current_machine_observed_oak_log_can_be_dug": true,
+      "historical_or_inferred_oak_log_can_be_dug": false,
+      "no_retained_table_and_no_current_machine_observed_oak_log_status": "blocked",
+      "blocked_reason_code": "portable_crafting_table_recovery_unavailable",
+      "blocked_action_count": 0
+    },
+    "execution_path_gates": {
+      "full_think_fallback_suppressed": true,
+      "suppressed_execution_paths": [
+        "learned_skill",
+        "bm012_machine_step",
+        "llm_plan",
+        "rule_plan",
+        "visual_action_grounding"
+      ]
+    },
+    "policy_isolation": {
+      "bm012_generic_crafting_table_behavior_unchanged": true,
+      "probe_53_crafting_table_local_snapshot_policy_unchanged": true,
+      "furnace_local_snapshot_policy_unchanged": true,
+      "raw_iron_and_coal_machine_actions_unchanged_except_owned_table_reclaim_before_remote_move": true
+    },
+    "unchanged_controls": {
+      "protocol": true,
+      "task_contract": true,
+      "deadline_s": 300,
+      "model": "grok-4.5",
+      "skill_execution_mode": "off",
+      "smelt_physics": true,
+      "success_threshold": 3,
+      "planner_same_call_retry_count": 0,
+      "client_retry_count": 0,
+      "proxy_retry_count": 0,
+      "provider_transport_policy": "single-attempt"
+    }
+  },
+  "source_paths": {
+    "agent": "src/singularity/core/agent.py",
+    "agent_tests": "tests/test_m4_bm013_bm014_agent.py"
+  },
+  "source_sha256": {
+    "agent": "8b472d3b91606a87c01dba073905c7c3526fddd137f700a82fae1e53bde31ef9",
+    "agent_tests": "a2bbb51b531ff89f3d234ec54413eef4bcf755ca9dda465ad4b48031095da646"
+  },
+  "offline_validation": {
+    "focused_agent_command": "python -m pytest -q tests/test_m4_bm013_bm014_agent.py",
+    "focused_agent_pass_count": 26,
+    "focused_agent_fail_count": 0,
+    "audit_command": "python -m pytest -q tests/test_m4_probe54_portable_crafting_table_recovery_audit.py",
+    "audit_pass_count": 5,
+    "audit_fail_count": 0,
+    "combined_command": "python -m pytest -q tests/test_m4_bm013_bm014_agent.py tests/test_m4_probe54_portable_crafting_table_recovery_audit.py",
+    "combined_pass_count": 31,
+    "combined_fail_count": 0,
+    "covered_boundaries": [
+      "Probe 53 table placements at lines 173 and 433 remain live-positive",
+      "Probe 54 line 536 proves navigation inventory depletion before the terminal station gap",
+      "planner lines 561, 564, 569, and 571 are secondary deadline amplification with no same-call retry",
+      "ordered successful mutations retain a table placed after stone was dug from the same coordinate",
+      "remote raw-iron or coal movement reclaims only a current machine-observed episode-owned table within 4.5 blocks",
+      "historical table positions authorize return for current reobservation but never authorize block use",
+      "reaching an invisible historical table within 4.5 blocks cannot repeat navigation",
+      "only a current machine-observed oak log can recover missing table material",
+      "missing retained table and current oak log fails closed and suppresses every full-think fallback",
+      "a removed or replaced table is excluded",
+      "BM-012 behavior and frozen M4 controls remain unchanged"
+    ]
+  },
+  "decision": {
+    "repair_claimed_complete_offline": true,
+    "live_validation_complete": false,
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false,
+    "bm014_attempt_count": 4,
+    "bm014_failure_count": 3,
+    "bm014_eligible_success_count": 1,
+    "required_success_count": 3,
+    "remaining_success_count": 2,
+    "bm014_status": "live_observed",
+    "m4_status": "live_observed",
+    "next_live_probe_locked_until_evidence_and_repair_commit_is_pushed_and_read_back": true,
+    "probe_55_authorized": false
+  }
+}

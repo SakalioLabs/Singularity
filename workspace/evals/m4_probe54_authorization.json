@@ -115,7 +115,16 @@
   "bm014_status_before_probe": "live_observed",
   "m4_status_before_probe": "live_observed",
   "counts_toward_capability_before_independent_verification": false,
-  "consumed": false,
+  "consumed": true,
   "next_authorization": false,
-  "probe_55_authorized": false
+  "probe_55_authorized": false,
+  "consumed_by_episode": "m4_episode_20260727_200833_e85a7757",
+  "consumed_session_id": "69d1d0b2-ec0",
+  "consumed_level_name": "m4_episode_20260727_200833_e85a7757_bm014",
+  "consumed_at": "autonomous_start",
+  "consumed_at_utc": "2026-07-27T12:09:13.528565Z",
+  "consumed_monotonic_s": 904337.5,
+  "consumed_event_line": 2,
+  "consumed_evidence_dir": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757",
+  "consumed_report_path": "workspace/evals/m4_probe54_report.json"
 }

@@ -1,0 +1,515 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-27T13:15:00Z",
+  "profile": "m4-fixed-v1",
+  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "task_id": "BM-014",
+  "probe_number": 54,
+  "episode_id": "m4_episode_20260727_200833_e85a7757",
+  "session_id": "69d1d0b2-ec0",
+  "level_name": "m4_episode_20260727_200833_e85a7757_bm014",
+  "authorization": {
+    "path": "workspace/evals/m4_probe54_authorization.json",
+    "commit": "4aaf0011071c0dc7ca73ee10b9a7e96b337669cb",
+    "tree": "20e44f903930a88520c57ba6dcf9148d3a8e4785",
+    "gate_parent_commit": "cf888555f080bd82b6a893c50494ca05b38a1688",
+    "gate_tree": "a711e9962f0153208f565d95aaf473caf2ece22d",
+    "policy_id": "m4-bm013-bm014-crafting-table-place-local-snapshot-v1",
+    "prior_probe_report_path": "workspace/evals/m4_probe53_report.json",
+    "prior_probe_report_sha256": "3206e56ef7b6fd1eac839619dc30bdfacac09de34f5524cac9d76a0c94ceb918",
+    "issued_sha256": "81eab72e83d5d73bdda09a02fb47541bc36678631f10455dcd06a273af81ade5",
+    "issued_artifact_consumed_field": false,
+    "consumed_sha256": "90df767c067abc521e41b9e3349b31200651d4ff1248d0f3a6f81c676d34e15c",
+    "consumed_artifact_consumed_field": true,
+    "one_use": true,
+    "maximum_episode_count": 1,
+    "maximum_retry_count": 0,
+    "runtime_consumption": {
+      "consumed": true,
+      "consumed_at": "autonomous_start",
+      "consumed_at_utc": "2026-07-27T12:09:13.528565Z",
+      "consumed_monotonic_s": 904337.5,
+      "consumed_event_line": 2,
+      "consumed_episode_id": "m4_episode_20260727_200833_e85a7757",
+      "consumed_session_id": "69d1d0b2-ec0",
+      "consumed_level_name": "m4_episode_20260727_200833_e85a7757_bm014",
+      "evidence_path": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/session_69d1d0b2-ec0.jsonl"
+    },
+    "probe_55_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+    "task_contract_id": "m4-bm014-iron-pickaxe-contract-v1",
+    "task_contract_sha256": "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f",
+    "model": "grok-4.5",
+    "python_version": "3.12.8",
+    "node_version": "22.16.0",
+    "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+    "world_seed": "12345",
+    "max_duration_s": 300,
+    "max_goals": 24,
+    "max_cycles_per_goal": 40,
+    "max_total_cycles": 320,
+    "fresh_level": true,
+    "skill_execution_mode": "off",
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0,
+    "credential_provider_preflight_passed": true
+  },
+  "evidence_paths": {
+    "raw_session_jsonl": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/session_69d1d0b2-ec0.jsonl",
+    "preparation": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/preparation.json",
+    "result": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/result.json",
+    "eligibility": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/eligibility.json",
+    "manifest": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/manifest.json",
+    "preflight": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/preflight.json",
+    "session_summary": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/session_69d1d0b2-ec0_summary.json",
+    "session_json": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/session.json",
+    "protocol_status": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/protocol_status.json",
+    "reset": "logs/benchmarks/m4/m4_episode_20260727_200833_e85a7757/reset.json"
+  },
+  "evidence_sha256": {
+    "raw_session_jsonl": "d797c440e0d9f3c9d2be133a5dc208bb45a2bdf551f259a031d1997c97359c35",
+    "preparation": "083351ce38d6ecc1f026b4466e309cd8f0812dbc433fc97cf67f31c3392334a7",
+    "result": "11cebc0461162f8159b92bfa2ddbb7e666f15d5db905cec68a9f22d36e02309e",
+    "eligibility": "7a6f3767bfbc1e635fc29384a4acbec25909a1390748d927961f9de1b3367bb6",
+    "manifest": "d0faabc210a0a8a2391d89adc3f00182a926cd0a69539a3e44d8b67a46c43c94",
+    "preflight": "570275ffca59889c834d6496e935dc3f2c085eedfbbd06215b892dc25da840f1",
+    "session_summary": "299979f157f4b8e2fe3a99eae2b13170896c8c1b11c95e9d9d94acdd58cb8b88",
+    "session_json": "c738969f493f76a3b4920aa1ecb59611380a0a75492c7918b10733e2a587486e",
+    "protocol_status": "8cce18d11b885732f5445d00517f935c8f3cc4e30be491b04a4e66f3bc711fdf",
+    "reset": "478f9ae7f0fa78dcba7dcef21f3d2f0066728b01d0438d24933ba9646f91c1fc"
+  },
+  "preparation": {
+    "readiness": "review",
+    "decision": "diagnose_first_unrecovered_transition",
+    "progress_gate_passed": false,
+    "counts_toward_task_success": false,
+    "evidence_eligible": false,
+    "autonomous_goal_count": 8,
+    "planner_provider_controls_passed": true,
+    "action_count": 38,
+    "successful_action_count": 38,
+    "successful_output_source_action_count": 0,
+    "terminal_target_passed": false,
+    "positive_inventory_delta_passed": false,
+    "time_remaining_s": 0.0,
+    "first_unrecovered_transition_line": 571
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 300.031,
+    "deadline_eligible": false,
+    "deadline_margin_s": -0.031,
+    "no_post_deadline_execution": false,
+    "goals_completed": 7,
+    "goals_failed": 1,
+    "goals_interrupted": 0,
+    "total_cycles": 40,
+    "per_goal_cycles": [
+      7,
+      2,
+      5,
+      13,
+      4,
+      5,
+      2,
+      2
+    ],
+    "maximum_goal_cycles": 13,
+    "planner_call_count": 3,
+    "real_planner_call_count": 1,
+    "schema_valid_real_planner_call_count": 1,
+    "planner_transport_timeout_call_count": 2,
+    "planner_same_call_retry_count": 0,
+    "planner_call_ids": [
+      "llm-ed5f202dee1e468a",
+      "llm-477d0a22c09d4dc8",
+      "llm-08ae90d10fa94a27"
+    ],
+    "successful_planner_call_duration_ms": 10796,
+    "planner_total_token_usage": 4223,
+    "planner_prompt_token_usage": 3690,
+    "planner_completion_token_usage": 533,
+    "machine_step_plan_count": 37,
+    "action_count": 38,
+    "successful_action_count": 38,
+    "failed_action_count": 0,
+    "action_verifier_accept_count": 38,
+    "action_verifier_reject_count": 0,
+    "action_success_by_type": {
+      "move_to": {
+        "attempted": 3,
+        "successful": 3
+      },
+      "dig": {
+        "attempted": 21,
+        "successful": 21
+      },
+      "craft": {
+        "attempted": 9,
+        "successful": 9
+      },
+      "place": {
+        "attempted": 2,
+        "successful": 2
+      },
+      "equip": {
+        "attempted": 3,
+        "successful": 3
+      }
+    },
+    "session_event_count": 577,
+    "session_json_event_count": 576,
+    "session_json_matches_jsonl_prefix": true,
+    "jsonl_tail_event_type": "memory_manage",
+    "last_trustworthy_inventory": {
+      "wooden_pickaxe": 1,
+      "stone_pickaxe": 1,
+      "cobblestone": 80,
+      "dirt": 2,
+      "raw_iron": 4,
+      "oak_planks": 3,
+      "coal": 1
+    }
+  },
+  "survival_evidence": {
+    "observation_count": 79,
+    "minimum_health": 20,
+    "minimum_food": 20,
+    "minimum_oxygen": 20,
+    "maximum_death_count": 0,
+    "maximum_respawn_count": 0,
+    "uninterrupted_survival": true,
+    "last_observation_state_complete": true,
+    "terminal_lifecycle_eligibility_passed": true,
+    "terminal_bot_connected_eligibility_passed": true
+  },
+  "behavioral_progression": {
+    "completed_goal_count": 7,
+    "goal_verification_lines": [
+      122,
+      154,
+      224,
+      390,
+      448,
+      518,
+      551
+    ],
+    "furnace_goal_start_line": 556,
+    "first_furnace_planner_timeout_line": 561,
+    "planner_transport_recovery_line": 564,
+    "second_furnace_planner_timeout_line": 569,
+    "first_actionable_capability_transition_line": 536,
+    "first_unrecovered_transition_line": 571,
+    "furnace_goal_failed_line": 572,
+    "autonomous_end_line": 575,
+    "furnace_craft_exercised": false,
+    "smelt_backend_action_exercised": false,
+    "iron_pickaxe_craft_exercised": false
+  },
+  "probe53_repair_live_provenance": {
+    "policy_id": "m4-bm013-bm014-crafting-table-place-local-snapshot-v1",
+    "live_exercised": true,
+    "successful_place_count": 2,
+    "failed_place_count": 0,
+    "action_lines": [
+      173,
+      433
+    ],
+    "placements": [
+      {
+        "reference_position": {
+          "x": 112,
+          "y": 135,
+          "z": -28
+        },
+        "placed_position": {
+          "x": 112,
+          "y": 136,
+          "z": -28
+        },
+        "target_before": "air",
+        "target_after": "crafting_table",
+        "success": true
+      },
+      {
+        "reference_position": {
+          "x": 113,
+          "y": 127,
+          "z": -29
+        },
+        "placed_position": {
+          "x": 113,
+          "y": 128,
+          "z": -29
+        },
+        "target_before": "air",
+        "target_after": "crafting_table",
+        "success": true
+      }
+    ],
+    "issued_repair_source_sha256": {
+      "agent": "1d30d5375c3759e353b3e7ee612d6137a317c047318f674717e443cbe906e98a",
+      "action_verifier": "5be00a9ae6d550560bbdf9214ed38bdf28dc55aa5d556a9d522893cc3b05e9ea",
+      "agent_tests": "7b9204a4a04ca917c8b7de796a98cbedc2c97cc7ade3e85c0df5c30f204ba0d0"
+    },
+    "occupied_target_failure_count": 0,
+    "conclusion": "probe53_crafting_table_local_snapshot_repair_was_live_exercised_and_did_not_recur_as_the_probe54_failure"
+  },
+  "portable_station_material_recovery_gap": {
+    "terminal_goal": "Craft a furnace for iron smelting",
+    "goal_selection_reason": "bm014_furnace_missing",
+    "terminal_player_position": {
+      "x": 118.49999999999987,
+      "y": 123,
+      "z": -49.48983006925822
+    },
+    "retained_episode_owned_crafting_table_positions": [
+      {
+        "x": 112,
+        "y": 136,
+        "z": -28
+      },
+      {
+        "x": 113,
+        "y": 128,
+        "z": -29
+      }
+    ],
+    "nearby_crafting_table_observed_at_furnace_goal": false,
+    "crafting_table_in_inventory_at_furnace_goal": 0,
+    "oak_log_in_inventory_at_furnace_goal": 0,
+    "oak_planks_in_inventory_at_furnace_goal": 3,
+    "crafting_table_recipe_oak_planks_required": 4,
+    "cobblestone_in_inventory_at_furnace_goal": 80,
+    "raw_iron_in_inventory_at_furnace_goal": 4,
+    "coal_in_inventory_at_furnace_goal": 1,
+    "navigation_inventory_transition": {
+      "event_line": 536,
+      "goal": "Collect 1 coal for furnace fuel with the stone pickaxe",
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 118,
+          "y": 123,
+          "z": -51
+        }
+      },
+      "success": true,
+      "action_verifier_status": "accept",
+      "action_verifier_reason": "navigation or low-impact action",
+      "duration_ms": 37969,
+      "pre_position": {
+        "x": 118.4582651655425,
+        "y": 124,
+        "z": -36.50000000000033
+      },
+      "post_position": {
+        "x": 118.49999999999989,
+        "y": 123,
+        "z": -49.33832200968685
+      },
+      "pre_inventory": {
+        "oak_log": 2,
+        "oak_planks": 3,
+        "wooden_pickaxe": 1,
+        "stone_pickaxe": 1,
+        "cobblestone": 35,
+        "dirt": 3,
+        "raw_iron": 3
+      },
+      "post_inventory": {
+        "wooden_pickaxe": 1,
+        "stone_pickaxe": 1,
+        "cobblestone": 79,
+        "dirt": 2,
+        "raw_iron": 4,
+        "oak_planks": 3
+      },
+      "inventory_delta": {
+        "oak_log": -2,
+        "oak_planks": 0,
+        "cobblestone": 44,
+        "dirt": -1,
+        "raw_iron": 1
+      },
+      "station_material_depleted": "oak_log",
+      "station_material_depletion_count": 2,
+      "depletion_caused_portable_station_recovery_gap": true
+    },
+    "last_action_line": 548,
+    "last_action_success": true,
+    "no_failed_backend_action_caused_terminal_gap": true,
+    "existing_machine_step_recovered_retained_station": false,
+    "existing_machine_step_recovered_missing_table_material": false,
+    "planner_fallback_entered": true
+  },
+  "planner_transport_deadline_failure": {
+    "timeout_call_count": 2,
+    "independent_cycle_call_count": 2,
+    "same_call_retry_count": 0,
+    "automatic_retry": false,
+    "calls": [
+      {
+        "event_line": 561,
+        "cycle": 39,
+        "call_id": "llm-477d0a22c09d4dc8",
+        "call_index": 0,
+        "parent_call_id": "",
+        "transport_policy_id": "single-attempt",
+        "transport_attempt_count": 1,
+        "transport_retry_count": 0,
+        "sdk_max_retries": 0,
+        "request_timeout_s": 90.0,
+        "success": false,
+        "real_llm_call": false,
+        "schema_valid": false,
+        "error": "Request timed out."
+      },
+      {
+        "event_line": 569,
+        "cycle": 40,
+        "call_id": "llm-08ae90d10fa94a27",
+        "call_index": 1,
+        "parent_call_id": "llm-477d0a22c09d4dc8",
+        "transport_policy_id": "single-attempt",
+        "transport_attempt_count": 1,
+        "transport_retry_count": 0,
+        "sdk_max_retries": 0,
+        "request_timeout_s": 6.079,
+        "success": false,
+        "real_llm_call": false,
+        "schema_valid": false,
+        "error": "Request timed out."
+      }
+    ],
+    "recovery_event_line": 564,
+    "recovery_resume_policy": "retry_planner_next_cycle_same_goal",
+    "recovery_same_call_retry_count": 0,
+    "deadline_event_line": 571,
+    "deadline_phase": "post_planner",
+    "deadline_monotonic_s": 904637.5,
+    "observed_post_planner_monotonic_s": 904637.531,
+    "post_deadline_margin_s": 0.031,
+    "new_action_suppressed": true
+  },
+  "failure_analysis": {
+    "classification": "capability_navigation_inventory_preservation_failure",
+    "infrastructure_failure": false,
+    "first_actionable_capability_transition": "navigation_inventory_depletion",
+    "first_actionable_capability_transition_line": 536,
+    "first_unrecovered_transition": "post_planner_episode_deadline",
+    "first_unrecovered_transition_line": 571,
+    "root_cause": "navigation_inventory_depletion_caused_portable_station_recovery_gap_with_planner_timeout_amplification",
+    "primary_cause": "navigation_inventory_depletion_caused_portable_station_recovery_gap",
+    "secondary_amplification": "planner_transport_timeout",
+    "planner_transport_timeout_is_root_classification": false,
+    "probe53_crafting_table_place_local_snapshot_repair_correct": true,
+    "all_backend_actions_succeeded": true,
+    "planner_timeouts_were_distinct_cycle_calls_not_same_call_retries": true,
+    "no_retry_required": true,
+    "counts_as_bm014_attempt": true,
+    "counts_as_bm014_failure": true
+  },
+  "offline_repair": {
+    "status": "completed_offline_pending_evidence_commit",
+    "policy_id": "m4-bm013-bm014-portable-crafting-table-recovery-v1",
+    "scope": "BM-013/BM-014 owned crafting-table portability and missing-station material recovery only",
+    "reclaims_currently_observed_episode_owned_table_before_remote_iron_or_coal_move": true,
+    "reclaim_action_requires_current_observation": true,
+    "reclaim_action_requires_successful_episode_owned_place_history": true,
+    "reclaim_action_requires_interaction_range": true,
+    "maximum_reclaim_distance": 4.5,
+    "ordered_successful_place_and_dig_mutations_replayed": true,
+    "removed_or_replaced_table_not_returned": true,
+    "returns_to_nearest_retained_episode_owned_table_for_current_reobservation": true,
+    "return_move_requires_distance_above_interaction_range": true,
+    "retained_table_within_interaction_range_but_not_reobserved_does_not_repeat_move": true,
+    "historical_coordinate_not_treated_as_current_block_observation": true,
+    "missing_retained_table_uses_only_machine_observed_oak_log": true,
+    "missing_retained_table_and_machine_observed_log_fails_closed": true,
+    "full_think_fallback_suppressed_on_bounded_block": true,
+    "suppressed_execution_paths": [
+      "learned_skill",
+      "bm012_machine_step",
+      "llm_plan",
+      "rule_plan",
+      "visual_action_grounding"
+    ],
+    "arbitrary_unowned_table_not_reclaimed": true,
+    "bm012_generic_crafting_table_behavior_unchanged": true,
+    "probe53_crafting_table_local_snapshot_policy_unchanged": true,
+    "furnace_local_snapshot_policy_unchanged": true,
+    "focused_python_pass_count": 26,
+    "source_paths": {
+      "agent": "src/singularity/core/agent.py",
+      "agent_tests": "tests/test_m4_bm013_bm014_agent.py"
+    },
+    "source_sha256": {
+      "agent": "8b472d3b91606a87c01dba073905c7c3526fddd137f700a82fae1e53bde31ef9",
+      "agent_tests": "a2bbb51b531ff89f3d234ec54413eef4bcf755ca9dda465ad4b48031095da646"
+    },
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "deadline_changed": false,
+    "retry_policy_changed": false,
+    "provider_transport_policy_changed": false,
+    "smelt_physics_changed": false,
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false,
+    "live_exercised": false,
+    "probe_55_authorized": false
+  },
+  "skill_attribution": {
+    "skill_execution_mode": "off",
+    "selected_count": 0,
+    "executed_count": 0,
+    "successful_action_count": 0,
+    "failed_action_count": 0,
+    "completion_count": 0,
+    "fallback_count": 0,
+    "vision_intervention_count": 0,
+    "multi_agent_intervention_count": 0
+  },
+  "eligibility": {
+    "eligible": false,
+    "success": false,
+    "progress_gate_passed": false,
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false,
+    "check_count": 74,
+    "pass_count": 66,
+    "issue_count": 8,
+    "issues": [
+      "event:terminal_task_verification",
+      "output_terminal_inventory_target",
+      "output_successful_source_actions",
+      "output_positive_inventory_delta",
+      "terminal_machine_verification",
+      "episode_within_deadline",
+      "result_duration_eligible",
+      "no_post_deadline_execution"
+    ],
+    "independent_recomputation_exact_match": true
+  },
+  "decision": {
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false,
+    "bm014_attempt_count_before": 3,
+    "bm014_attempt_count_after": 4,
+    "bm014_failure_count_before": 2,
+    "bm014_failure_count_after": 3,
+    "bm014_success_count_before": 1,
+    "bm014_success_count_after": 1,
+    "required_success_count": 3,
+    "remaining_success_count": 2,
+    "bm014_repeat_verified_after_probe": false,
+    "bm014_status_after": "live_observed",
+    "m4_status_after": "live_observed",
+    "next_live_probe_locked_until_failure_evidence_and_offline_repair_are_committed_pushed_and_read_back": true,
+    "probe_55_authorized": false
+  }
+}
