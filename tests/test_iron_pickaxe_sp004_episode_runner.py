@@ -52,7 +52,7 @@ def test_sp004_bridge_is_isolated_from_frozen_shared_bridge():
     sp004 = REPO / "src/bot/sp004_bot_server.js"
 
     assert hashlib.sha256(shared.read_bytes()).hexdigest() == (
-        "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
+        "c407bf7a25c567a4cbe6308f05a91e4f98fb02bc8daf955578cd0a6f24a3d9de"
     )
     assert sp004.is_file()
     assert hashlib.sha256(sp004.read_bytes()).hexdigest() != (
@@ -67,7 +67,7 @@ def test_runner_config_binds_requested_model_without_recording_key():
         username="Singularity",
         bridge_host="127.0.0.1",
         bridge_port=30000,
-        model="grok-4.5",
+        model="gemini-3.6-flash-high",
         base_url="http://192.168.3.27:8317",
     )
 
@@ -77,7 +77,7 @@ def test_runner_config_binds_requested_model_without_recording_key():
         REPO / "workspace/evals/sp004_runs/test-only",
     )
 
-    assert config.llm.model == "grok-4.5"
+    assert config.llm.model == "gemini-3.6-flash-high"
     assert config.llm.base_url == "http://192.168.3.27:8317/v1"
     assert config.llm.api_key == "test-only-secret"
     assert config.planner_protocol == "stone-pickaxe-skill-fixed-v1"

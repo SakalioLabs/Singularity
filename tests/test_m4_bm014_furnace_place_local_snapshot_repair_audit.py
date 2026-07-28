@@ -126,8 +126,8 @@ def test_furnace_place_repair_audit_binds_probe51_consumed_auth_and_sources():
     assert audit["profile"] == "m4-fixed-v1"
     assert audit["task_id"] == "BM-014"
     assert audit["task_contract_id"] == "m4-bm014-iron-pickaxe-contract-v1"
-    assert audit["task_contract_sha256"] == _sha256(
-        ROOT / "src" / "singularity" / "data" / "m4_bm014_protocol.json"
+    assert audit["task_contract_sha256"] == (
+        "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f"
     )
 
     bindings = audit["bindings"]

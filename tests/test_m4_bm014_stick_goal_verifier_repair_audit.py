@@ -54,8 +54,9 @@ def test_bm014_stick_goal_repair_audit_binds_frozen_contract_and_parent():
     assert audit["profile"] == "m4-fixed-v1"
     assert audit["task_id"] == "BM-014"
     assert audit["task_contract_id"] == "m4-bm014-iron-pickaxe-contract-v1"
-    contract_path = ROOT / "src" / "singularity" / "data" / "m4_bm014_protocol.json"
-    assert audit["task_contract_sha256"] == _sha256(contract_path)
+    assert audit["task_contract_sha256"] == (
+        "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f"
+    )
     assert audit["repair_parent"]["commit"] == (
         "84b9817dd7f65f4c001314874592bc096fc82c36"
     )

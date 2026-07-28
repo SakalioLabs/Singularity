@@ -12,7 +12,9 @@ param(
     [string]$TaskId = "BM-011",
     [double]$MaxDurationSeconds = 0,
     [int]$MaxGoals = 24,
-    [int]$MaxCycles = 40
+    [int]$MaxCycles = 40,
+    [switch]$VisibleObserver,
+    [int]$ObserverPort = 30080
 )
 
 Set-StrictMode -Version Latest
@@ -34,6 +36,7 @@ $runtimeLogRoot = Join-Path $repoRoot "logs\benchmarks\runtime"
 $blockerPath = Join-Path $repoRoot "logs\benchmarks\m4\m4_runtime_blocker_${timestamp}.json"
 $serverProcess = $null
 $bridgeProcess = $null
+$observerProcess = $null
 $originalServerProperties = $null
 $originalServerPropertiesBytes = $null
 $serverPropertiesModified = $false
@@ -204,6 +207,9 @@ try {
     if (Test-Path -LiteralPath $outputRoot) { throw "M4 runtime refuses existing evidence directory $outputRoot." }
     if (Test-TcpEndpoint $MinecraftHost $MinecraftPort) { throw "M4 runtime blocked: Minecraft port is occupied." }
     if (Test-TcpEndpoint "127.0.0.1" $BridgePort) { throw "M4 runtime blocked: bridge port is occupied." }
+    if ($VisibleObserver -and (Test-TcpEndpoint "127.0.0.1" $ObserverPort)) {
+        throw "M4 runtime blocked: observer port is occupied."
+    }
 
     New-Item -ItemType Directory -Force -Path $runtimeLogRoot | Out-Null
     $originalServerPropertiesBytes = [System.IO.File]::ReadAllBytes($propertiesPath)
@@ -248,6 +254,23 @@ try {
     if (-not (Wait-ForBridgeSession "127.0.0.1" $BridgePort $BridgeWaitSeconds)) {
         throw "M4 runtime blocked: bridge did not report bot_ready=true."
     }
+    if ($VisibleObserver) {
+        $observerStdout = Join-Path $runtimeLogRoot "m4_observer_${episodeId}.stdout.log"
+        $observerStderr = Join-Path $runtimeLogRoot "m4_observer_${episodeId}.stderr.log"
+        $observerArgs = @(
+            "scripts/m4_live_observer.js",
+            "--bridge-host", "127.0.0.1",
+            "--bridge-port", $BridgePort,
+            "--observer-port", $ObserverPort,
+            "--episode-id", $episodeId,
+            "--evidence-dir", $outputRoot
+        )
+        $observerProcess = Start-Process -FilePath "node" -ArgumentList $observerArgs -WorkingDirectory $repoRoot -RedirectStandardOutput $observerStdout -RedirectStandardError $observerStderr -WindowStyle Hidden -PassThru
+        if (-not (Wait-ForTcpEndpoint "127.0.0.1" $ObserverPort 15)) {
+            throw "M4 runtime blocked: read-only live observer did not become ready."
+        }
+        Write-Host "M4 live observer: http://127.0.0.1:$ObserverPort/"
+    }
 
     $env:SINGULARITY_LLM_API_KEY = $apiKey
     $env:SINGULARITY_LLM_BASE_URL = [string]$protocol.llm.base_url
@@ -283,7 +306,7 @@ catch {
 }
 finally {
     $cleanupErrors = [System.Collections.Generic.List[string]]::new()
-    foreach ($ownedProcess in @($bridgeProcess, $serverProcess)) {
+    foreach ($ownedProcess in @($observerProcess, $bridgeProcess, $serverProcess)) {
         try { Stop-OwnedProcess $ownedProcess }
         catch { $cleanupErrors.Add([string]$_.Exception.Message) }
     }

@@ -3,7 +3,7 @@
   "schema_version": 1,
   "id": "m4-bm012-resource-contract-v1",
   "profile": "m4-fixed-v1",
-  "base_protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "base_protocol_sha256": "b436f1deb7af3569f5e297c0f5ad018e12edc31d164fd84b74524348b768a278",
   "task_id": "BM-012",
   "name": "Get 8 iron resources",
   "terminal_goal": "Collect 8 iron resources",

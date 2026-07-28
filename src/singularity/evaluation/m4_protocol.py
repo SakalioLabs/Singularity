@@ -42,6 +42,23 @@ M4_PLAYER_LIFECYCLE_VERIFIER_ID = str(
     PROTOCOL.get("identities", {}).get("player_lifecycle_verifier") or ""
 )
 _PROTOCOL_REPLAY_LOCK = threading.RLock()
+_GROK_PROTOCOL_SHA256 = "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6"
+_LEGACY_PROTOCOL_SHA256 = "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+_GROK_LLM = {
+    "provider": "openai",
+    "base_url": "http://192.168.3.27:8317/v1",
+    "model": "grok-4.5",
+    "provider_modalities": ["text", "image"],
+    "runtime_modalities": ["text"],
+    "reasoning_content_policy": {
+        "max_bytes": 65536,
+        "consumed": False,
+        "retained": False,
+    },
+    "temperature": 0.0,
+    "max_tokens": 4096,
+    "extra_body": {"thinking": {"type": "disabled"}},
+}
 _SUPERSEDED_LLM = {
     "provider": "openai",
     "base_url": "https://opencode.ai/zen/go/v1",
@@ -53,6 +70,23 @@ _SUPERSEDED_LLM = {
 _SUPERSEDED_BM012_CONTRACT_SHA256 = (
     "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d"
 )
+_PROTOCOL_HISTORY_LLM = {
+    _GROK_PROTOCOL_SHA256: _GROK_LLM,
+    _LEGACY_PROTOCOL_SHA256: _SUPERSEDED_LLM,
+}
+_PROTOCOL_HISTORY_PROVIDER_REVISION = {
+    _GROK_PROTOCOL_SHA256: "m4-grok-4.5-openai-compatible-v2",
+}
+_HISTORICAL_TASK_CONTRACT_SHA256 = {
+    _GROK_PROTOCOL_SHA256: {
+        "BM-012": "dd0712663de74f86654f9ff70ed01148e0ca09e6c2ada48a6c3aa689d60b44ee",
+        "BM-013": "98dd5b46f859343e7e96bda43a3b8b624099143037bf1208ffbfe3dc6f8f7ad0",
+        "BM-014": "1941a668a2ca3b0181ec0b32e3c17e2040ba74995e1d36a4d125ab92cf15354f",
+    },
+    _LEGACY_PROTOCOL_SHA256: {
+        "BM-012": _SUPERSEDED_BM012_CONTRACT_SHA256,
+    },
+}
 
 
 def canonical_sha256(value) -> str:
@@ -61,11 +95,16 @@ def canonical_sha256(value) -> str:
 
 
 def supported_protocol_sha256s() -> set[str]:
-    """Return the active protocol and its explicitly declared provider predecessor."""
+    """Return the active protocol and explicitly retained provider-only history."""
     values = {PROTOCOL_SHA256}
     predecessor = str(PROTOCOL.get("supersedes_protocol_sha256") or "").strip().lower()
     if predecessor:
         values.add(predecessor)
+    values.update(
+        str(value or "").strip().lower()
+        for value in PROTOCOL.get("historical_protocol_sha256s", [])
+        if str(value or "").strip()
+    )
     return values
 
 
@@ -215,29 +254,31 @@ def protocol_integrity_report() -> dict:
     issues = [name for name, value in expected.items() if str(PROTOCOL.get(name) or "") != value]
     if PROTOCOL.get("profile") != "m4-fixed-v1":
         issues.append("profile_mismatch")
-    predecessor = str(PROTOCOL.get("supersedes_protocol_sha256") or "").strip().lower()
-    replaying_predecessor = bool(predecessor and PROTOCOL_SHA256 == predecessor)
     llm = PROTOCOL.get("llm", {})
     if llm.get("provider") != "openai":
         issues.append("planner_provider_must_be_openai_compatible")
-    if replaying_predecessor:
-        if llm != _SUPERSEDED_LLM:
-            issues.append("predecessor_planner_mismatch")
-    else:
-        if PROTOCOL.get("provider_revision") != "m4-grok-4.5-openai-compatible-v2":
-            issues.append("provider_revision_mismatch")
-        if llm.get("model") != "grok-4.5":
-            issues.append("planner_model_mismatch")
-        if llm.get("provider_modalities") != ["text", "image"]:
-            issues.append("provider_modalities_mismatch")
-        if llm.get("runtime_modalities") != ["text"]:
-            issues.append("runtime_modalities_mismatch")
-        if llm.get("reasoning_content_policy") != {
-            "max_bytes": 65536,
-            "consumed": False,
-            "retained": False,
-        }:
-            issues.append("reasoning_content_policy_mismatch")
+    expected_provider_revision = _PROTOCOL_HISTORY_PROVIDER_REVISION.get(
+        PROTOCOL_SHA256,
+        "m4-gemini-3.6-flash-high-openai-compatible-v1",
+    )
+    expected_model = _PROTOCOL_HISTORY_LLM.get(
+        PROTOCOL_SHA256,
+        {"model": "gemini-3.6-flash-high"},
+    ).get("model")
+    if PROTOCOL.get("provider_revision") != expected_provider_revision:
+        issues.append("provider_revision_mismatch")
+    if llm.get("model") != expected_model:
+        issues.append("planner_model_mismatch")
+    if llm.get("provider_modalities") != ["text", "image"]:
+        issues.append("provider_modalities_mismatch")
+    if llm.get("runtime_modalities") != ["text"]:
+        issues.append("runtime_modalities_mismatch")
+    if llm.get("reasoning_content_policy") != {
+        "max_bytes": 65536,
+        "consumed": False,
+        "retained": False,
+    }:
+        issues.append("reasoning_content_policy_mismatch")
     if PROTOCOL.get("game_mode") != "survival":
         issues.append("survival_mode_required")
     if PROTOCOL.get("difficulty") == "peaceful":
@@ -1044,12 +1085,12 @@ def evaluate_m4_episode_for_protocol_hash(
     task_id: str,
     protocol_sha256: str,
 ) -> dict:
-    """Replay an episode against the active or declared predecessor protocol hash.
+    """Replay an episode against active or explicitly retained provider history.
 
-    The provider migration changes only LLM routing metadata. World, reset,
+    Provider migrations change only LLM routing metadata. World, reset,
     validation, task, and deadline contracts remain identical. Temporarily
-    rebinding the hash preserves independent replay for immutable historical
-    bundles without accepting arbitrary protocol revisions.
+    rebinding hashes and the matching historical LLM specification preserves
+    immutable Grok and legacy evidence without accepting arbitrary revisions.
     """
     global PROTOCOL_SHA256
     requested = str(protocol_sha256 or "").strip().lower()
@@ -1065,25 +1106,46 @@ def evaluate_m4_episode_for_protocol_hash(
     if requested == PROTOCOL_SHA256:
         return evaluate_m4_episode(events, result, preflight, manifest, task_id)
 
+    historical_llm = _PROTOCOL_HISTORY_LLM.get(requested)
+    if historical_llm is None:
+        report = evaluate_m4_episode(events, result, preflight, manifest, task_id)
+        report["issues"] = list(dict.fromkeys([
+            *report.get("issues", []),
+            "unsupported_protocol_sha256",
+        ]))
+        report["eligible"] = False
+        report["success"] = False
+        return report
+
     with _PROTOCOL_REPLAY_LOCK:
         active_sha256 = PROTOCOL_SHA256
         active_llm = PROTOCOL.get("llm")
-        # Only BM-012 existed under the declared predecessor protocol. Its
-        # immutable historical task contract is the sole contract that may be
-        # rebound while replaying that protocol.
-        contract = TASK_CONTRACTS_BY_ID.get(task_id) if task_id == "BM-012" else None
+        active_provider_revision = PROTOCOL.get("provider_revision")
+        historical_contract_sha256 = _HISTORICAL_TASK_CONTRACT_SHA256.get(
+            requested, {}
+        ).get(task_id)
+        contract = (
+            TASK_CONTRACTS_BY_ID.get(task_id)
+            if historical_contract_sha256
+            else None
+        )
         active_contract_base = contract.get("base_protocol_sha256") if contract else None
         active_contract_sha256 = TASK_CONTRACT_SHA256_BY_ID.get(task_id)
         try:
             PROTOCOL_SHA256 = requested
-            PROTOCOL["llm"] = dict(_SUPERSEDED_LLM)
+            PROTOCOL["llm"] = dict(historical_llm)
+            PROTOCOL["provider_revision"] = _PROTOCOL_HISTORY_PROVIDER_REVISION.get(
+                requested,
+                active_provider_revision,
+            )
             if contract is not None:
                 contract["base_protocol_sha256"] = requested
-                TASK_CONTRACT_SHA256_BY_ID[task_id] = _SUPERSEDED_BM012_CONTRACT_SHA256
+                TASK_CONTRACT_SHA256_BY_ID[task_id] = historical_contract_sha256
             return evaluate_m4_episode(events, result, preflight, manifest, task_id)
         finally:
             PROTOCOL_SHA256 = active_sha256
             PROTOCOL["llm"] = active_llm
+            PROTOCOL["provider_revision"] = active_provider_revision
             if contract is not None:
                 contract["base_protocol_sha256"] = active_contract_base
                 TASK_CONTRACT_SHA256_BY_ID[task_id] = active_contract_sha256

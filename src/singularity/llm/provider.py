@@ -110,8 +110,21 @@ class LLMProvider:
                                     "enum": ["planning", "complete", "blocked"],
                                 },
                                 "reasoning": {"type": "string"},
-                                "subtasks": {"type": "array"},
-                                "actions": {"type": "array"},
+                                "subtasks": {
+                                    "type": "array",
+                                    "items": {"type": "object"},
+                                },
+                                "actions": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {"type": "string"},
+                                            "parameters": {"type": "object"},
+                                        },
+                                        "required": ["type", "parameters"],
+                                    },
+                                },
                             },
                             "required": [
                                 "schema_version",

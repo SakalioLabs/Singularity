@@ -7,7 +7,9 @@ import json
 import subprocess
 from pathlib import Path
 
-from singularity.evaluation.m4_protocol import evaluate_m4_episode
+from singularity.evaluation.m4_protocol import (
+    evaluate_m4_episode_for_protocol_hash,
+)
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -136,12 +138,13 @@ def test_probe51_hashes_and_ineligible_result_recompute_exactly():
     preflight = _json(ROOT / paths["preflight"])
     manifest = _json(ROOT / paths["manifest"])
     saved = _json(ROOT / paths["eligibility"])
-    recomputed = evaluate_m4_episode(
+    recomputed = evaluate_m4_episode_for_protocol_hash(
         events,
         result,
         preflight,
         manifest,
         "BM-014",
+        saved["protocol_sha256"],
     )
 
     assert recomputed == saved

@@ -4,6 +4,8 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+from singularity.evaluation.m4_protocol import supported_protocol_sha256s
+
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = ROOT / "workspace" / "evals" / "m4_probe49_report.json"
@@ -138,12 +140,12 @@ def test_m4_probe49_report_binds_second_eligible_bm013_success():
         assert _sealed_evidence_sha256(ROOT / path, expected) == expected
 
     controls = report["frozen_controls"]
-    assert _sha256(
-        ROOT / "src" / "singularity" / "data" / "m4_protocol.json"
-    ) == controls["protocol_sha256"] == issued["protocol_sha256"]
-    assert _sha256(
-        ROOT / "src" / "singularity" / "data" / "m4_bm013_protocol.json"
-    ) == controls["task_contract_sha256"] == issued["task_contract_sha256"]
+    assert controls["protocol_sha256"] == issued["protocol_sha256"]
+    assert controls["protocol_sha256"] in supported_protocol_sha256s()
+    assert controls["task_contract_sha256"] == issued["task_contract_sha256"]
+    assert controls["task_contract_sha256"] == (
+        "98dd5b46f859343e7e96bda43a3b8b624099143037bf1208ffbfe3dc6f8f7ad0"
+    )
     assert controls["task_contract_id"] == "m4-bm013-smelting-contract-v1"
     assert controls["max_duration_s"] == 300
     assert controls["max_total_cycles"] == 320

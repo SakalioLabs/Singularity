@@ -9,7 +9,7 @@ param(
     [string]$Username = "Singularity",
     [int]$BridgePort = 30000,
     [string]$BaseUrl = "http://192.168.3.27:8317",
-    [string]$Model = "grok-4.5",
+    [string]$Model = "gemini-3.6-flash-high",
     [int]$ServerWaitSeconds = 240,
     [int]$BridgeWaitSeconds = 60
 )

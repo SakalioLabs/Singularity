@@ -23,7 +23,7 @@ from singularity.llm.provider import LLMProvider
 
 POLICY_ID = "iron-pickaxe-sp004-provider-recovery-gate-v1"
 DEFAULT_BASE_URL = "http://192.168.3.27:8317/v1"
-DEFAULT_MODEL = "grok-4.5"
+DEFAULT_MODEL = "gemini-3.6-flash-high"
 REQUEST_TIMEOUT_S = 15.0
 PROBE_GOAL = "SP-004 structured provider probe."
 EXPECTED_RESPONSE = {

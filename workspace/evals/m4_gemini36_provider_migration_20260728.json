@@ -1,0 +1,59 @@
+{
+  "type": "m4_provider_migration_gate",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-28T13:20:00Z",
+  "parent_commit": "f7e1b5e2477f14a273347b2bbaadff404b7b3bbe",
+  "old_provider_revision": "m4-grok-4.5-openai-compatible-v2",
+  "new_provider_revision": "m4-gemini-3.6-flash-high-openai-compatible-v1",
+  "provider": "openai_compatible",
+  "base_url": "http://192.168.3.27:8317/v1",
+  "model": "gemini-3.6-flash-high",
+  "provider_modalities": ["text", "image"],
+  "runtime_modalities": ["text"],
+  "protocol_sha256": "b436f1deb7af3569f5e297c0f5ad018e12edc31d164fd84b74524348b768a278",
+  "superseded_protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "task_contract_sha256": {
+    "BM-012": "4ece9ff1ed4fae9e0e0cbfdd02438e4151ab12e1f9f77d6acde5d644282ee2e8",
+    "BM-013": "768cdd2d57e04f5a8bcf0e4917383d1d292c00cfdadfc048966e2b82fe592dcc",
+    "BM-014": "87dabae4e016c0fe630107470bb57630930123f6eef8da3b8d1aa9bb81e10ca9"
+  },
+  "provider_probe_path": "workspace/evals/m4_gemini36_provider_probe_schemafix_r2_20260728.json",
+  "provider_probe_sha256": "f6bfbca76c64012f5d86331db51b8445058b9ab5f3cf4ff2a4dc7e01fa3a0677",
+  "provider_probe": {
+    "passed": true,
+    "attempt_count": 1,
+    "retry_count": 0,
+    "elapsed_s": 7.719,
+    "minecraft_process_started": false,
+    "counts_toward_m4": false
+  },
+  "source_sha256": {
+    "provider": "eb28102f37a27e57a21d9900750eabc2da6b3bc6b013d82f4bb8507818e0ad75",
+    "protocol_evaluator": "10e59d88a6e2127c2b2d4640701e071557c6704212880dedb2e1b8800bdb372f",
+    "live_observer": "1f6c76d18bbcd799e9ad4c905dd4412d24a1acc2540f7bbda4ed27788f3738e8",
+    "runtime": "469c0048006d4be131ef911a7967a71f5ef87a8cc8c7c1097ae42e70c1f4b216"
+  },
+  "validation": {
+    "provider_focused_tests_passed": 10,
+    "m4_tests_passed": 310,
+    "live_observer_self_check_passed": true,
+    "live_observer_unit_test_passed": true,
+    "historical_evidence_mutated": false
+  },
+  "canonical_progress_before_next_episode": {
+    "BM-011": {"eligible_successes": 3, "required": 3},
+    "BM-012": {"eligible_successes": 3, "required": 3},
+    "BM-013": {"eligible_successes": 3, "required": 3},
+    "BM-014": {
+      "attempts": 5,
+      "failures": 4,
+      "eligible_successes": 1,
+      "required": 3,
+      "remaining": 2
+    }
+  },
+  "operator_repair_asserted": true,
+  "wsl_inspection_performed": false,
+  "decision": "migration_validated_probe_56_requires_separate_published_one_use_authorization",
+  "probe_56_authorized": false
+}

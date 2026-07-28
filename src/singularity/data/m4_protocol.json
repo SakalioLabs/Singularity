@@ -2,9 +2,10 @@
   "type": "m4_fixed_protocol",
   "schema_version": 1,
   "profile": "m4-fixed-v1",
-  "provider_revision": "m4-grok-4.5-openai-compatible-v2",
-  "provider_revision_predecessor_sha256": "6e001440091ff1aa3ef73eb96bc764162254a9ad0a968d217e6ec79096d8e13b",
-  "supersedes_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "provider_revision": "m4-gemini-3.6-flash-high-openai-compatible-v1",
+  "provider_revision_predecessor_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "supersedes_protocol_sha256": "d870fe1df56e07de5fa15cc0b7cb137110cd5f54179e59bd124c8333893dd7b6",
+  "historical_protocol_sha256s": ["378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"],
   "minecraft_version": "1.20.4",
   "server_type": "Paper",
   "server_build": "paper-1.20.4-499",
@@ -20,7 +21,7 @@
   "llm": {
     "provider": "openai",
     "base_url": "http://192.168.3.27:8317/v1",
-    "model": "grok-4.5",
+    "model": "gemini-3.6-flash-high",
     "provider_modalities": ["text", "image"],
     "runtime_modalities": ["text"],
     "reasoning_content_policy": {

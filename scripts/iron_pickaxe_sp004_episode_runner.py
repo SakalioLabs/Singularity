@@ -25,7 +25,7 @@ from singularity.evaluation.iron_pickaxe_sp004_runtime import (
 
 
 DEFAULT_BASE_URL = "http://192.168.3.27:8317/v1"
-DEFAULT_MODEL = "grok-4.5"
+DEFAULT_MODEL = "gemini-3.6-flash-high"
 SP004_RUN_ROOT = REPOSITORY_ROOT / "workspace/evals/sp004_runs"
 
 
