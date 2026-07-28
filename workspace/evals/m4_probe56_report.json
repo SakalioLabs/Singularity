@@ -1,0 +1,93 @@
+{
+  "type": "m4_probe_report",
+  "schema_version": 1,
+  "probe_number": 56,
+  "task_id": "BM-014",
+  "provider_revision": "m4-gemini-3.6-flash-high-openai-compatible-v1",
+  "model": "gemini-3.6-flash-high",
+  "episode_id": "m4_episode_20260728_215527_f5f5f68a",
+  "session_id": "5654a5ea-702",
+  "level_name": "m4_episode_20260728_215527_f5f5f68a_bm014",
+  "authorization": {
+    "commit": "4d0232664601a72bf1983682d84c1eac3d29b74d",
+    "issued_sha256": "db509c1ceeb420e7633e420111d2c2517ba0c0ee303ce4035e3b4de4eb2d6461",
+    "consumed_event_line": 2,
+    "maximum_episode_count": 1,
+    "maximum_retry_count": 0,
+    "probe_57_authorized": false
+  },
+  "frozen_controls": {
+    "protocol_sha256": "b436f1deb7af3569f5e297c0f5ad018e12edc31d164fd84b74524348b768a278",
+    "task_contract_sha256": "87dabae4e016c0fe630107470bb57630930123f6eef8da3b8d1aa9bb81e10ca9",
+    "runtime_modalities": ["text"],
+    "visible_observer": true,
+    "observer_read_only": true,
+    "planner_retry_count": 0,
+    "proxy_retry_count": 0
+  },
+  "episode_result": {
+    "completed": false,
+    "termination_reason": "max_goals_or_stopped",
+    "elapsed_s": 282.922,
+    "deadline_eligible": true,
+    "health": 20,
+    "food": 20,
+    "goals_completed": 8,
+    "goals_failed": 16,
+    "action_count": 41,
+    "action_verification_accept_count": 41,
+    "error_count": 0
+  },
+  "eligibility": {
+    "eligible": false,
+    "success": false,
+    "issues": [
+      "event:terminal_task_verification",
+      "output_terminal_inventory_target",
+      "output_successful_source_actions",
+      "output_positive_inventory_delta",
+      "terminal_machine_verification",
+      "result_duration_eligible"
+    ],
+    "counts_toward_bm014_success": false,
+    "counts_toward_capability": false
+  },
+  "first_unrecovered_transition": {
+    "goal": "Smelt 3 iron ingots from 3 raw iron using coal",
+    "preconditions_present": {
+      "raw_iron": 3,
+      "coal": 1,
+      "furnace": 1
+    },
+    "attempts": 16,
+    "reason": "furnace placement withheld because no complete matching local snapshot candidate was available",
+    "classification": "furnace_local_snapshot_candidate_gap",
+    "provider_transport_failure": false
+  },
+  "evidence_dir": "logs/benchmarks/m4/m4_episode_20260728_215527_f5f5f68a",
+  "evidence_sha256": {
+    "preflight.json": "d21619961a1b1da9b24bb9a2fa99b6dfe1efa08546748dde38b15e612996131c",
+    "manifest.json": "73b2f04805af28af5b9bc9533d7c4774927c6fdaebb4d3420eb6d23d7b57494f",
+    "session.json": "4743c3b7a143ec7832550cb6cc754f14e2dfb8db354c1283829a596f6ff8cca3",
+    "session_5654a5ea-702.jsonl": "9cfed9199303121ae99f556f5e973a5f28daec859be3da9d14a18507642a55bc",
+    "session_5654a5ea-702_summary.json": "14ee461b609d002f021319eb49a6a1c4092c711f12a40d0bf5ea13f5f58cca68",
+    "result.json": "23509fcf94f9efa11c0a2012246d1feb41ecdd7a8c135dd41f19213a9fa8ce3c",
+    "eligibility.json": "06676a189193a1fcec0b36c87e287f978f742c1c972d2f7b7bb8ee44d2c0d2c2",
+    "preparation.json": "4ac51166f8790322276d03f35ad5339678dcc2e1cd8dd38cd26df28d7fd8dc6f",
+    "protocol_status.json": "b9938a8639c2260d84538e1a442cfdaf4c748f30af986f8f7f7db95c9dee98ad",
+    "reset.json": "0af8307e559806c67a8df1f60edefe0453706ad3a4c68e41fd2362ffdab8e7f5"
+  },
+  "canonical_progress_after_probe": {
+    "BM-014": {
+      "attempts": 6,
+      "failures": 5,
+      "eligible_successes": 1,
+      "required": 3,
+      "remaining": 2
+    }
+  },
+  "decision": {
+    "offline_repair_required": true,
+    "probe_57_authorized": false
+  }
+}
