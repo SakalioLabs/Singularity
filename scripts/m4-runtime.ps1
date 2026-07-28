@@ -14,7 +14,9 @@ param(
     [int]$MaxGoals = 24,
     [int]$MaxCycles = 40,
     [switch]$VisibleObserver,
-    [int]$ObserverPort = 30080
+    [int]$ObserverPort = 30080,
+    [switch]$WaitForGameObserver,
+    [int]$GameObserverWaitSeconds = 180
 )
 
 Set-StrictMode -Version Latest
@@ -98,6 +100,32 @@ function Wait-ForBridgeSession {
         $health = Get-BridgeHealth -HostName $HostName -Port $Port
         if ($health -and $health.success -eq $true -and $health.bot_ready -eq $true) { return $health }
         Start-Sleep -Seconds 1
+    }
+    return $null
+}
+
+function Wait-ForGameObserver {
+    param(
+        [string]$ServerLogPath,
+        [string]$AgentUsername,
+        [int]$TimeoutSeconds
+    )
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-Path -LiteralPath $ServerLogPath) {
+            $joinedPlayers = Get-Content -LiteralPath $ServerLogPath |
+                ForEach-Object {
+                    if ($_ -match ":\s+([A-Za-z0-9_]{1,16}) joined the game\s*$") {
+                        $Matches[1]
+                    }
+                } |
+                Where-Object { $_ -and $_ -ne $AgentUsername } |
+                Select-Object -Unique
+            if ($joinedPlayers) {
+                return [string]($joinedPlayers | Select-Object -First 1)
+            }
+        }
+        Start-Sleep -Milliseconds 500
     }
     return $null
 }
@@ -253,6 +281,14 @@ try {
     $bridgeProcess = Start-Process -FilePath "node" -ArgumentList $bridgeArgs -WorkingDirectory $repoRoot -RedirectStandardOutput $bridgeStdout -RedirectStandardError $bridgeStderr -WindowStyle Hidden -PassThru
     if (-not (Wait-ForBridgeSession "127.0.0.1" $BridgePort $BridgeWaitSeconds)) {
         throw "M4 runtime blocked: bridge did not report bot_ready=true."
+    }
+    if ($WaitForGameObserver) {
+        Write-Host "M4 start gate: waiting for a real Minecraft observer to join..."
+        $gameObserver = Wait-ForGameObserver -ServerLogPath $serverStdout -AgentUsername $Username -TimeoutSeconds $GameObserverWaitSeconds
+        if (-not $gameObserver) {
+            throw "M4 runtime blocked: no real Minecraft observer joined before the start gate timed out."
+        }
+        Write-Host "M4 start gate opened by observer: $gameObserver"
     }
     if ($VisibleObserver) {
         $observerStdout = Join-Path $runtimeLogRoot "m4_observer_${episodeId}.stdout.log"

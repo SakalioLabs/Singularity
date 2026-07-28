@@ -8,6 +8,7 @@ from singularity.action.verifier import ActionVerifier
 from singularity.core.goal_generator import GoalGenerator
 from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.planner import Planner
+from singularity.core.task_system import TaskSystem
 from singularity.evaluation.m4_protocol import PROTOCOL, PROTOCOL_SHA256
 
 
@@ -2047,3 +2048,202 @@ def test_bm013_bm014_terminal_verification_binds_task_inventory_connection_and_l
         agent.bot._connected = True
         wrong_goal = "Smelt an iron ingot" if task_id == "BM-014" else "Craft an iron pickaxe"
         assert not agent._m4_terminal_task_verification(task_id, wrong_goal, state)
+
+
+def test_joint_mining_route_collects_visible_coal_during_cobblestone_phase():
+    agent = _machine_agent("BM-014")
+    state = _observation(
+        {"wooden_pickaxe": 1, "cobblestone": 2},
+        [
+            {
+                "name": "stone",
+                "position": {"x": 3, "y": 64, "z": 0},
+                "distance": 3.0,
+            },
+            {
+                "name": "coal_ore",
+                "position": {"x": 1, "y": 64, "z": 0},
+                "distance": 1.0,
+            },
+        ],
+        held_item="wooden_pickaxe",
+    )
+
+    action, reason, target = agent._m4_bm013_bm014_joint_mining_action(
+        state,
+        state["inventory"],
+        "Gather 11 cobblestone for stone pickaxe and furnace",
+    )
+
+    assert action["type"] == "dig"
+    assert action["parameters"]["block"] == "coal_ore"
+    assert reason == "dig_joint_mining_coal_waypoint"
+    assert target["route"][0]["resource_kind"] == "coal"
+    assert {step["resource_kind"] for step in target["route"]} == {
+        "coal",
+        "cobblestone",
+    }
+    assert target["dynamic_replan_after_action"] is True
+    assert target["world_generation_prediction_used"] is False
+
+    plan = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        state,
+        "Gather 11 cobblestone for stone pickaxe and furnace",
+    )
+    assert plan["actions"][0] == action
+    assert plan["machine_step_plan"]["joint_mining_route_policy_id"] == (
+        "m4-bm013-bm014-joint-mining-route-v1"
+    )
+
+
+def test_joint_mining_route_uses_shortest_observed_order_for_coal_and_iron():
+    agent = _machine_agent("BM-014")
+    state = _observation(
+        {"stone_pickaxe": 1},
+        [
+            {
+                "name": "coal_ore",
+                "position": {"x": 2, "y": 64, "z": 0},
+                "distance": 2.0,
+            },
+            {
+                "name": "iron_ore",
+                "position": {"x": 10, "y": 64, "z": 0},
+                "distance": 10.0,
+            },
+        ],
+        held_item="stone_pickaxe",
+    )
+
+    action, reason, target = agent._m4_bm013_bm014_joint_mining_action(
+        state,
+        state["inventory"],
+        "Collect 3 raw iron from iron ore with the stone pickaxe",
+    )
+
+    assert action["type"] == "dig"
+    assert reason == "dig_joint_mining_coal_waypoint"
+    assert [step["resource_kind"] for step in target["route"]] == [
+        "coal",
+        "raw_iron",
+    ]
+    assert target["route_cost"] == 10.0
+
+
+def test_joint_mining_route_enforces_stone_pickaxe_hard_dependency_for_iron():
+    agent = _machine_agent("BM-014")
+    state = _observation(
+        {"wooden_pickaxe": 1, "coal": 1},
+        [{
+            "name": "iron_ore",
+            "position": {"x": 1, "y": 64, "z": 0},
+            "distance": 1.0,
+        }],
+        held_item="wooden_pickaxe",
+    )
+
+    action, reason, target = agent._m4_bm013_bm014_joint_mining_action(
+        state,
+        state["inventory"],
+        "Collect 3 raw iron from iron ore with the stone pickaxe",
+    )
+
+    assert action is None
+    assert reason == "joint_mining_requirements_already_satisfied"
+    assert target == {}
+
+
+def test_resource_scan_exposes_joint_dependency_and_route_context_to_planner():
+    agent = _machine_agent("BM-014")
+    agent.bot = SimpleNamespace(
+        get_nearby_blocks=lambda radius: [
+            {
+                "name": "coal_ore",
+                "position": {"x": 2, "y": 63, "z": 0},
+                "distance": 2.2,
+            },
+            {
+                "name": "iron_ore",
+                "position": {"x": 4, "y": 62, "z": 0},
+                "distance": 4.5,
+            },
+        ],
+    )
+    state = _observation({"wooden_pickaxe": 1, "cobblestone": 4})
+
+    enriched = agent._attach_m4_bm012_resource_scan(state)
+    context = enriched["m4_joint_mining_context"]
+
+    assert context["planning_semantics"] == (
+        "hard_prerequisites_plus_exchangeable_resource_waypoints"
+    )
+    assert context["currently_mineable"] == {
+        "cobblestone": True,
+        "coal": True,
+        "raw_iron": False,
+    }
+    assert context["outstanding"] == {
+        "cobblestone_for_toolchain": 7,
+        "coal_or_charcoal": 1,
+        "raw_iron_or_ingots": 3,
+    }
+    assert context["world_generation_prediction_used"] is False
+
+    planner = Planner(None, TaskSystem(), protocol="m4-fixed-v1")
+    planner._expected_plan_kind = "continuation"
+    prompt = planner._build_planning_prompt(
+        "Gather 11 cobblestone for stone pickaxe and furnace",
+        enriched,
+        "",
+    )
+    assert "Current M4 joint mining constraints and route objective" in prompt
+    assert "hard_prerequisites_plus_exchangeable_resource_waypoints" in prompt
+    assert "coal may be collected before or after the stone pickaxe" in prompt
+
+
+def test_smelt_plan_opens_one_observed_side_cell_when_furnace_has_no_place_cell():
+    agent = _machine_agent("BM-014")
+    state = _observation(
+        {
+            "stone_pickaxe": 1,
+            "raw_iron": 3,
+            "coal": 1,
+            "furnace": 1,
+        },
+        [
+            _table(),
+            {
+                "name": "stone",
+                "position": {"x": 0, "y": 64, "z": -1},
+                "distance": 1.0,
+            },
+        ],
+        held_item="stone_pickaxe",
+    )
+
+    plan = agent._m4_bm013_bm014_toolchain_machine_step_plan(
+        state,
+        "Smelt 3 iron ingots from 3 raw iron using coal",
+    )
+
+    assert plan["actions"] == [{
+        "type": "dig",
+        "parameters": {
+            "x": 0,
+            "y": 64,
+            "z": -1,
+            "block": "stone",
+            "preferred_tool": "stone_pickaxe",
+            "preferred_tool_policy_id": (
+                "m4-bm012-raw-iron-dig-stone-pickaxe-v1"
+            ),
+        },
+    }]
+    evidence = plan["machine_step_plan"]
+    assert evidence["reason"] == (
+        "dig_observed_side_cell_for_furnace_workspace"
+    )
+    assert evidence["workspace_clearance_policy_id"] == (
+        "m4-bm013-bm014-workspace-clearance-v1"
+    )
+    assert evidence["target"]["requires_fresh_snapshot_before_place"] is True

@@ -196,6 +196,13 @@ M4_BM013_BM014_COAL_SEARCH_BLOCKS = frozenset({
     "diorite",
     "tuff",
 })
+M4_BM013_BM014_JOINT_MINING_ROUTE_POLICY_ID = (
+    "m4-bm013-bm014-joint-mining-route-v1"
+)
+M4_BM013_BM014_JOINT_MINING_CANDIDATES_PER_RESOURCE = 4
+M4_BM013_BM014_WORKSPACE_CLEARANCE_POLICY_ID = (
+    "m4-bm013-bm014-workspace-clearance-v1"
+)
 M4_BM012_PLACE_REFERENCE_BLOCKS = frozenset({
     "grass_block",
     "dirt",
@@ -8911,21 +8918,33 @@ class Agent:
                 inventory,
             )
         elif goal_lower.startswith("gather 11 cobblestone"):
-            action, reason, target = self._m4_bm012_cobblestone_action(
+            action, reason, target = self._m4_bm013_bm014_joint_mining_action(
                 observation,
                 inventory,
-                required_count=11,
+                goal_text,
             )
+            if action is None:
+                action, reason, target = self._m4_bm012_cobblestone_action(
+                    observation,
+                    inventory,
+                    required_count=11,
+                )
         elif goal_lower.startswith("craft a stone pickaxe"):
             action, reason, target = self._m4_bm012_stone_pickaxe_action(
                 observation,
                 inventory,
             )
         elif goal_lower.startswith(("collect 1 raw iron", "collect 3 raw iron")):
-            action, reason, target = self._m4_bm012_raw_iron_action(
+            action, reason, target = self._m4_bm013_bm014_joint_mining_action(
                 observation,
                 inventory,
+                goal_text,
             )
+            if action is None:
+                action, reason, target = self._m4_bm012_raw_iron_action(
+                    observation,
+                    inventory,
+                )
             if (
                 isinstance(action, dict)
                 and action.get("type") == "move_to"
@@ -8942,10 +8961,16 @@ class Agent:
                         reclaim_target,
                     )
         elif goal_lower.startswith("collect 1 coal"):
-            action, reason, target = self._m4_bm013_bm014_coal_action(
+            action, reason, target = self._m4_bm013_bm014_joint_mining_action(
                 observation,
                 inventory,
+                goal_text,
             )
+            if action is None:
+                action, reason, target = self._m4_bm013_bm014_coal_action(
+                    observation,
+                    inventory,
+                )
             if (
                 isinstance(action, dict)
                 and action.get("type") == "move_to"
@@ -9100,6 +9125,18 @@ class Agent:
             "reason": reason,
             "action": copy.deepcopy(action),
             "target": copy.deepcopy(target),
+            "joint_mining_route_policy_id": (
+                M4_BM013_BM014_JOINT_MINING_ROUTE_POLICY_ID
+                if target.get("route_policy_id")
+                == M4_BM013_BM014_JOINT_MINING_ROUTE_POLICY_ID
+                else None
+            ),
+            "workspace_clearance_policy_id": (
+                M4_BM013_BM014_WORKSPACE_CLEARANCE_POLICY_ID
+                if target.get("policy_id")
+                == M4_BM013_BM014_WORKSPACE_CLEARANCE_POLICY_ID
+                else None
+            ),
             "inventory": self._m4_bm012_toolchain_inventory_snapshot(observation),
             "held_item": self._m4_bm012_held_item(observation),
             "table_nearby": self._m4_bm012_nearby_block_present(
@@ -9792,6 +9829,206 @@ class Agent:
             {},
         )
 
+    def _m4_bm013_bm014_joint_mining_action(
+        self,
+        observation: dict,
+        inventory: dict,
+        goal: str,
+    ) -> tuple[dict | None, str, dict]:
+        """Choose the next waypoint on a bounded, dynamically recomputed mining route.
+
+        The route distinguishes hard tool prerequisites from resource ordering.
+        Once a resource is mineable, cobblestone, coal, and iron are treated as
+        exchangeable route stops rather than forced serial phases.  Each cycle
+        solves a small exact route over at most one waypoint per outstanding
+        resource class, executes the first stop, then replans from fresh state.
+        """
+        observation = observation if isinstance(observation, dict) else {}
+        inventory = inventory if isinstance(inventory, dict) else {}
+        goal_lower = str(goal or "").strip().lower()
+        if not goal_lower.startswith((
+            "gather 11 cobblestone",
+            "collect 1 raw iron",
+            "collect 3 raw iron",
+            "collect 1 coal",
+        )):
+            return None, "joint_mining_goal_not_applicable", {}
+
+        wooden_pickaxe = self._m4_inventory_count(inventory.get("wooden_pickaxe"))
+        stone_pickaxe = self._m4_inventory_count(inventory.get("stone_pickaxe"))
+        if wooden_pickaxe < 1 and stone_pickaxe < 1:
+            return None, "joint_mining_pickaxe_missing", {}
+
+        task_id = str(getattr(self, "_m4_task_id", "") or "")
+        raw_iron_target = 1 if task_id == "BM-013" else 3
+        cobblestone = self._m4_inventory_count(inventory.get("cobblestone"))
+        fuel = (
+            self._m4_inventory_count(inventory.get("coal"))
+            + self._m4_inventory_count(inventory.get("charcoal"))
+        )
+        raw_iron = max(
+            self._m4_inventory_count(inventory.get("raw_iron")),
+            self._m4_inventory_count(inventory.get("iron_ingot")),
+        )
+
+        outstanding = []
+        if (
+            goal_lower.startswith("gather 11 cobblestone")
+            and stone_pickaxe < 1
+            and cobblestone < 11
+        ):
+            outstanding.append("cobblestone")
+        # Coal is deliberately available as an opportunity target while mining
+        # stone; unlike iron ore it has no stone-pickaxe hard prerequisite.
+        if fuel < 1:
+            outstanding.append("coal")
+        if stone_pickaxe >= 1 and raw_iron < raw_iron_target:
+            outstanding.append("raw_iron")
+        if not outstanding:
+            return None, "joint_mining_requirements_already_satisfied", {}
+
+        names_by_resource = {
+            "cobblestone": set(M4_BM012_COBBLESTONE_SOURCE_BLOCKS),
+            "coal": set(M4_BM013_BM014_COAL_SOURCE_BLOCKS),
+            "raw_iron": {"iron_ore", "deepslate_iron_ore"},
+        }
+        candidates_by_resource = {}
+        for resource in outstanding:
+            candidates = self._m4_bm012_block_candidates(
+                observation,
+                names_by_resource[resource],
+            )
+            if candidates:
+                candidates_by_resource[resource] = candidates[
+                    :M4_BM013_BM014_JOINT_MINING_CANDIDATES_PER_RESOURCE
+                ]
+        if not candidates_by_resource:
+            return None, "joint_mining_route_has_no_observed_resource", {}
+
+        player_position = (
+            observation.get("position", {})
+            if isinstance(observation.get("position"), dict)
+            else {}
+        )
+
+        def position_distance(left: dict, right: dict) -> float:
+            distance = self._m4_bm012_distance_from_player(left, right)
+            return distance if distance is not None else 999999.0
+
+        # Exact bounded route over the currently observed resource classes.
+        # Missing classes are not guessed from world generation; after the
+        # observed opportunities are consumed, normal search digs continue.
+        best_cost = 999999.0
+        best_route = []
+
+        def visit(
+            current_position: dict,
+            remaining: tuple[str, ...],
+            cost: float,
+            route: list[dict],
+        ):
+            nonlocal best_cost, best_route
+            if cost > best_cost:
+                return
+            if not remaining:
+                route_key = tuple(
+                    (
+                        str(item.get("resource_kind") or ""),
+                        int(item["position"]["x"]),
+                        int(item["position"]["y"]),
+                        int(item["position"]["z"]),
+                    )
+                    for item in route
+                )
+                best_key = tuple(
+                    (
+                        str(item.get("resource_kind") or ""),
+                        int(item["position"]["x"]),
+                        int(item["position"]["y"]),
+                        int(item["position"]["z"]),
+                    )
+                    for item in best_route
+                )
+                if cost < best_cost or (cost == best_cost and route_key < best_key):
+                    best_cost = cost
+                    best_route = list(route)
+                return
+            for resource in remaining:
+                next_remaining = tuple(
+                    item for item in remaining if item != resource
+                )
+                for candidate in candidates_by_resource.get(resource, []):
+                    waypoint = dict(candidate)
+                    waypoint["resource_kind"] = resource
+                    step_cost = position_distance(
+                        current_position,
+                        waypoint["position"],
+                    )
+                    visit(
+                        waypoint["position"],
+                        next_remaining,
+                        cost + step_cost,
+                        route + [waypoint],
+                    )
+
+        visit(
+            player_position,
+            tuple(sorted(candidates_by_resource)),
+            0.0,
+            [],
+        )
+        if not best_route:
+            return None, "joint_mining_route_solver_failed", {}
+
+        target = dict(best_route[0])
+        resource_kind = str(target["resource_kind"])
+        position = dict(target["position"])
+        target["route_policy_id"] = M4_BM013_BM014_JOINT_MINING_ROUTE_POLICY_ID
+        target["route_cost"] = round(best_cost, 3)
+        target["route"] = [
+            {
+                "resource_kind": str(item["resource_kind"]),
+                "name": str(item.get("name") or ""),
+                "position": dict(item["position"]),
+            }
+            for item in best_route
+        ]
+        target["outstanding_resources"] = list(outstanding)
+        target["observed_resource_classes"] = sorted(candidates_by_resource)
+        target["dynamic_replan_after_action"] = True
+        target["world_generation_prediction_used"] = False
+
+        preferred_tool = (
+            "stone_pickaxe"
+            if resource_kind == "raw_iron" or stone_pickaxe >= 1
+            else "wooden_pickaxe"
+        )
+        if self._m4_bm012_held_item(observation) != preferred_tool:
+            return (
+                {"type": "equip", "parameters": {"item": preferred_tool}},
+                f"equip_{preferred_tool}_for_joint_mining_route",
+                target,
+            )
+        if self._m4_bm012_block_distance(target) > 4.5:
+            return (
+                {"type": "move_to", "parameters": position},
+                f"move_to_joint_mining_{resource_kind}_waypoint",
+                target,
+            )
+        return (
+            {
+                "type": "dig",
+                "parameters": {
+                    **position,
+                    "block": str(target.get("name") or "stone"),
+                    "preferred_tool": preferred_tool,
+                    "preferred_tool_policy_id": M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID,
+                },
+            },
+            f"dig_joint_mining_{resource_kind}_waypoint",
+            target,
+        )
+
     def _m4_bm012_cobblestone_action(
         self,
         observation: dict,
@@ -10077,6 +10314,14 @@ class Agent:
                     else {}
                 )
                 if not reference:
+                    clearance = (
+                        self._m4_bm013_bm014_workspace_clearance_action(
+                            observation,
+                            inventory,
+                        )
+                    )
+                    if clearance[0] is not None:
+                        return clearance
                     return None, "furnace_place_reference_missing", {}
                 return (
                     {
@@ -10112,6 +10357,80 @@ class Agent:
             },
             f"smelt_exact_{count}_iron_ingot_batch_at_observed_furnace",
             furnace,
+        )
+
+    def _m4_bm013_bm014_workspace_clearance_action(
+        self,
+        observation: dict,
+        inventory: dict,
+    ) -> tuple[dict | None, str, dict]:
+        """Open one observed side cell for a portable workstation.
+
+        Underground routes can leave the player in a one-cell tunnel where the
+        crafting table occupies the only free side cell.  This bounded repair
+        clears one currently observed horizontal stone-family neighbor, then
+        requires a fresh local snapshot before any furnace placement.
+        """
+        observation = observation if isinstance(observation, dict) else {}
+        inventory = inventory if isinstance(inventory, dict) else {}
+        if self._m4_inventory_count(inventory.get("stone_pickaxe")) < 1:
+            return None, "workspace_clearance_stone_pickaxe_missing", {}
+        player_position = (
+            observation.get("position", {})
+            if isinstance(observation.get("position"), dict)
+            else {}
+        )
+        coordinates = [
+            self._m4_bm012_finite_float(player_position.get(axis))
+            for axis in ("x", "y", "z")
+        ]
+        if any(value is None for value in coordinates):
+            return None, "workspace_clearance_player_position_missing", {}
+        player_cell = {
+            "x": math.floor(coordinates[0]),
+            "y": math.floor(coordinates[1]),
+            "z": math.floor(coordinates[2]),
+        }
+        candidates = self._m4_bm012_block_candidates(
+            observation,
+            set(M4_BM013_BM014_COAL_SEARCH_BLOCKS),
+        )
+        candidates = [
+            block
+            for block in candidates
+            if block["position"]["y"] == player_cell["y"]
+            and (
+                abs(block["position"]["x"] - player_cell["x"])
+                + abs(block["position"]["z"] - player_cell["z"])
+            )
+            == 1
+        ]
+        if not candidates:
+            return None, "workspace_clearance_adjacent_stone_missing", {}
+        target = dict(candidates[0])
+        target["policy_id"] = M4_BM013_BM014_WORKSPACE_CLEARANCE_POLICY_ID
+        target["purpose"] = "reserve_local_furnace_place_cell"
+        target["requires_fresh_snapshot_before_place"] = True
+        preferred_tool = "stone_pickaxe"
+        if self._m4_bm012_held_item(observation) != preferred_tool:
+            return (
+                {"type": "equip", "parameters": {"item": preferred_tool}},
+                "equip_stone_pickaxe_for_workspace_clearance",
+                target,
+            )
+        position = dict(target["position"])
+        return (
+            {
+                "type": "dig",
+                "parameters": {
+                    **position,
+                    "block": str(target.get("name") or "stone"),
+                    "preferred_tool": preferred_tool,
+                    "preferred_tool_policy_id": M4_BM012_RAW_IRON_DIG_TOOL_POLICY_ID,
+                },
+            },
+            "dig_observed_side_cell_for_furnace_workspace",
+            target,
         )
 
     def _m4_bm013_bm014_stick_action(
@@ -11126,6 +11445,71 @@ class Agent:
                 existing_keys.add(key)
         if existing_grounded:
             enriched["grounded_resources"] = existing_grounded[:16]
+        inventory = (
+            enriched.get("inventory", {})
+            if isinstance(enriched.get("inventory"), dict)
+            else {}
+        )
+        task_id = str(getattr(self, "_m4_task_id", "") or "")
+        raw_iron_target = 1 if task_id == "BM-013" else 3
+        cobblestone = self._m4_inventory_count(inventory.get("cobblestone"))
+        coal = (
+            self._m4_inventory_count(inventory.get("coal"))
+            + self._m4_inventory_count(inventory.get("charcoal"))
+        )
+        raw_iron = max(
+            self._m4_inventory_count(inventory.get("raw_iron")),
+            self._m4_inventory_count(inventory.get("iron_ingot")),
+        )
+        wooden_pickaxe = self._m4_inventory_count(inventory.get("wooden_pickaxe"))
+        stone_pickaxe = self._m4_inventory_count(inventory.get("stone_pickaxe"))
+        enriched["m4_joint_mining_context"] = {
+            "schema_version": 1,
+            "policy_id": M4_BM013_BM014_JOINT_MINING_ROUTE_POLICY_ID,
+            "planning_semantics": (
+                "hard_prerequisites_plus_exchangeable_resource_waypoints"
+            ),
+            "hard_prerequisites": {
+                "cobblestone": ["wooden_pickaxe_or_better"],
+                "coal": ["wooden_pickaxe_or_better"],
+                "raw_iron": ["stone_pickaxe_or_better"],
+                "stone_pickaxe": [
+                    "3_cobblestone",
+                    "2_sticks",
+                    "crafting_table_access",
+                ],
+                "smelting": [
+                    f"{raw_iron_target}_raw_iron",
+                    "1_coal_or_charcoal",
+                    "furnace_access",
+                ],
+            },
+            "exchangeable_after_prerequisites": [
+                "cobblestone",
+                "coal",
+                "raw_iron",
+            ],
+            "ordering_guidance": (
+                "collect any currently mineable outstanding resource encountered "
+                "along the lowest-cost route; coal may be collected before or "
+                "after the stone pickaxe, while raw iron requires it"
+            ),
+            "outstanding": {
+                "cobblestone_for_toolchain": max(0, 11 - cobblestone),
+                "coal_or_charcoal": max(0, 1 - coal),
+                "raw_iron_or_ingots": max(0, raw_iron_target - raw_iron),
+            },
+            "currently_mineable": {
+                "cobblestone": wooden_pickaxe >= 1 or stone_pickaxe >= 1,
+                "coal": wooden_pickaxe >= 1 or stone_pickaxe >= 1,
+                "raw_iron": stone_pickaxe >= 1,
+            },
+            "route_objective": (
+                "minimize travel across observed resource waypoints and replan "
+                "after every action from fresh machine state"
+            ),
+            "world_generation_prediction_used": False,
+        }
         return enriched
 
     def _active_coach_policy(self):

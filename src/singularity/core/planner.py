@@ -1118,10 +1118,19 @@ Choose only the next grounded action and return contract-valid compact JSON now.
                 "nearest_iron_ore": resource_scan.get("nearest_iron_ore"),
                 "candidates": list(resource_scan.get("candidates", []) or [])[:8],
             }
+            joint_mining_context = (
+                observed_state.get("m4_joint_mining_context", {})
+                if isinstance(
+                    observed_state.get("m4_joint_mining_context", {}),
+                    dict,
+                )
+                else {}
+            )
             return f"""Exact autonomous goal: {goal}
 Plan kind: {self._expected_plan_kind}
 Current shelter machine state: {json.dumps(compact_shelter, sort_keys=True, default=str)}
 Current M4 resource scan: {json.dumps(compact_resource_scan, sort_keys=True, default=str)}
+Current M4 joint mining constraints and route objective: {json.dumps(joint_mining_context, sort_keys=True, default=str)}
 Current observed machine state: {json.dumps(observed_state, sort_keys=True, default=str)[:3000]}
 Planner context: {memory_context[:1000] if memory_context else 'none'}
 Honor exact item identifiers. Return a contract-valid JSON plan now."""
